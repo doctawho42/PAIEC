@@ -1,0 +1,10 @@
+# measurement-db is gated; fetch it with `python -m paiec.fetch`, do not commit it
+data/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+.idea/
+.venv/
+venv/

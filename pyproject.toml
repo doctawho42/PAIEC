@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paiec"
+version = "0.1.0"
+description = "Replica of the PAIEC streaming evaluator, plus the predictors measured against it"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    "pyarrow>=14.0",
+    "huggingface_hub>=0.20",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+include = ["paiec*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
