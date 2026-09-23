@@ -39,10 +39,20 @@ evaluation splits.
 | smoothed mean, Beta(2,2) | 0.2089 | 0.0011 |
 | own labels plus the attribute prior, no pooling | 0.204 | |
 | pooled difficulty plus the attribute prior | 0.1813 | 0.0017 |
+| the assembled run-time predictor, conservative order | 0.1898 | |
+| the same, if the evaluator interleaves budgets per pair | 0.1725 | |
 | oracle: the true per-item probability | 0.0433 | |
 
 The official baseline is worse than a constant at budget 1 (0.3734), because one
 label makes it predict 0 or 1.
+
+The two run-time figures are the same predictor scored under two readings of the
+evaluation order, and the gap between them is 0.0173. `paiec/evaluator.py` scores a
+pair at all six budgets before moving on, so a predictor that keeps state sees
+earlier pairs' full 31-label trajectories while it is still being scored at budget
+0. Whether the real evaluator does that or sweeps budget by budget is not
+documented. `experiments/order_sensitivity.py` measures both; quote 0.1898 until
+the organisers say which it is.
 
 ## What transfers between benchmarks, and what does not
 
@@ -131,6 +141,19 @@ measurement, so any difference below about 0.004 needs paired seeds to be readab
 measurement-db is gated, so it is not vendored here. Accept the terms on the dataset
 page with your own account first.
 
+## Performance
+
+`paiec/predict.py` scores all 221 pairs, 225,843 responses, in about two minutes.
+It was three orders of magnitude slower before one fix: every newly seen evaluation
+item invalidated the difficulty cache and triggered a full joint IRT refit, so
+matharena alone never finished. Items that arrive after the last fit now take their
+difficulty from the text map with no residual, which is what an unlabelled item's
+difficulty is anyway.
+
+The remaining cost is text embedding, and it is dominated by researchcodebench,
+whose items have a median length of 96,000 characters: 58 seconds for its 212 items
+against 12 seconds for matharena's 1,633.
+
 ## Open questions with the organisers
 
 Whether `labeled` carries labels from other subjects. The difference between 0.204
@@ -147,3 +170,6 @@ benchmarks sit at the top of that curve and the test ones almost certainly do no
 
 How Brier is computed on fraction-valued benchmarks such as mmdocrag, and whether
 they are in the test at all.
+
+Whether the evaluator scores a pair at every budget before moving to the next pair,
+or sweeps budget by budget. Worth 0.0173 to a predictor that keeps state.

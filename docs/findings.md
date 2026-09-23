@@ -35,12 +35,27 @@ multi_swebench.
 | smoothed mean Beta(2,2) | 0.2089 | 0.0011 |
 | own labels plus attribute prior, no pooling | 0.204 | |
 | pooled difficulty plus attribute prior | 0.1813 | 0.0017 |
+| assembled run-time predictor, conservative order | 0.1898 | |
+| the same, if budgets interleave per pair | 0.1725 | |
 
 The official baseline collapses at budget 1 to 0.3734: one label makes it predict
 0 or 1. Adding a Beta(2,2) prior to it, a one-line change, is worth 0.036.
 
 The two working levers compose almost additively. The attribute prior is worth
 +0.0042 +- 0.0010 paired; pooled difficulty is worth about 0.020.
+
+### Evaluation order is worth 0.017
+
+`python experiments/order_sensitivity.py`
+
+The replica scores a pair at all six budgets before moving to the next, so a
+stateful predictor is holding earlier pairs' full trajectories while being scored at
+budget 0. Under that order the run-time predictor reaches 0.1725; forced to sweep
+budget by budget, so that state cannot run ahead of the budget being scored, it
+reaches 0.1898. B0 moves from 0.2099 to 0.2334.
+
+Nothing in the published rules settles which order the evaluator uses. Until it is
+settled, 0.1898 is the number to plan with.
 
 ## What transfers between benchmarks
 

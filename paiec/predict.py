@@ -48,6 +48,9 @@ class BenchmarkState:
         self._z = None
         self._embedder = TextEmbedder(dim)
         self._emb = None
+        self._w = None          # text-to-difficulty map from the last joint fit
+        self._Sw = None         # its posterior covariance
+        self._bmean = 0.0
 
     def item(self, key, text):
         if key not in self.keys:
@@ -79,11 +82,16 @@ class BenchmarkState:
             self.obs.append(rec)
 
     def difficulty(self, lam_t=1.0, lam_w=64.0, lam_e=1.0):
-        """Standardised, variance-shrunk difficulty for every item seen."""
+        """Standardised, variance-shrunk difficulty for every item seen.
+
+        Items that turn up after the last joint fit take their difficulty from
+        the text map alone, with no residual, instead of forcing a refit.
+        Refitting on every newly seen evaluation item cost more than the whole
+        rest of the pipeline, and an unlabelled item's difficulty is w . x anyway.
+        """
         n_i, n_s = len(self.texts), max(len(self.subjects), 1)
-        fresh = self._z is not None and len(self._z) >= n_i
-        if fresh and len(self.obs) < 1.15 * self._fit_at + 6:
-            return self._z[:n_i]
+        if self._z is not None and len(self.obs) < 1.15 * self._fit_at + 6:
+            return self._z if len(self._z) >= n_i else self._extend(n_i, lam_e)
         if len(self.obs) < 8 or len({o[2] for o in self.obs}) < 2 or n_i < 4:
             self._z, self._fit_at = np.zeros(n_i), len(self.obs)
             return self._z
@@ -102,8 +110,21 @@ class BenchmarkState:
         Sw = np.linalg.inv(lam_w * np.eye(d) + Xo.T @ (Xo * s[:, None]) + 1e-9 * np.eye(d))
         veps = 1.0 / (lam_e + np.bincount(ji, weights=s, minlength=n_i))
         vb = np.einsum("ij,jk,ik->i", X, Sw, X) + veps
+        self._w, self._Sw, self._bmean = w, Sw, float(b.mean())
         self._z = -(b - b.mean()) / np.sqrt(1 + (np.pi / 8) * vb)
         self._fit_at = len(self.obs)
+        return self._z
+
+    def _extend(self, n_i, lam_e):
+        """Difficulty for items seen since the last fit, from the text map only."""
+        X = self._embeddings() if self._w is not None else None
+        if X is None or len(X) < n_i:
+            self._z = np.concatenate([self._z, np.zeros(n_i - len(self._z))])
+            return self._z
+        Xn = X[len(self._z):n_i]
+        bn = Xn @ self._w
+        vbn = np.einsum("ij,jk,ik->i", Xn, self._Sw, Xn) + 1.0 / lam_e
+        self._z = np.concatenate([self._z, -(bn - self._bmean) / np.sqrt(1 + (np.pi / 8) * vbn)])
         return self._z
 
 
