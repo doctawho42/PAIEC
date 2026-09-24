@@ -1,4 +1,10 @@
-"""Reference predictors, including a faithful copy of the official empirical mean."""
+"""Reference predictors, including a faithful copy of the official empirical mean.
+
+const, empirical_mean, smoothed_mean and pooled_anchor are pure functions of
+(input, labeled) in the official format: subjects match on their full dict,
+benchmarks on the item's anonymous benchmark_id. irt_predictor needs the private
+item keys of the legacy evaluator.
+"""
 import numpy as np
 
 sig = lambda x: 1 / (1 + np.exp(-x))
@@ -11,22 +17,35 @@ def const(v=0.5):
 
 
 def empirical_mean(input, labeled=None):
-    """Official baseline: successes / observations for this subject-benchmark pair."""
+    """The organisers' baseline (third_party/paiec_baseline/empirical_mean/model.py):
+    successes / observations over labels whose subject dict equals the target's
+    and whose benchmark_id matches, 0.5 without any. Unsmoothed, so one label
+    drives it to 0 or 1. Raises on the same malformed evidence as the original."""
     subject, item = input
     if not labeled:
         return 0.5
     bm = item.get("benchmark_id")
+    if not isinstance(bm, str) or not bm:
+        raise ValueError("The mean predictor requires an anonymous item benchmark_id.")
     s = n = 0
     for (osub, oitem), y in labeled:
-        if osub != subject or oitem.get("benchmark_id") != bm:
+        if osub != subject:
             continue
+        obm = oitem.get("benchmark_id")
+        if not isinstance(obm, str) or not obm:
+            raise ValueError("Acquired items must include an anonymous benchmark_id.")
+        if obm != bm:
+            continue
+        if y not in (0, 1):
+            raise ValueError("Acquired responses must be binary (0 or 1).")
         s += int(y)
         n += 1
     return float(s / n) if n else 0.5
 
 
 def smoothed_mean(prior_n=4.0, prior_p=0.5):
-    """The same thing with a Beta prior. The cheapest fix to the baseline's pathology."""
+    """The same thing with a Beta prior, Beta(2, 2) at the defaults. The cheapest
+    fix to the baseline's pathology."""
     def f(input, labeled=None):
         subject, item = input
         bm = item.get("benchmark_id")
@@ -36,6 +55,36 @@ def smoothed_mean(prior_n=4.0, prior_p=0.5):
                 continue
             s += int(y); n += 1
         return float((s + prior_n * prior_p) / (n + prior_n))
+    return f
+
+
+def pooled_anchor(tau=4.0, tau2=4.0, tau3=4.0):
+    """Own labels shrunk toward the benchmark's mean over every subject's labels.
+
+        p   = (k_sb + tau  * m_b) / (n_sb + tau)
+        m_b = (k_b  + tau2 * m_s) / (n_b  + tau2)    all subjects, this benchmark_id
+        m_s = (k_s  + tau3 * 0.5) / (n_s  + tau3)    this subject, any benchmark
+
+    The official protocol hands every target the labels of every pair in the
+    run, so a pair with one label of its own still sees dozens on its benchmark
+    and some on its subject elsewhere. The three strengths are untuned.
+    """
+    def f(input, labeled=None):
+        subject, item = input
+        bm = item.get("benchmark_id")
+        ksb = nsb = kb = nb = ks = ns = 0
+        for (osub, oitem), y in (labeled or []):
+            y = int(y)
+            same_s, same_b = osub == subject, oitem.get("benchmark_id") == bm
+            if same_b:
+                kb += y; nb += 1
+            if same_s:
+                ks += y; ns += 1
+                if same_b:
+                    ksb += y; nsb += 1
+        ms = (ks + tau3 * 0.5) / (ns + tau3)
+        mb = (kb + tau2 * ms) / (nb + tau2)
+        return float((ksb + tau * mb) / (nsb + tau))
     return f
 
 

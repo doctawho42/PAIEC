@@ -13,38 +13,81 @@ worse, which was measured.
 Two ways in, deliberately kept apart. `subject_frame` + `design` are what the
 experiments used and are frozen so their numbers stay reproducible. `Spec` +
 `design_row` are the run-time path, where there is one subject and no dataframe
-to take medians from, so the medians travel inside the spec.
+to take medians from, so the medians travel inside the spec. The submission
+ships this module, so pandas is imported only by the offline half.
 """
 import re
+from datetime import date
 
 import numpy as np
-import pandas as pd
 
 SIZE = re.compile(r"(\d+(?:\.\d+)?)\s*[bB]\b")
 SMALL = re.compile(r"(mini|flash|nano|lite|small|tiny|8b|7b|3b|1\.5b|4b)", re.I)
 BIG = re.compile(r"(opus|ultra|pro\b|large|405b|70b|72b|235b|671b)", re.I)
 THINK = re.compile(r"(think|reason|r1\b|o[134]\b|preview)", re.I)
+ISO = re.compile(r"(\d{4})(?:-(\d{1,2})(?:-(\d{1,2})(?:[T ][\d:.]*(?:Z|[+-]\d{2}:?\d{2})?)?)?)?")
+EPOCH = date(2023, 1, 1)
+
+
+def days_since_2023(text) -> float:
+    """Days from 2023-01-01 to a release date, or nan when there is none.
+
+    The public data hold ISO dates only (YYYY-MM-DD, YYYY-MM, empty), parsed here
+    to the same day pandas.to_datetime gives, since the run-time predictor cannot
+    count on pandas. Any other form goes to pandas when it is installed. A time
+    zone is dropped rather than, as before, making the subtraction raise.
+    """
+    text = text.strip() if isinstance(text, str) else ""
+    if not text:
+        return np.nan
+    m = ISO.fullmatch(text)
+    if m:
+        try:
+            return (date(int(m[1]), int(m[2] or 1), int(m[3] or 1)) - EPOCH).days
+        except ValueError:
+            return np.nan
+    try:
+        import pandas as pd
+        rd = pd.to_datetime(text, errors="coerce")
+        if pd.isna(rd):
+            return np.nan
+        return (rd.tz_localize(None) - pd.Timestamp(EPOCH)).days
+    except Exception:
+        return np.nan
+
+
+def _field(subject: dict, key: str) -> str:
+    """A field as text: the official fields are strings, and anything else is
+    read as its str() rather than making the whole prior fail."""
+    v = subject.get(key)
+    if isinstance(v, str):
+        return v
+    try:
+        return "" if v is None else str(v)
+    except Exception:
+        return ""
 
 
 def attrs(subject: dict) -> dict:
     """Attribute dictionary for one subject, from the fields the evaluator gives."""
-    name = f"{subject.get('normalized_name', '')} {subject.get('subject_features_extra', '')}"
+    name = f"{_field(subject, 'normalized_name')} {_field(subject, 'subject_features_extra')}"
     m = SIZE.search(name)
-    rd = pd.to_datetime(subject.get("release_date") or "", errors="coerce")
+    days = days_since_2023(subject.get("release_date"))
     return dict(
-        provider=(subject.get("provider") or "").strip().lower() or "unknown",
-        has_date=int(pd.notna(rd)),
-        days=(rd - pd.Timestamp("2023-01-01")).days if pd.notna(rd) else np.nan,
+        provider=_field(subject, "provider").strip().lower() or "unknown",
+        has_date=int(days == days),
+        days=days,
         log_size=np.log1p(float(m.group(1))) if m else np.nan,
         has_size=int(bool(m)),
         small=int(bool(SMALL.search(name))), big=int(bool(BIG.search(name))),
         think=int(bool(THINK.search(name))),
-        effort=(subject.get("reasoning_effort") or "").strip().lower() or "none",
-        harness=int(bool((subject.get("harness") or "").strip())),
+        effort=_field(subject, "reasoning_effort").strip().lower() or "none",
+        harness=int(bool(_field(subject, "harness").strip())),
     )
 
 
 def subject_frame(pairs):
+    import pandas as pd
     rows = []
     for p in pairs:
         y = np.array([r.label for r in p.responses], float)

@@ -8,3 +8,14 @@ __pycache__/
 .idea/
 .venv/
 venv/
+
+# credentials
+.env
+.env.*
+!.env.example
+
+# organisers baseline (no license; cloned for the official validator and streaming client)
+third_party/
+
+# written by tools/build_submission.py from the gated data; rebuild instead of committing
+submission/prior.json

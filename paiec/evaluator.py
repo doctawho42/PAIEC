@@ -1,4 +1,10 @@
-"""Replica of the PAIEC streaming evaluator.
+"""Replica of the PAIEC streaming evaluator. LEGACY: pair-major.
+
+Superseded by paiec/official.py, which follows the organisers' streaming client:
+budget-major scoring, one shared `labeled` across all pairs of a run, fresh
+predictor instances per checkpoint. This module stays unchanged so the numbers
+in docs/findings.md remain reproducible; they are not comparable with
+paiec.official (see docs/protocol.md).
 
 Protocol, as published on aimslab.stanford.edu/competition and as implied by the
 baseline repository:

@@ -10,19 +10,23 @@ is what the pooled logistic regression could not do: there, a label from a stron
 model and a label from a weak one counted the same.
 
 MAP by L-BFGS. Parameters: n_subjects + dim + n_items.
+
+The submission ships this module, so at module level it imports numpy only.
+scipy and scikit-learn are imported where they are used: without them the
+run-time predictor must still import and fall back to a difficulty of zero, and
+every evaluation worker re-imports the archive, which should stay cheap.
 """
-import numpy as np
 from collections import defaultdict
-from scipy.optimize import minimize
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import TruncatedSVD
-from sklearn.preprocessing import StandardScaler
-from paiec import evaluator as E
+
+import numpy as np
 
 sig = lambda x: 1 / (1 + np.exp(-x))
 
 
 def text_embeddings(texts, dim=128, seed=0):
+    from sklearn.decomposition import TruncatedSVD
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.preprocessing import StandardScaler
     v = TfidfVectorizer(ngram_range=(1, 2), min_df=2, sublinear_tf=True,
                         strip_accents="unicode", max_features=200000)
     X = v.fit_transform(texts)
@@ -32,6 +36,7 @@ def text_embeddings(texts, dim=128, seed=0):
 
 
 def fit_joint(si, ji, y, X, n_s, n_i, lam_t=1.0, lam_w=1.0, lam_e=5.0):
+    from scipy.optimize import minimize
     d = X.shape[1]
 
     def obj(p):
@@ -56,6 +61,9 @@ def fit_joint(si, ji, y, X, n_s, n_i, lam_t=1.0, lam_w=1.0, lam_e=5.0):
 
 
 def evaluate(pairs, traj, dim=128, lam_e=5.0, lam_t=1.0, lam_w=1.0, seed=0):
+    """Pooled IRT scored on the replica. Offline only: the evaluator it imports is
+    not in the submission archive (tools/build_submission.py OFFLINE_ONLY)."""
+    from paiec import evaluator as E
     by_b = defaultdict(list)
     for p in pairs:
         by_b[p.benchmark_id].append(p)
@@ -127,6 +135,8 @@ class TextEmbedder:
         self.svd = TruncatedSVD(d, random_state=self.seed)
         Z = self.svd.fit_transform(X)
         self.scaler = StandardScaler().fit(Z)
+        # older scikit-learn keeps every pruned n-gram here; transform never reads it
+        self.vec.__dict__.pop("stop_words_", None)
         return self.scaler.transform(Z)
 
     def transform(self, texts):

@@ -1,7 +1,9 @@
-numpy>=1.24
-pandas>=2.0
-scipy>=1.10
-scikit-learn>=1.3
-pyarrow>=14.0
-huggingface_hub>=0.20
-pytest>=7.0
+# Run-time requirements of the submission; tools/build_submission.py ships this file.
+# Codabench does not install extra packages by default, so nothing is pinned: a pin
+# the preinstalled version misses could only trigger an install that is not allowed.
+# Only numpy is required. Without scipy or scikit-learn the predictor keeps the
+# attribute prior and the subject's own labels and drops the item-difficulty model.
+# Development dependencies are in pyproject.toml: pip install -e ".[dev]"
+numpy
+scipy
+scikit-learn

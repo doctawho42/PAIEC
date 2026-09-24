@@ -8,7 +8,7 @@ import os
 
 import pandas as pd
 
-from paiec.evaluator import Pair, Response
+from paiec.evaluator import Pair, Response, stable_hash
 
 #: where the measurement-db tables live; override with PAIEC_DATA
 DATA_DIR = os.environ.get(
@@ -19,6 +19,7 @@ BINARY = ["matharena", "multi_swebench", "real_webagents", "researchcodebench", 
 FRACTIONAL = ["mmdocrag"]
 SUBJECT_FIELDS = ["normalized_name", "provider", "release_date", "access_date",
                   "harness", "harness_version", "reasoning_effort", "subject_features_extra"]
+ITEM_FIELDS = ["item_content", "item_features", "interactors", "benchmark_id"]
 
 
 def _clean(v):
@@ -54,3 +55,25 @@ def load_pairs(benchmarks=None, min_items=80, drop_nonbinary=True):
             pairs.append(Pair(subject=subject, subject_id=str(sid),
                               benchmark_id=str(bid), responses=responses))
     return pairs
+
+
+def anon_id(kind, name):
+    """Stable anonymous id in the platform's style, e.g. benchmark_274926.
+
+    A pure function of the name, so ids are permanent across runs and processes
+    like the platform's, and the real name never has to reach predict()."""
+    return f"{kind}_{100000 + stable_hash('anon', kind, name) % 900000}"
+
+
+def official_subject(subject):
+    """The subject exactly as predict() receives it: eight string fields and
+    nothing else, so private keys such as _sid cannot leak into a predictor."""
+    return {f: _clean(subject.get(f)) for f in SUBJECT_FIELDS}
+
+
+def official_item(item, benchmark_id):
+    """The item exactly as predict() receives it; `benchmark_id` must already be
+    anonymous (see anon_id)."""
+    out = {f: _clean(item.get(f)) for f in ITEM_FIELDS[:3]}
+    out["benchmark_id"] = benchmark_id
+    return out
