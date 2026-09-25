@@ -108,24 +108,35 @@ def stream(pair, acq_keys, seed=0):
 
 # --- what one run contains ----------------------------------------------------
 
+WEIGHTINGS = ("benchmark", "pair")
+
+
 def sample_run(pairs, rng, *, cap=CAP, n_pairs=None, concentration=0.0,
-               subject_affinity=0.0, alloc="proportional", min_items=MIN_ITEMS):
+               subject_affinity=0.0, alloc="proportional", min_items=MIN_ITEMS,
+               weighting="benchmark"):
     """Draw the pairs and items of one formative run: [(pair, frozenset of item keys)].
 
     A run holds at most `cap` unique subject-item pairs across both pools and
     every pair keeps >= min_items items, so it has at most cap // min_items
     pairs; `n_pairs` defaults to a draw from 5..12. Pairs are drawn one at a
-    time: first a benchmark, weighted 1 + concentration * (pairs already drawn
-    from it), so 0 spreads the run over benchmarks and a large value piles it
-    onto one; then a pair of that benchmark, weighted 1 + subject_affinity *
-    (subject already drawn), which sets how often a subject recurs on several
-    benchmarks. If the pairs hold more than `cap` items, each keeps a uniform
-    random subset of min(n, max(min_items, t*w)) items with the largest t that
-    fits, w being the pair's size ('proportional') or 1 ('equal'). The site's
-    illustrative feedback (5 pairs, 4 subjects, 4 benchmarks, 46-181 evaluated
-    items per pair, about 960 items in all) looks like proportional cuts that
-    fill the cap.
+    time. With weighting='benchmark' (the default): first a benchmark,
+    weighted 1 + concentration * (pairs already drawn from it), so 0 spreads
+    the run over benchmarks and a large value piles it onto one; then a pair
+    of that benchmark, weighted 1 + subject_affinity * (subject already
+    drawn), which sets how often a subject recurs on several benchmarks. With
+    weighting='pair' every remaining pair is drawn directly, weighted by the
+    product of the same two factors, so at the defaults pairs are uniform and
+    a benchmark enters a run in proportion to its number of pairs (a
+    single-pair benchmark rarely). Which one the organisers use is unknown;
+    'benchmark' keeps earlier runs reproducible. If the pairs hold more than
+    `cap` items, each keeps a uniform random subset of min(n, max(min_items,
+    t*w)) items with the largest t that fits, w being the pair's size
+    ('proportional') or 1 ('equal'). The site's illustrative feedback (5
+    pairs, 4 subjects, 4 benchmarks, 46-181 evaluated items per pair, about
+    960 items in all) looks like proportional cuts that fill the cap.
     """
+    if weighting not in WEIGHTINGS:
+        raise ValueError(f"weighting must be one of {WEIGHTINGS}, got {weighting!r}")
     pool = eligible(pairs, min_items)
     if n_pairs is None:
         n_pairs = int(rng.integers(5, 13))
@@ -134,13 +145,19 @@ def sample_run(pairs, rng, *, cap=CAP, n_pairs=None, concentration=0.0,
     left, chosen = list(range(len(pool))), []
     for _ in range(min(n_pairs, len(pool))):
         drawn = Counter(pool[i].benchmark_id for i in chosen)
-        benches = sorted({pool[i].benchmark_id for i in left})
-        w = np.array([1.0 + concentration * drawn[b] for b in benches])
-        b = benches[rng.choice(len(benches), p=w / w.sum())]
-        cand = [i for i in left if pool[i].benchmark_id == b]
         subjects = {pool[i].subject_id for i in chosen}
-        w = np.array([1.0 + subject_affinity * (pool[i].subject_id in subjects) for i in cand])
-        pick = cand[rng.choice(len(cand), p=w / w.sum())]
+        if weighting == "pair":
+            w = np.array([(1.0 + concentration * drawn[pool[i].benchmark_id])
+                          * (1.0 + subject_affinity * (pool[i].subject_id in subjects))
+                          for i in left])
+            pick = left[rng.choice(len(left), p=w / w.sum())]
+        else:
+            benches = sorted({pool[i].benchmark_id for i in left})
+            w = np.array([1.0 + concentration * drawn[b] for b in benches])
+            b = benches[rng.choice(len(benches), p=w / w.sum())]
+            cand = [i for i in left if pool[i].benchmark_id == b]
+            w = np.array([1.0 + subject_affinity * (pool[i].subject_id in subjects) for i in cand])
+            pick = cand[rng.choice(len(cand), p=w / w.sum())]
         chosen.append(pick)
         left.remove(pick)
     picked = [pool[i] for i in chosen]

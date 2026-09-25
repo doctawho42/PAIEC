@@ -369,3 +369,254 @@ conditional on the organisers' entry being the empirical mean: the hidden test's
 base rates are then more extreme than the public ones. Under such rates the
 Predictor would land about 0.01 below the organisers' entry and about 0.05 above
 the best.
+
+## Hierarchical model
+
+`python experiments/hier_eval.py --jobs 8 --skip 'r2|researchcodebench|pair|hier t3 level'`
+(2 h 16 min on eight processes of a machine shared with other jobs, in four
+resumed invocations; every number below is in `results/hier_eval.json`)
+
+`paiec/hier.py` is a hierarchical Bayesian predictor, eta = mu_b + theta_s +
+delta_sb - g_i - e_i, fitted per checkpoint from `labeled` alone: a benchmark
+level shared by every subject on it, which the Predictor does not read, an
+attribute prior on the subject, item_features group effects and an integrated
+item residual. Its prior and hyperparameters come from `paiec/prior.py`. This
+section measures it under the official protocol against the shipped Predictor
+and the smoothed mean, on identical runs.
+
+**Leave-one-benchmark-out.** The primary line is target-LOBO: for every
+benchmark of a run, the subject prior and the empirical-Bayes hyperparameters
+are fitted without that benchmark (`prior.build(pairs, (b,))`), and the model
+factory dispatches on the anonymous `benchmark_id`, so predict never sees a
+name. The Predictor gets its attribute prior the same way (its "target-LOBO
+prior" line above). Strict run-LOBO, everything fitted without every benchmark
+of the run, is reported for the main configurations on the primary setting.
+
+**Runs.** R1 draws formative-like runs under two pair weightings,
+benchmark-first (`sample_run`'s default and the runs above) and pair-uniform
+(`sample_run(weighting='pair')`, new: every remaining pair equally likely, so a
+run holds 3.4 benchmarks instead of 4.4, matharena and multi_swebench are in
+97-99% of runs and swe_rebench in 5% instead of 88%), and scores each under
+split scope 'pair' and 'benchmark'. The smoothed mean, the Predictor and hier
+score runs 0 to 299 of all four settings. On the primary setting
+(benchmark-first, scope 'pair') strict run-LOBO and seven ablations score runs
+0 to 149, and the five costly ones (Student-t level, text term, linking off and
+two link weights) and four sensitivities runs 0 to 99. R2 is dense
+real_webagents and researchcodebench under both scopes. Standard errors: over
+runs, and a pair-cluster bootstrap (2,000 resamples of the pairs that appear;
+a pair's appearances contribute its ALC difference over the run's size),
+written "± run SE / pair-cluster SE".
+Neither covers variation between benchmarks, so a benchmark-level line weights
+the five benchmarks equally and takes the SE across them.
+
+What was cut to stay near two hours, with other jobs holding the machine at a
+load average of 100 to 200: ablations under pair weighting and under split
+scope 'benchmark'; strict run-LOBO outside the primary setting and beyond 150
+runs; 100 rather than 150 runs for the costly ablations and the
+sensitivities; dense matharena and multi_swebench (tens of minutes per
+configuration; the dense multi_swebench gap that motivated the model is
+therefore not re-measured here); and the Student-t level on dense
+researchcodebench under scope 'pair' (its benchmark-scope twin took 35 minutes).
+An identity-prior ablation was started and dropped for time.
+
+### Against the Predictor (R1, 300 runs per setting)
+
+| weighting, split scope | Predictor - smoothed | hier - smoothed | hier - Predictor | 95% (pair-cluster) | benchmark level | ECE-ALC Predictor / hier |
+|---|---|---|---|---|---|---|
+| benchmark-first, pair (primary) | -0.0067 ± 0.0003 / 0.0013 | -0.0091 ± 0.0005 / 0.0021 | -0.0024 ± 0.0004 / 0.0013 | [-0.0047, +0.0002] | -0.0013 ± 0.0028 (3 of 5) | 0.1375 / 0.1483 |
+| benchmark-first, benchmark | -0.0056 ± 0.0003 / 0.0012 | -0.0067 ± 0.0005 / 0.0021 | -0.0010 ± 0.0003 / 0.0014 | [-0.0035, +0.0017] | -0.0001 ± 0.0026 (2 of 5) | 0.1254 / 0.1391 |
+| pair-uniform, pair | -0.0072 ± 0.0003 / 0.0010 | -0.0090 ± 0.0005 / 0.0013 | -0.0017 ± 0.0004 / 0.0008 | [-0.0033, -0.0002] | -0.0000 ± 0.0027 (2 of 5) | 0.1415 / 0.1521 |
+| pair-uniform, benchmark | -0.0059 ± 0.0003 / 0.0010 | -0.0074 ± 0.0005 / 0.0013 | -0.0015 ± 0.0003 / 0.0008 | [-0.0030, +0.0000] | -0.0002 ± 0.0021 (2 of 5) | 0.1310 / 0.1411 |
+
+ALC on the primary setting: smoothed 0.2149 ± 0.0011, Predictor 0.2082 ±
+0.0013, hier 0.2058 ± 0.0015. "Benchmark level" is the mean, over the five
+benchmarks, of hier's difference per pair appearance, with the SE across them
+and the number of benchmarks where hier is ahead. The Predictor's own margin
+over the smoothed mean holds at that level too (-0.0059 ± 0.0024 on the
+primary setting, ahead on 4 of 5).
+
+hier is ahead of the Predictor on every setting when pairs are pooled, by
+0.0010 to 0.0024, and between 0.7 and 2.1 pair-cluster SEs. The edge comes
+from two benchmarks: per pair appearance on the primary setting,
+multi_swebench -0.0056 ± 0.0012 and real_webagents -0.0079 ± 0.0028, where the
+level shared by the run's other subjects is informative; researchcodebench
+-0.0021 ± 0.0013, matharena +0.0010 ± 0.0014, and the single swe_rebench pair
++0.0081 (one pair, no SE). With the five benchmarks weighted equally the
+difference is nil on three settings and -0.0013 ± 0.0028 on the fourth. By
+budget, hier gains at B7 to B31 (-0.0007, -0.0011 and -0.0004 of ALC on the
+primary setting, pair-cluster SEs 0.0001 to 0.0002), where the pooled level
+and the group effects have labels to read, and ties or loses at B0 to B3 (B1
++0.0003 and +0.0007, SE 0.0006, benchmark-first; B0 and B1 +0.0004 ± 0.0003
+each, pair-uniform). Its ECE-ALC is about 0.010 to 0.014 worse than the
+Predictor's on every setting, close to the smoothed mean's. No run of any configuration
+fell back; two strict run-LOBO fits did not converge.
+
+### Ablations and sensitivities (primary setting)
+
+Each option alone, against hier's default on the same runs:
+
+| option | runs | minus default | where |
+|---|---|---|---|
+| attribute prior off | 150 | +0.0039 ± 0.0003 / 0.0009 | B0 +0.0016, B1 +0.0014, B3 +0.0006 |
+| level pooling off (a level per pair) | 150 | +0.0012 ± 0.0003 / 0.0004 | B1 +0.0004, B3 +0.0006 |
+| pair deviation off | 150 | +0.0001 ± 0.0001 / 0.0001 | |
+| feature groups off | 150 | +0.0017 ± 0.0002 / 0.0003 | B7 to B31; ECE-ALC 0.0106 better |
+| linking off | 100 | +0.0000 ± 0.0000 / 0.0000 | |
+| relink 0.1 | 100 | -0.0000 ± 0.0000 / 0.0000 | |
+| relink 0.3 | 100 | -0.0001 ± 0.0000 / 0.0000 | |
+| Student-t level (nu 3) | 100 | -0.0005 ± 0.0001 / 0.0002 | B1 -0.0002, B3 -0.0002; 18.9 ms a call |
+| line off (Laplace) | 150 | -0.0007 ± 0.0001 / 0.0003 | B1 -0.0004, B3 -0.0003; 1.6 ms a call |
+| hard floor (guess 1; default 0.5) | 150 | +0.0001 ± 0.0000 / 0.0000 | |
+| level centre 0 instead of the mean | 150 | +0.0011 ± 0.0003 / 0.0007 | matharena -0.0039, multi_swebench and real_webagents +0.004 |
+| text term on | 100 | +0.0002 ± 0.0001 / 0.0001 | |
+| sigma_mu x0.5 | 100 | -0.0021 ± 0.0003 / 0.0008 | B1 -0.0011, B3 -0.0008 |
+| sigma_mu x2 | 100 | +0.0049 ± 0.0004 / 0.0015 | B1 +0.0032, B3 +0.0013 |
+| sigma_delta x0.5 | 100 | -0.0004 ± 0.0003 / 0.0007 | |
+| sigma_delta x2 | 100 | +0.0060 ± 0.0004 / 0.0013 | B1 +0.0029, B3 +0.0020 |
+
+The attribute prior, the pooled level and the feature groups each pull their
+weight; the pair deviation, linking (at any weight up to 0.3), the floor's
+guess and the text term do nothing measurable at formative size. Linking
+cannot matter much here: a subject rarely appears on two benchmarks of one run.
+
+Sixteen options were compared with the default on the same runs. Two beat it
+by more than two pair-cluster SEs: the Laplace fit without the line (2.2 SEs)
+and the Student-t level (2.8 SEs, 100 runs). Both are below 0.001 ALC, both
+act at B1 and B3, neither clears a Bonferroni bar for sixteen comparisons
+(about 2.95 SEs), and the Student-t level costs seven times the default's time
+a call. The default stays. The sensitivities, which are not a selection, point
+the same way as those two: the model reacts too strongly to a run's first
+labels. Halving sigma_mu gains 0.0021 and doubling either width loses 0.005 to
+0.006, nearly all of it at B1 and B3. The widths were widened on purpose
+(prior.WIDEN, 1.44 and 1.4) against hidden benchmarks whose base rates look more
+extreme than the public ones (see "Against the live leaderboard"), so a
+narrower prior scoring better on public runs is not by itself a reason to
+narrow it.
+
+### One benchmark, every pair (R2)
+
+| benchmark, split scope | smoothed | Predictor | hier | hier - Predictor | ECE-ALC Predictor / hier |
+|---|---|---|---|---|---|
+| real_webagents, pair | 0.2139 | 0.1891 | 0.1853 | -0.0038 ± 0.0023 | 0.1697 / 0.1657 |
+| real_webagents, benchmark | 0.2072 | 0.1959 | 0.1858 | -0.0101 ± 0.0033 | 0.1230 / 0.1305 |
+| researchcodebench, pair | 0.2261 | 0.1870 | 0.1828 | -0.0042 ± 0.0019 | 0.1245 / 0.1190 |
+| researchcodebench, benchmark | 0.2299 | 0.2085 | 0.2125 | +0.0040 ± 0.0014 | 0.1157 / 0.1174 |
+
+SEs over the benchmark's pairs, which share one `labeled` list. hier leads on
+three of four, most at B0 on real_webagents (0.2062 against 0.2253) and
+through B7. It loses dense researchcodebench under benchmark scope from B7 on,
+0.1951 against 0.1787 at B31: when no other subject's label sits on a target's
+item, the Predictor's text prior still carries item difficulty from the
+labeled items to the unlabeled ones, and hier, whose text term is off, has
+only the paper groups. Switching the text term on takes back two thirds of
+that (0.2098, +0.0013 ± 0.0011 against the Predictor) and helps on all four
+dense cases (-0.0010 to -0.0027 against hier's default), but not at formative
+size (above). Dense ablations against hier's default: level pooling off costs
++0.0012 to +0.0057, feature groups off +0.0003 to +0.0103, centre 0 +0.0003
+to +0.0025, sigma_mu x2 +0.0003 to +0.0012; the line off gains 0.0001 to
+0.0004 and the Student-t level 0.0003 to 0.0006 (three cases).
+
+### Strict run-LOBO
+
+Leaving out every benchmark of a benchmark-first run leaves nothing at all in
+154 of 300 runs and no multi-subject benchmark in 170, so fit_hyper falls back
+to `prior.REFERENCE` for mu0 and sigma_mu in 99% of runs (mu0 = 0: a new
+benchmark at p = 0.5 before attributes), for sigma_theta and sigma_attr in
+92%, and for sigma_delta and the item widths in 57%. The fallback
+sigma_delta is 2.5, inside the 1.6 to 2.9 that target-LOBO estimates (the
+earlier REFERENCE of 1.0 that the build notes mention is gone). Over runs 0 to
+149: Predictor 0.2111 ± 0.0019, hier 0.2089 ± 0.0020, hier minus Predictor
+-0.0022 ± 0.0004 / 0.0010 (95% [-0.0039, -0.0001]). hier's lead grows with
+what is left to fit on: -0.0017 ± 0.0005 over runs with no multi-subject
+benchmark left (93 runs), -0.0029 ± 0.0006 with one (49), -0.0039 ± 0.0012
+with two (8). Both models lose about 0.004 against their target-LOBO lines
+(hier +0.0041 ± 0.0004 / 0.0009, Predictor +0.0043 ± 0.0004 / 0.0009).
+
+### Latency
+
+With eight processes on a machine shared with other jobs, an R1 evaluation
+call takes 2.46 to 2.57 ms for hier against 1.94 to 2.17 ms for the Predictor,
+and a run 8.0 to 8.5 s against 6.3 to 7.3 s. The slowest single calls, which
+include a fit, reached 11.7 s for hier and 15.4 s for the Predictor, inflated by
+the load. The Student-t level takes 18.9 ms a call, the text term 5.3 ms,
+the Laplace fit without the line 1.6 ms. Dense, hier takes 5.9 to 6.7 ms a
+call and at most 1.0 s, the Predictor 2.3 to 9.8 ms and at most 8.1 s; the
+Student-t level 56 to 110 ms a call, 10 to 35 minutes a run.
+
+### Verdict: keep the Predictor
+
+hier does not beat the Predictor by a margin these data can establish. On the
+primary setting it is ahead by 0.0024 ± 0.0013 (1.9 pair-cluster SEs; the 95%
+interval includes zero), on the other three settings by 0.0010 to 0.0017, and
+with the benchmarks weighted equally by -0.0013 ± 0.0028 at best and nothing
+on three settings: two benchmarks carry the gain, the single-subject one goes
+against it, and the hidden test is made of new benchmarks. It is worse
+calibrated by about 0.01 ECE-ALC, loses dense researchcodebench under
+benchmark scope, and is not packaged: the submission ships the Predictor's
+modules, and hier would bring `hier.py` (1,864 lines), the run-time half of
+`prior.py`, a new prior.json and a new failure surface. Its hyperparameters,
+like the Predictor's, were chosen with these five benchmarks in view.
+
+Nothing selects a hier option either: the two that clear two SEs are worth
+less than 0.001. If hier is shipped later, it should be the default. What
+would change the verdict: summative runs much larger than formative ones (the
+dense runs favour hier on three of four, by 0.004 to 0.010), or a
+re-measurement of dense multi_swebench and matharena, the case the model was
+built for, which this run cut.
+
+### The step-2 analyses behind the model
+
+Three read-only analyses on the public data set the model's structure and the
+ranges of its hyperparameters. Their scripts are not in the repository: they
+sit in the step-2 scratch directory of the session that built `paiec/hier.py`
+(`step2/` under that session's scratchpad; file names below), so their numbers
+are provenance for the design, not results a script here reproduces.
+
+**Identity priors do not transfer beyond attributes** (`identity_prior.py`,
+output `out2.txt`). Leave-one-benchmark-out over the four multi-subject
+benchmarks, the target being a pair's standing within its benchmark on the
+accuracy-logit scale (variance 1.27): the attribute ridge cuts the held-out
+MSE from 1.25 (predicting 0) to 1.05 (mean Pearson 0.51). The same model's
+standing on the other benchmarks, keyed on the canonical name (which links 117
+of 220 pairs), is worse than nothing raw (MSE 1.35, Pearson 0.19), no better
+after empirical-Bayes shrinkage (1.22), and changes nothing on top of the
+attributes (1.06). With benchmark offsets removed, 30% of a named model's
+variance is shared across benchmarks (tau2 0.28), but once the attribute
+prediction is taken out the shared part is -0.06 [-0.21, 0.07]: what transfers
+is what release date, provider and size already say. Hence sigma_theta at its
+clip floor (0.1), the identity weight capped at 0.1, and a link weight of about
+0.002 with an attribute prior.
+
+**item_features groups** (`item_signal.py`, output `item_signal_out.txt`).
+Rasch variance components per feature key: matharena's `competition` holds
+0.50 of the item variance (27 levels), researchcodebench's `paper` 0.43 (20),
+real_webagents' `website` 0.24 (12) and multi_swebench's `lang` 0.05 (8).
+Estimated from the labels a formative run holds (subject levels unknown, one or
+two pairs of the benchmark), group effects gain 0.0070 ALC per pair on
+matharena, 0.0019 to 0.0038 on researchcodebench, 0.0012 to 0.0017 on
+real_webagents and nothing on multi_swebench. With one shared prior share swept
+from 0.02 to 0.5, the informative keys gain more as the share grows while
+multi_swebench's useless key loses (0.0015 at 0.5), so the share is the median
+of the fitted ones, capped at 0.25 (`prior.G_CAP`). Cheap text statistics do
+not transfer between benchmarks (leave-one-out Spearman -0.23 to 0.31).
+
+**Level prior: centre, width, Student-t tails** (`levels.py`,
+`prior_sweep.py`, `cluster_se.py`, `predictor_check.py`; outputs `levels.json`,
+`prior_sweep_out.txt`, `cluster_se.json`, `predictor_check_out.txt`). The five
+public levels on the pair-accuracy logit scale average -0.56 with sd 0.90 (95%
+interval 0.54 to 2.60), a benchmark's leave-one-out level misses by 0.86 on
+average, and pairs spread around their level with sd 0.93. On the R1 runs,
+scored exactly for count-based predictors, a Gaussian level prior at the public
+fit beats Beta(2,2) by 0.0028 (pair-cluster SE 0.0013) when fitted
+leave-one-benchmark-out and by 0.0055 (0.0014) when fitted on all five: the
+in-sample centre is optimistic. Student-t tails (3 df) at the same scale gain
+less (0.0020, SE 0.0016). Across six synthetic scenarios with more extreme base
+rates, the Gaussian widened to 2.3 / 1.3 had the smallest worst-case regret
+(0.0073, against 0.0091 for the best Student-t and 0.0271 for Beta(2,2)), and a
+Student-t prior was best only where the truth itself had Student-t tails. Added
+to the Predictor, a leave-one-out level gained 0.0006 (run SE 0.0003), an
+in-sample one 0.0031. Hence a widened Gaussian level by default, the Student-t
+level as an option, and mu0 refitted without the scored benchmark. The
+evaluation above agrees at formative size: the Student-t level is within 0.0005
+of the Gaussian, centre 0 loses 0.0011 to the mean, and a narrower level prior
+would score about 0.002 better on public runs.

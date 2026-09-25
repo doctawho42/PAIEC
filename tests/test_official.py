@@ -427,6 +427,46 @@ def test_concentration_piles_a_run_onto_one_benchmark():
     assert set(piled) == {1} and np.mean(spread) > 2
 
 
+def _lopsided():
+    """Twenty pairs on b0, one on b1."""
+    return [make_pair(f"s{i}", "b0", 100, seed=i) for i in range(20)] + [make_pair("s0", "b1", 100)]
+
+
+def test_benchmark_weighting_is_the_default_and_unchanged():
+    pairs = _lopsided() + make_pairs(4, 3, 150)
+    key = lambda run: [(p.subject_id, p.benchmark_id, items) for p, items in run]
+    for seed in range(10):
+        a = O.sample_run(pairs, np.random.default_rng(seed))
+        b = O.sample_run(pairs, np.random.default_rng(seed), weighting="benchmark")
+        assert key(a) == key(b)
+    # pinned: the draw the benchmark-first rule gave before weighting existed
+    run = O.sample_run(make_pairs(8, 4, 300), np.random.default_rng(7))
+    assert [(p.subject_id, p.benchmark_id) for p, _ in run] == PINNED_SEED_7
+
+
+PINNED_SEED_7 = [("s6", "b3"), ("s2", "b0"), ("s0", "b3"), ("s5", "b3"), ("s2", "b1"),
+                 ("s1", "b1"), ("s5", "b1"), ("s7", "b2"), ("s4", "b3"), ("s1", "b3"),
+                 ("s5", "b0"), ("s0", "b0")]
+
+
+def test_pair_weighting_draws_pairs_uniformly():
+    pairs = _lopsided()
+    runs = {w: [O.sample_run(pairs, np.random.default_rng(s), n_pairs=5, weighting=w)
+                for s in range(200)] for w in O.WEIGHTINGS}
+    share = {w: np.mean(["b1" in O.run_benchmarks(r) for r in rs]) for w, rs in runs.items()}
+    # benchmark-first: b1 has half the weight of every draw until taken (~0.97);
+    # uniform over 21 pairs: 5/21
+    assert share["benchmark"] > 0.9
+    assert abs(share["pair"] - 5 / 21) < 0.08
+    for rs in runs.values():
+        assert all(len(r) == 5 and sum(len(k) for _, k in r) <= O.CAP for r in rs)
+    again = O.sample_run(pairs, np.random.default_rng(3), n_pairs=5, weighting="pair")
+    assert [(p.subject_id, p.benchmark_id) for p, _ in again] == \
+           [(p.subject_id, p.benchmark_id) for p, _ in runs["pair"][3]]
+    with pytest.raises(ValueError):
+        O.sample_run(pairs, np.random.default_rng(0), weighting="subject")
+
+
 def test_dense_run_takes_every_pair_of_a_benchmark_whole():
     pairs = make_pairs(5, 2, 120)
     run = O.dense_run(pairs, "b1")
