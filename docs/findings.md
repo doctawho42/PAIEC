@@ -1235,3 +1235,254 @@ pseudo-benchmark per parent, split after the cut, and the ability offset in
 place of the date shift (which applies to the legacy prior only); dense
 multi_swebench and matharena. The results file is 19 MB: rows are packed
 (`compact_raw`) and the summary reads them back exactly.
+
+## Item signal from the pair's own labels
+
+`python experiments/itemsig_eval.py --stage run --jobs 4 --rows DIR`, then
+`--stage oracle`, `--summarise`, `--stage verify` and `--summarise` again, all
+with the same `--rows` (38 minutes on four processes of a machine shared with
+other jobs, load average 13 to 21: 31 minutes for the 800 runs, 10 s for the
+oracle, 6.5 minutes for verification and latency. Every number below is in
+`results/itemsig_eval.json`, whose summary `--summarise` rebuilds from the rows;
+the rows, per pair and configuration Brier differences by budget, are 33 MB and
+live outside the repository, default `data/itemsig_eval_rows`. `passes` records
+each stage's command, wall time and the digests of the code it ran; the library
+files are the same in every pass. The script's oracle stage and parts of its
+summary were added after the run stage, whose row-writing code is unchanged;
+the verify stage reproduces stored rows with the final script)
+
+A formative run holds about one pair per benchmark, so a target rarely sees
+another subject's label on its own items. What it does see is its own pair's
+acquired labels (up to 31) and the item texts. `paiec/itemsig.py` carries the
+base model's residuals on those labeled items to unlabeled items with similar
+text: a logit offset beta * sum w r / (tau + sum w v), with w a hashed TF-IDF
+cosine to the power gamma, other subjects' records weighted `other`, residuals
+centred within each pair, and an optional per-pair empirical-Bayes slope. This
+section decides whether to ship it on top of the shipped model.
+
+**Base.** Exactly what ships: `paiec.hier.HierPredictor` with
+`submission/model.py`'s LEVEL (mu0 -2.5, sigma_mu 2.5, attr_scale 0.5; the
+script reads LEVEL from model.py) over `prior.build`, fitted leaving each
+target's parent benchmark out (`level_calibration.bundle` and `factory`).
+
+**Runs.** Primary: test-like runs (`testlike.Regime()` defaults, seed 2, runs 0
+to 299; runs 0 to 199 are those of "Calibrating for the hidden test"). As a
+sensitivity, groups merged at random and wholes, no strata (`kinds=("mix",
+"whole")`, seed 3, runs 0 to 199), because difficulty strata shrink the item
+variance within a pair. Secondary: public R1 (`official.sample_run`, seed 0,
+split scope 'pair'), benchmark-first runs 0 to 199 and pair-uniform runs 0 to
+99. Test-like runs hold 8.1 pairs over 6.2 pseudo-benchmarks; 60% of pair
+appearances are alone on theirs, and 40% have another subject's labels on it at
+B31 (19 such labels per appearance on average, zeros included). Public
+benchmark-first runs hold 8.6 pairs over 4.4 benchmarks, 24% alone;
+pair-uniform runs 3.3 benchmarks, 10% alone.
+
+**Configurations.** beta {0.25, 0.5, 1, 2, 4} x tau {0.5, 1, 2, 4} x gamma {1,
+2, 4, 8} x other {0, 0.5, 1} x slope {off, on (prior sd 1)}: 480
+configurations, plus "off" (the base itself). Everything else stays at
+`SigHyper`'s defaults (leave-in residuals centred within pair, twins on, word
+weight 0.5, max_shift 1.5). The library default is beta 0.5, tau 1, gamma 2,
+other 0, slope off.
+
+**Harness.** `level_calibration.checkpoints` replays the platform's acquisition;
+every checkpoint gets a fresh base and a fresh ItemSig around it. Per target the
+base is called once and `ItemSig.terms` once, and every configuration's shift
+follows from those terms as `itemsig.shift` computes it (the slope through
+`itemsig.slope` itself). Replayed through `official.run_official` with deep
+copies and `make_itemsig`, 13 configurations on five runs (two test-like, one
+of each other regime) match the stored rows pair for pair to 1.7e-9, the
+float32 storage of the differences, and the base to 6e-15.
+
+**Selection.** Nested leave-one-parent-out. For each parent q, the configuration
+(or "off") with the lowest mean ALC difference over the pair appearances whose
+parent is not q, scored on the appearances whose parent is q. A target's layer
+reads only records on its own benchmark_id, and the base is fixed, so a pair's
+difference depends on nothing from another parent; runs mix parents, so the
+split is by pair appearance, each weighted 1/run size as in a run's mean. The
+cluster bootstrap redoes the selection in every resample. Three selections:
+within each regime; on the primary regime, scored on the others; and jointly,
+by the worst regime's mean over all four. The in-sample best (lowest mean on all
+appearances of a regime, scored on the same) is the optimistic secondary number.
+
+**Statistics.** Paired ALC differences against the shipped hier, "± run SE /
+cluster SE / stratified SE". Clusters are (parent, subject), resampled over the
+union of all regimes' clusters (a test-like and a public cluster with the same
+key hold the same responses), 2,000 resamples, a ratio estimator, as one pool or
+within each parent. The run SE of a nested estimate holds its choices fixed.
+Four parents carry every test-like number, and no SE covers variation between
+benchmarks.
+
+### Nested leave-one-parent-out
+
+| regime (base ALC) | nested, selected within the regime | nested, selected on the primary regime (and jointly) | in-sample best of 480 | library default |
+|---|---|---|---|---|
+| test-like, primary (0.1658) | **-0.00002 ± 0.00002 / 0.00008 / 0.00008** | (same) | -0.00006 ± 0.00001 / 0.00003 / 0.00003 | -0.00002 ± 0.00001 / 0.00002 / 0.00002 |
+| test-like, mix and wholes (0.1711) | -0.00028 ± 0.00005 / 0.00021 / 0.00019 | -0.00028 ± 0.00003 / 0.00011 / 0.00010 | -0.00037 ± 0.00007 / 0.00014 / 0.00013 | -0.00009 ± 0.00001 / 0.00003 / 0.00003 |
+| public R1, benchmark-first (0.2057) | -0.00003 ± 0.00012 / 0.00049 / 0.00046 | -0.00042 ± 0.00004 / 0.00012 / 0.00011 | -0.00071 ± 0.00009 / 0.00017 / 0.00014 | -0.00013 ± 0.00002 / 0.00003 / 0.00003 |
+| public R1, pair-uniform (0.2020) | -0.00076 ± 0.00018 / 0.00031 / 0.00029 | -0.00052 ± 0.00007 / 0.00016 / 0.00015 | -0.00112 ± 0.00020 / 0.00030 / 0.00029 | -0.00014 ± 0.00003 / 0.00004 / 0.00004 |
+
+On the primary regime the layer is worth nothing measurable: -0.00002 ALC,
+a quarter of a cluster SE. Even the best of the 480 configurations, chosen and
+scored on the same runs, gains 0.00006. The library default's line agrees,
+within about one cluster SE, with the itemsig docstring's own measurement on
+confirmation halves (-0.00002, -0.00006, -0.00012 and -0.00013 in the table's
+order). The joint selection chooses exactly what the primary regime chooses,
+because the primary regime is always the worst one. On test-like runs its choices are gentle: gamma 1 and tau 0.5
+throughout, beta 0.5 to 1, the slope on, other 0 except for researchcodebench
+held out (0.5). Per held-out parent they score +0.00005 ± 0.00015 on matharena
+(476 appearances), -0.00007 ± 0.00002 on multi_swebench (1,006), -0.00006 ±
+0.00009 on real_webagents (443) and +0.00007 ± 0.00014 on researchcodebench
+(500).
+
+Scored on the other regimes, those choices gain 0.0003 to 0.0005, 2.5 to 3.5
+cluster SEs. Selected within the public regimes instead, the rule picks
+aggressive configurations (beta 2 to 4, other 0.5 to 1) that fail on the held-out
+parent. With researchcodebench held out, benchmark-first selection takes beta 4,
+tau 0.5, gamma 1, other 0.5, slope on, which loses +0.0019 ± 0.0007 on
+researchcodebench and cancels the -0.0015 ± 0.0003 it gains on matharena. So
+the in-sample bests on public runs (-0.0007 and -0.0011) are not what a
+selection would carry to a new benchmark.
+
+### Where it acts
+
+B0 and B1 differences are exactly 0 for every configuration, pair and regime.
+At B0 there are no labels. At B1 each pair holds one, and centring within the
+pair makes its residual 0, other subjects' included. By budget on the primary
+regime, nested (± run / cluster SE; the ALC contribution is the budget's weight
+times the difference):
+
+| budget | 0 | 1 | 3 | 7 | 15 | 31 |
+|---|---|---|---|---|---|---|
+| Brier difference | 0 | 0 | +0.00012 ± 0.00001 / 0.00008 | -0.00002 ± 0.00001 / 0.00007 | -0.00002 ± 0.00001 / 0.00009 | -0.00032 ± 0.00002 / 0.00007 |
+| ALC contribution | 0 | 0 | +0.000023 | -0.000003 | -0.000005 | -0.000032 |
+
+The layer costs a little at B3, where a pair's residuals rest on three labels,
+and gains 0.0003 of Brier at B31. The primary regime's choices, scored on the
+other regimes, gain at every budget from B3 on and most at B31 (-0.0007 to
+-0.0015). By kind of pseudo-benchmark on the primary regime: groups +0.00007 ± 0.00006 (1,417
+appearances), strata -0.00011 ± 0.00007 (689), wholes -0.00017 ± 0.00012 (319).
+Targets alone on their pseudo-benchmark and those sharing it gain the same
+(-0.00002 ± 0.00005 each). The public gains are on matharena and
+researchcodebench, whose competitions and papers the base's group effects
+shrink hard. The best configurations smooth broadly (gamma 1 is best in every
+regime) and read other subjects' residuals on public runs (other 0.5 to 1):
+they read what similar items share at group level, not what one item has of
+its own. That is the itemsig docstring's own reading of its public gain.
+
+### Against the item oracle
+
+Per pair, on its evaluated responses: the pair-rate oracle (every response at
+the pair's own rate) and the item oracle (the parent's in-sample Rasch
+difficulty, theta fitted per pair; below). Their gap is the most an
+item-difficulty model could add to a pair's Brier. Means over runs of run means,
+pairs with an oracle (public runs leave swe_rebench out):
+
+| regime | pair-rate oracle | item oracle | gap (± cluster SE), share of the pair-rate oracle | base B31 minus pair-rate oracle | nested gain, ALC (share of the gap) | nested gain, B31 (share of the gap) |
+|---|---|---|---|---|---|---|
+| test-like, primary | 0.1384 | 0.0750 | 0.0633 ± 0.0041, 46% | +0.0003 | 0.00002 (0.03%) | 0.0003 (0.5%) |
+| test-like, mix and wholes | 0.1465 | 0.0676 | 0.0790 ± 0.0068, 54% | -0.0012 | 0.0003 (0.4%) | 0.0010 (1.3%) |
+| public, benchmark-first | 0.1706 | 0.0768 | 0.0938 ± 0.0045, 55% | -0.0025 | 0.00002 (0.02%); from the primary 0.0005 (0.5%) | 0.0013 (1.4%); from the primary 0.0012 (1.3%) |
+| public, pair-uniform | 0.1739 | 0.0761 | 0.0977 ± 0.0041, 56% | -0.0038 | 0.0008 (0.8%) | 0.0029 (2.9%) |
+
+At B31 the shipped hier already scores what the pair's exact rate would on
+test-like runs (+0.0003), and slightly better on the others, where its feature
+groups read some item structure. What is left at the item level is 0.063 of
+Brier on test-like runs, and the layer takes half a percent of it at B31.
+Text similarity over a pair's own 31 labels carries almost none of the item
+signal the oracle shows is there. That agrees with the ceiling the itemsig
+docstring measured: smoothed by this kernel over 31 to 62 labeled items, public
+difficulties net of feature groups correlate with a target's at 0.14 to 0.29 on
+matharena and at 0.14 or less elsewhere.
+
+**The library's item oracle diverges.** `testlike.item_oracle` fits theta by
+full Newton steps from 0. On a pair whose items sit far from 0 on the parent's
+scale these oscillate without converging: one matharena stratum pair at rate
+0.67 on difficulties averaging 3.6 swings between -2050 and +4150 and scores
+Brier 0.669, where the MAP (theta 4.56) scores 0.144. The script refits theta by
+Newton with step halving (`theta_map`) and keeps the library's value beside it.
+On the primary regime 35 of 2,425 pair appearances (31 of 300 runs), all of
+them strata, are off by more than 1e-4, and there are none in the other
+regimes. By plain means over pairs, `experiments/testlike_check.py`'s
+definition, the item oracle gains 46.0% of the pair-rate oracle's Brier on
+test-like runs, not 41.1%, and 32.7% on strata, not 14.5%; groups (50.3%) and
+wholes (52.7%) are unchanged. The testlike docstring's figures and the
+`structure` block of `results/testlike_check.json` carry the divergent fits.
+This is a library bug, reported here and not fixed (`paiec/testlike.py` is not
+this experiment's to change); strata thin the item structure less than the
+docstring says.
+
+### The grid, in sample
+
+The best configuration at each value of one hyperparameter, primary regime
+(mean ALC difference ± run SE):
+
+| hyperparameter | values: best mean |
+|---|---|
+| gamma (sharpening) | 1: -0.00006; 2: -0.00002; 4: -0.00001; 8: -0.00001 |
+| other (weight of other subjects' records) | 0: -0.00006; 0.5: -0.00006; 1: -0.00005 |
+| beta | 0.25: -0.00004; 0.5: -0.00006; 1: -0.00006; 2: -0.00005; 4: -0.00004 |
+| tau | 0.5: -0.00006; 1: -0.00006; 2: -0.00005; 4: -0.00005 |
+| per-pair slope | off: -0.00006; on: -0.00006 |
+
+(run SEs 0.000005 to 0.00002.) Sharper similarity only loses. The slope changes
+nothing at the gentle settings that are best here. On public runs the best
+settings are stronger (beta 2 to 4, other 0.5 to 1), which the nested selection
+shows does not carry to a held-out parent. The one configuration the joint rule
+would ship, chosen in sample on all four regimes, is beta 0.5, tau 0.5, gamma 1,
+other 0, slope off. It gains -0.00006 ± 0.00001 / 0.00003 / 0.00003 on the
+primary regime, -0.00020 ± 0.00002 / 0.00005 / 0.00005 with mixed groups,
+-0.00025 ± 0.00003 / 0.00005 / 0.00004 and -0.00032 ± 0.00004 / 0.00007 /
+0.00007 on public runs, and it is not significantly worse than the base on any
+parent in any regime (worst: matharena on the primary regime, +0.000002 ±
+0.00009).
+
+### Latency
+
+Through `official.run_official` with deep copies and one worker, four such
+processes side by side on a machine at load average 15 to 17 (8 cores), on the
+five verification runs: the shipped hier takes 0.8 to 1.5 ms a call, its slowest
+call 0.07 to 0.13 s. With the layer, 2.6 to 10.8 ms a call over the 13
+configurations (the library default 3.2 to 5.5 ms), and the slowest single call
+0.2 to 4.6 s (the default 0.4 to 1.0 s): a pair's first target on a benchmark
+makes the base calls for its labeled records (every record on the benchmark
+when other > 0) and the first target of a benchmark featurises its labeled
+items. Run by run that is 1.8 to 12 times the base's mean call (the default 2.8
+to 6) and 2 to 52 times its slowest call (the default 3.4 to 15). A formative run
+then takes 8 to 29 s instead of 3 to 5 s, against 8 hours; the slowest single
+calls are what an undisclosed per-call timeout would see.
+
+### Verdict: do not ship the layer
+
+* On the runs that stand in for the hidden test it does nothing: -0.00002 ±
+  0.00008 nested, -0.00006 for the best of 480 configurations chosen in sample.
+  That is about a thousandth of a formative run's sd (0.02 to 0.04), and at B31
+  0.5% of the item-level gap the oracle shows.
+* Where it gains, with mixed groups and on public runs (0.0003 to 0.0005 nested,
+  selected on the primary regime), it reads group structure on whole
+  benchmarks, not per-item signal, and a selection made on public parents
+  loses on a held-out one (researchcodebench +0.0019).
+* It costs two to twelve times the base's mean call time (the default three to
+  six), slowest calls 3 to 15 times the base's at the default and up to 4.6 s,
+  and 760 more lines in the archive with a new failure surface, for an expected
+  gain on the hidden test between 0 and about 0.0003.
+
+If it is ever shipped, the configuration is beta 0.5, tau 0.5, gamma 1, other
+0, slope off: the joint choice, never measurably worse than the base on any
+parent or regime. The library default (beta 0.5, tau 1, gamma 2) is 0.00004
+behind it on the primary regime and 0.0001 to 0.0002 behind on the others.
+
+The per-item gap stays where "What transfers between benchmarks" left it. The
+base already reaches the pair-rate oracle at B31 on test-like runs, and 0.063
+of Brier separates it from the item oracle. Neither text similarity over the
+pair's own labels (here) nor text-to-difficulty maps across benchmarks (leave
+one benchmark out, correlations -0.22 to 0.23) reach that gap.
+
+**What was cut.** The run took 38 minutes, well inside the budget; what was
+left out is scope. Only the five hyperparameters above were tuned: centring,
+the residual kind, twins, the word weight, max_shift and the excerpt lengths
+stayed at their defaults, and the slope's prior sd at 1. Not run: dense
+runs, whose itemsig docstring figures (real_webagents up to -0.002 and -0.005,
+researchcodebench -0.002 to +0.008) are not re-measured here; split scope
+'benchmark'; the level and date-shift sensitivity regimes (level_mean -1.2 and
+-2.0, no date shift). ECE was not recorded. Latency comes from five runs on a
+loaded machine. The stored differences are float32 (1.7e-9).

@@ -1,10 +1,10 @@
 """Competition entry point: predict(input, labeled) -> float.
 
 The model is paiec.hier's hierarchical predictor with its level prior moved
-down for the hidden test: mu0 -3.0, sigma_mu 2.5 and attr_scale 0.25 on top of
+down for the hidden test: mu0 -2.5, sigma_mu 2.5 and attr_scale 0.5 on top of
 the empirical-Bayes hyperparameters and the subject prior fitted on every
 eligible public pair (docs/findings.md, "Calibrating for the hidden test" and
-"Verdict: ship hier with the level moved down"). The level is Gaussian and
+"What actually shipped, after the audit"). The level is Gaussian and
 every Flags switch stays at its default.
 
 The archive carries the run-time half of the research package beside this file
