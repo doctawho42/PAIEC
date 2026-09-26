@@ -1,0 +1,333 @@
+220 pairs on 4 multi-subject benchmarks
+
+== keys: how many pairs each key links to another benchmark ==
+  name         keyed 0.83  linked 101 pairs, 19 keys
+  name_effort  keyed 0.83  linked  97 pairs, 18 keys
+  full         keyed 1.00  linked  24 pairs, 12 keys
+  canon        keyed 1.00  linked 117 pairs, 21 keys
+
+== coverage: share of the held-out benchmark's pairs whose key is on another benchmark ==
+        benchmark  n  name  name_effort  full  canon
+        matharena 81  0.15         0.11  0.00   0.32
+   multi_swebench 82  0.73         0.72  0.00   0.73
+   real_webagents 26  0.58         0.58  0.46   0.58
+researchcodebench 31  0.45         0.45  0.39   0.52
+
+== do fields differ for one normalized_name across benchmarks? ==
+  provider                 takes >1 value for  0 of 19 linked names
+  release_date             takes >1 value for  0 of 19 linked names
+  harness                  takes >1 value for 14 of 19 linked names
+  harness_version          takes >1 value for  0 of 19 linked names
+  reasoning_effort         takes >1 value for  2 of 19 linked names
+  access_date              takes >1 value for 14 of 19 linked names
+  subject_features_extra   takes >1 value for 10 of 19 linked names
+  non-empty harness by benchmark: {'matharena': 0.0, 'multi_swebench': 0.99, 'real_webagents': 0.0, 'researchcodebench': 0.0}
+  non-empty reasoning_effort by benchmark: {'matharena': 0.28, 'multi_swebench': 0.0, 'real_webagents': 0.0, 'researchcodebench': 0.0}
+  non-empty normalized_name by benchmark: {'matharena': 0.53, 'multi_swebench': 1.0, 'real_webagents': 1.0, 'researchcodebench': 1.0}
+  non-empty release_date by benchmark: {'matharena': 0.53, 'multi_swebench': 0.98, 'real_webagents': 0.85, 'researchcodebench': 1.0}
+  multi_swebench z ~ C(name)                  R2=0.232 adj=-0.004
+  multi_swebench z ~ C(f_harness)             R2=0.779 adj=0.744
+  multi_swebench z ~ C(name) + C(f_harness)   R2=0.930 adj=0.897
+  matharena effort variants of one model (z = accuracy scale, theta = Rasch):
+      canon f_reasoning_effort    n     z  theta
+    gpt 5.2               high 2864  0.82   2.47
+    gpt 5.2              xhigh  563  4.14   5.09
+grok 3 mini               high  852  0.75   0.21
+grok 3 mini                low  852 -0.18  -1.33
+    o3 mini               high  526 -0.24  -0.28
+    o3 mini                low  360 -0.82  -2.32
+    o3 mini             medium  360  0.31  -0.48
+    o4 mini               high 1264  0.12   0.62
+    o4 mini                low  852 -0.10  -1.23
+    o4 mini             medium  852  0.68   0.05
+
+################ accuracy-logit scale (z) ################
+per-benchmark sd of the target: {'matharena': 1.056, 'multi_swebench': 1.181, 'real_webagents': 1.362, 'researchcodebench': 0.937}
+mean sampling variance of z: {'matharena': 0.0104, 'multi_swebench': 0.0214, 'real_webagents': 0.0749, 'researchcodebench': 0.0322}
+
+-- between-benchmark consistency of standing (per key-benchmark means) --
+ key=name
+                              pair  n  pearson  spearman
+        matharena / multi_swebench  8    0.571     0.690
+        matharena / real_webagents  6   -0.116    -0.143
+     matharena / researchcodebench  8    0.511     0.500
+   multi_swebench / real_webagents 11    0.590     0.582
+multi_swebench / researchcodebench  9    0.848     0.933
+real_webagents / researchcodebench 12    0.562     0.566
+ key=canon
+                              pair  n  pearson  spearman
+        matharena / multi_swebench 13    0.490     0.626
+        matharena / real_webagents 12    0.191     0.175
+     matharena / researchcodebench 14    0.256     0.495
+   multi_swebench / real_webagents 11    0.590     0.582
+multi_swebench / researchcodebench  9    0.848     0.933
+real_webagents / researchcodebench 12    0.562     0.566
+
+-- variance decomposition --
+  total within-benchmark var of z: 1.274
+  key=name   offsets=True  tau2=0.329 s2d=0.583 rho=0.36 keys=19 cells=53 offsets={'matharena': -1.22, 'multi_swebench': -0.02, 'real_webagents': 0.5, 'researchcodebench': 0.74}
+  key=name   offsets=False tau2=0.088 s2d=1.184 rho=0.07 keys=19 cells=53 offsets={}
+  key=name   bootstrap 95%: tau2 [0.032, 0.668]  s2d [0.189, 0.988]
+  key=name   variants within a key-benchmark cell: pooled var=1.409 (17 cells, 83 pairs); by benchmark {'matharena': 1.546, 'multi_swebench': 1.4}
+  key=name   REML (benchmark fixed effects from all rows): tau2=0.146 s2d=0.000 s2v=1.317
+  key=canon  offsets=True  tau2=0.282 s2d=0.650 rho=0.30 keys=21 cells=63 offsets={'matharena': -0.79, 'multi_swebench': -0.1, 'real_webagents': 0.35, 'researchcodebench': 0.54}
+  key=canon  offsets=False tau2=0.086 s2d=1.030 rho=0.08 keys=21 cells=63 offsets={}
+  key=canon  bootstrap 95%: tau2 [0.032, 0.542]  s2d [0.280, 1.075]
+  key=canon  variants within a key-benchmark cell: pooled var=1.321 (21 cells, 93 pairs); by benchmark {'matharena': 0.831, 'multi_swebench': 1.4}
+  key=canon  REML (benchmark fixed effects from all rows): tau2=0.118 s2d=0.000 s2v=1.160
+  attr          LOBO residual var=0.993 (0.78 of total); shared across benchmarks on linked keys: tau2_res=-0.062 [-0.212, 0.071], s2d_res=0.698
+   residual correlation across benchmark pairs (canon):
+                              pair  n  pearson  spearman
+        matharena / multi_swebench 13   -0.351    -0.302
+        matharena / real_webagents 12   -0.274    -0.028
+     matharena / researchcodebench 14   -0.072     0.191
+   multi_swebench / real_webagents 11    0.247     0.118
+multi_swebench / researchcodebench  9    0.475     0.483
+real_webagents / researchcodebench 12    0.068     0.014
+  attr+fe+fill  LOBO residual var=1.020 (0.80 of total); shared across benchmarks on linked keys: tau2_res=-0.134 [-0.304, 0.028], s2d_res=0.799
+  date+fe       LOBO residual var=1.088 (0.85 of total); shared across benchmarks on linked keys: tau2_res=0.065 [-0.180, 0.317], s2d_res=0.677
+
+-- leave-one-benchmark-out, identity key = name --
+ pooled over held-out benchmarks (mse* row-weighted; cov_* on the pairs whose key is covered):
+              mse0    mse  mse_c  mse_shrunk  mean_pearson  mean_spearman  cov_mse0  cov_mse_c  cov_mean_pearson
+method                                                                                                          
+id_attr:attr  1.25  1.060  0.997       1.008         0.504          0.483     1.369      1.122             0.611
+id_eb         1.25  1.241  1.235       1.288         0.112          0.155     1.369      1.205             0.441
+id_raw        1.25  1.381  1.361       1.247         0.142          0.154     1.369      1.334             0.486
+
+-- leave-one-benchmark-out, identity key = name_effort --
+ pooled over held-out benchmarks (mse* row-weighted; cov_* on the pairs whose key is covered):
+              mse0    mse  mse_c  mse_shrunk  mean_pearson  mean_spearman  cov_mse0  cov_mse_c  cov_mean_pearson
+method                                                                                                          
+id_attr:attr  1.25  1.065  1.000       1.012         0.500          0.482     1.085      0.922             0.555
+id_eb         1.25  1.284  1.278       1.355         0.005          0.064     1.085      0.998             0.368
+id_raw        1.25  1.439  1.408       1.289         0.029          0.054     1.085      1.107             0.407
+
+-- leave-one-benchmark-out, identity key = full --
+ pooled over held-out benchmarks (mse* row-weighted; cov_* on the pairs whose key is covered):
+              mse0    mse  mse_c  mse_shrunk  mean_pearson  mean_spearman  cov_mse0  cov_mse_c  cov_mean_pearson
+method                                                                                                          
+id_attr:attr  1.25  1.052  0.992       1.001         0.509          0.488     0.575      0.314             0.720
+id_eb         1.25  1.233  1.232       1.250         0.261          0.227     0.575      0.435             0.562
+id_raw        1.25  1.249  1.243       1.250         0.261          0.227     0.575      0.539             0.562
+
+-- leave-one-benchmark-out, identity key = canon --
+        benchmark               method  n  coverage  pearson  spearman  mse0    mse  mse_c  slope  mse_shrunk  cov_n  cov_pearson  cov_mse0  cov_mse_c
+        matharena                 zero 81     0.321      NaN       NaN 1.102  1.102  1.102  0.000       1.102     26          NaN     2.123      2.123
+        matharena                 attr 81     0.321    0.441     0.511 1.102  0.982  0.904  1.018       0.907     26        0.639     2.123      1.637
+        matharena              attr+fe 81     0.321    0.458     0.547 1.102  8.868  0.934  1.029       0.945     26        0.626     2.123      1.660
+        matharena           attr+small 81     0.321    0.409     0.532 1.102  0.989  0.942  0.834       0.921     26        0.678     2.123      1.639
+        matharena        attr+small+fe 81     0.321    0.413     0.545 1.102 11.866  1.049  0.808       0.960     26        0.671     2.123      1.674
+        matharena            attr+fill 81     0.321    0.433     0.525 1.102  0.986  0.917  1.018       0.920     26        0.501     2.123      1.706
+        matharena         attr+fill+fe 81     0.321    0.455     0.569 1.102  8.868  0.945  1.029       0.958     26        0.505     2.123      1.700
+        matharena                 date 81     0.321    0.604     0.490 1.102  1.010  0.816  1.112       0.795     26        0.725     2.123      1.559
+        matharena              date+fe 81     0.321    0.596     0.490 1.102  1.387  0.811  0.984       0.814     26        0.729     2.123      1.546
+        matharena               id_raw 81     0.321    0.181     0.141 1.102  1.170  1.143  0.607       1.075     26        0.363     2.123      1.877
+        matharena                id_eb 81     0.321    0.146     0.136 1.102  1.105  1.094  1.028       1.096     26        0.327     2.123      1.900
+        matharena         id_attr:attr 81     0.321    0.433     0.537 1.102  1.000  0.915  0.985       0.912     26        0.612     2.123      1.647
+        matharena id_attr:attr+fe+fill 81     0.321    0.448     0.565 1.102  8.949  0.960  0.994       0.957     26        0.478     2.123      1.720
+        matharena   stack:attr+fe+fill 81     0.321    0.459     0.559 1.102  8.286  0.933  1.029       0.944     26        0.491     2.123      1.675
+   multi_swebench                 zero 82     0.732      NaN       NaN 1.378  1.378  1.378  0.000       1.378     60          NaN     1.210      1.210
+   multi_swebench                 attr 82     0.732    0.363     0.315 1.378  1.216  1.199  0.770       1.214     60        0.240     1.210      1.146
+   multi_swebench              attr+fe 82     0.732    0.328     0.351 1.378  4.891  1.235  0.787       1.230     60        0.208     1.210      1.207
+   multi_swebench           attr+small 82     0.732    0.276     0.199 1.378  1.291  1.275  0.813       1.274     60        0.147     1.210      1.209
+   multi_swebench        attr+small+fe 82     0.732    0.244     0.183 1.378  4.809  1.343  0.801       1.310     60        0.129     1.210      1.298
+   multi_swebench            attr+fill 82     0.732    0.358     0.302 1.378  1.226  1.203  0.755       1.220     60        0.234     1.210      1.150
+   multi_swebench         attr+fill+fe 82     0.732    0.327     0.333 1.378  5.131  1.236  0.773       1.232     60        0.203     1.210      1.208
+   multi_swebench                 date 82     0.732    0.234     0.203 1.378  1.365  1.304  1.600       1.355     60        0.141     1.210      1.209
+   multi_swebench              date+fe 82     0.732    0.238     0.203 1.378  1.699  1.347  1.108       1.374     60        0.141     1.210      1.289
+   multi_swebench               id_raw 82     0.732    0.208     0.244 1.378  1.489  1.489  0.136       1.342     60        0.260     1.210      1.361
+   multi_swebench                id_eb 82     0.732    0.198     0.244 1.378  1.326  1.325 -0.005       1.379     60        0.256     1.210      1.132
+   multi_swebench         id_attr:attr 82     0.732    0.365     0.336 1.378  1.214  1.196  0.741       1.214     60        0.249     1.210      1.142
+   multi_swebench id_attr:attr+fe+fill 82     0.732    0.330     0.332 1.378  5.120  1.234  0.737       1.231     60        0.210     1.210      1.205
+   multi_swebench   stack:attr+fe+fill 82     0.732    0.328     0.323 1.378  3.772  1.235  0.773       1.250     60        0.170     1.210      1.183
+   real_webagents                 zero 26     0.577      NaN       NaN 1.785  1.785  1.785  0.000       1.785     15          NaN     0.948      0.948
+   real_webagents                 attr 26     0.577    0.634     0.519 1.785  1.153  1.143  0.976       1.151     15        0.711     0.948      0.507
+   real_webagents              attr+fe 26     0.577    0.606     0.517 1.785  3.199  1.147  0.786       1.206     15        0.701     0.948      0.495
+   real_webagents           attr+small 26     0.577    0.612     0.588 1.785  1.316  1.292  1.031       1.282     15        0.554     0.948      0.708
+   real_webagents        attr+small+fe 26     0.577    0.552     0.514 1.785  2.982  1.306  0.729       1.390     15        0.490     0.948      0.733
+   real_webagents            attr+fill 26     0.577    0.631     0.552 1.785  1.164  1.153  1.008       1.151     15        0.710     0.948      0.509
+   real_webagents         attr+fill+fe 26     0.577    0.612     0.526 1.785  3.558  1.146  0.813       1.202     15        0.699     0.948      0.501
+   real_webagents                 date 26     0.577    0.375     0.460 1.785  1.614  1.610  1.561       1.556     15        0.419     0.948      0.811
+   real_webagents              date+fe 26     0.577    0.342     0.412 1.785  1.751  1.579  0.972       1.580     15        0.419     0.948      0.784
+   real_webagents               id_raw 26     0.577    0.249     0.305 1.785  1.741  1.738  0.213       1.718     15        0.497     0.948      0.793
+   real_webagents                id_eb 26     0.577    0.217     0.291 1.785  1.702  1.702  0.492       1.727     15        0.425     0.948      0.781
+   real_webagents         id_attr:attr 26     0.577    0.631     0.521 1.785  1.156  1.145  0.934       1.166     15        0.705     0.948      0.506
+   real_webagents id_attr:attr+fe+fill 26     0.577    0.608     0.538 1.785  3.555  1.151  0.779       1.218     15        0.692     0.948      0.507
+   real_webagents   stack:attr+fe+fill 26     0.577    0.622     0.545 1.785  3.240  1.173  0.813       1.241     15        0.723     0.948      0.535
+researchcodebench                 zero 31     0.516      NaN       NaN 0.850  0.850  0.850  0.000       0.850     16          NaN     0.395      0.395
+researchcodebench                 attr 31     0.516    0.591     0.574 0.850  0.725  0.558  0.864       0.570     16        0.787     0.395      0.159
+researchcodebench              attr+fe 31     0.516    0.606     0.603 0.850  2.483  0.539  0.640       0.587     16        0.758     0.395      0.172
+researchcodebench           attr+small 31     0.516    0.384     0.222 0.850  0.828  0.725  0.717       0.737     16        0.320     0.395      0.358
+researchcodebench        attr+small+fe 31     0.516    0.414     0.251 0.850  2.635  0.705  0.505       0.738     16        0.271     0.395      0.380
+researchcodebench            attr+fill 31     0.516    0.590     0.593 0.850  0.711  0.558  0.860       0.571     16        0.778     0.395      0.161
+researchcodebench         attr+fill+fe 31     0.516    0.608     0.606 0.850  2.621  0.537  0.639       0.585     16        0.754     0.395      0.172
+researchcodebench                 date 31     0.516    0.404     0.289 0.850  0.784  0.723  1.336       0.712     16        0.051     0.395      0.417
+researchcodebench              date+fe 31     0.516    0.404     0.289 0.850  0.784  0.712  0.947       0.712     16        0.051     0.395      0.449
+researchcodebench               id_raw 31     0.516    0.129     0.108 0.850  1.121  1.106  0.265       0.839     16        0.459     0.395      0.653
+researchcodebench                id_eb 31     0.516    0.111     0.113 0.850  0.864  0.861  0.683       0.845     16        0.437     0.395      0.324
+researchcodebench         id_attr:attr 31     0.516    0.588     0.570 0.850  0.730  0.560  0.833       0.576     16        0.786     0.395      0.158
+researchcodebench id_attr:attr+fe+fill 31     0.516    0.605     0.619 0.850  2.612  0.539  0.620       0.590     16        0.752     0.395      0.172
+researchcodebench   stack:attr+fe+fill 31     0.516    0.609     0.609 0.850  1.443  0.584  0.639       0.654     16        0.755     0.395      0.210
+ pooled over held-out benchmarks (mse* row-weighted; cov_* on the pairs whose key is covered):
+                      mse0    mse  mse_c  mse_shrunk  mean_pearson  mean_spearman  cov_mse0  cov_mse_c  cov_mean_pearson
+method                                                                                                                  
+attr                  1.25  1.053  0.993       1.003         0.507          0.480     1.268      1.038             0.594
+attr+fe               1.25  5.816  1.016       1.032         0.500          0.505     1.268      1.075             0.573
+attr+fill             1.25  1.058  1.001       1.010         0.503          0.493     1.268      1.056             0.556
+attr+fill+fe          1.25  5.967  1.020       1.036         0.501          0.509     1.268      1.085             0.540
+attr+small            1.25  1.117  1.077       1.069         0.420          0.386     1.268      1.124             0.425
+attr+small+fe         1.25  6.885  1.140       1.110         0.406          0.374     1.268      1.184             0.390
+date                  1.25  1.182  1.079       1.082         0.404          0.360     1.268      1.127             0.334
+date+fe               1.25  1.462  1.088       1.099         0.395          0.349     1.268      1.167             0.335
+id_attr:attr          1.25  1.060  0.997       1.007         0.504          0.491     1.268      1.038             0.588
+id_attr:attr+fe+fill  1.25  5.991  1.025       1.038         0.498          0.514     1.268      1.089             0.533
+id_eb                 1.25  1.224  1.219       1.241         0.168          0.196     1.268      1.147             0.361
+id_raw                1.25  1.350  1.337       1.217         0.192          0.200     1.268      1.306             0.395
+stack:attr+fe+fill    1.25  5.043  1.025       1.052         0.505          0.509     1.268      1.076             0.535
+zero                  1.25  1.250  1.250       1.250           NaN            NaN     1.268      1.268               NaN
+
+################ Rasch scale (theta) ################
+per-benchmark sd of the target: {'matharena': 2.124, 'multi_swebench': 1.441, 'real_webagents': 1.609, 'researchcodebench': 1.351}
+
+-- between-benchmark consistency of standing (per key-benchmark means) --
+ key=name
+                              pair  n  pearson  spearman
+        matharena / multi_swebench  8    0.626     0.690
+        matharena / real_webagents  6    0.148    -0.086
+     matharena / researchcodebench  8    0.629     0.500
+   multi_swebench / real_webagents 11    0.745     0.573
+multi_swebench / researchcodebench  9    0.813     0.883
+real_webagents / researchcodebench 12    0.635     0.594
+ key=canon
+                              pair  n  pearson  spearman
+        matharena / multi_swebench 13    0.579     0.703
+        matharena / real_webagents 12    0.286     0.350
+     matharena / researchcodebench 14    0.359     0.582
+   multi_swebench / real_webagents 11    0.745     0.573
+multi_swebench / researchcodebench  9    0.813     0.883
+real_webagents / researchcodebench 12    0.635     0.594
+
+-- variance decomposition --
+  total within-benchmark var of theta: 2.998
+  key=name   offsets=True  tau2=0.882 s2d=1.661 rho=0.35 keys=19 cells=53 offsets={'matharena': -2.06, 'multi_swebench': 0.1, 'real_webagents': 0.7, 'researchcodebench': 1.26}
+  key=name   offsets=False tau2=0.240 s2d=3.332 rho=0.07 keys=19 cells=53 offsets={}
+  key=name   bootstrap 95%: tau2 [0.182, 1.638]  s2d [0.540, 2.761]
+  key=name   variants within a key-benchmark cell: pooled var=2.016 (17 cells, 83 pairs); by benchmark {'matharena': 1.609, 'multi_swebench': 2.042}
+  key=name   REML (benchmark fixed effects from all rows): tau2=0.289 s2d=0.740 s2v=2.310
+  key=canon  offsets=True  tau2=0.734 s2d=1.712 rho=0.30 keys=21 cells=63 offsets={'matharena': -1.48, 'multi_swebench': -0.03, 'real_webagents': 0.48, 'researchcodebench': 1.03}
+  key=canon  offsets=False tau2=0.118 s2d=2.998 rho=0.04 keys=21 cells=63 offsets={}
+  key=canon  bootstrap 95%: tau2 [0.213, 1.322]  s2d [0.695, 2.873]
+  key=canon  variants within a key-benchmark cell: pooled var=1.924 (21 cells, 93 pairs); by benchmark {'matharena': 1.195, 'multi_swebench': 2.042}
+  key=canon  REML (benchmark fixed effects from all rows): tau2=0.329 s2d=0.539 s2v=2.251
+  attr          LOBO residual var=2.347 (0.78 of total); shared across benchmarks on linked keys: tau2_res=-0.275 [-0.708, 0.165], s2d_res=2.241
+   residual correlation across benchmark pairs (canon):
+                              pair  n  pearson  spearman
+        matharena / multi_swebench 13   -0.658    -0.484
+        matharena / real_webagents 12   -0.518    -0.252
+     matharena / researchcodebench 14   -0.025     0.077
+   multi_swebench / real_webagents 11    0.710     0.573
+multi_swebench / researchcodebench  9    0.646     0.567
+real_webagents / researchcodebench 12    0.237     0.112
+  attr+fe+fill  LOBO residual var=2.450 (0.82 of total); shared across benchmarks on linked keys: tau2_res=-0.466 [-0.992, 0.046], s2d_res=2.581
+  date+fe       LOBO residual var=2.657 (0.89 of total); shared across benchmarks on linked keys: tau2_res=-0.041 [-0.731, 0.624], s2d_res=2.339
+
+-- leave-one-benchmark-out, identity key = name --
+ pooled over held-out benchmarks (mse* row-weighted; cov_* on the pairs whose key is covered):
+               mse0    mse  mse_c  mse_shrunk  mean_pearson  mean_spearman  cov_mse0  cov_mse_c  cov_mean_pearson
+method                                                                                                           
+id_attr:attr  2.948  2.495  2.361       2.362         0.503          0.490     2.791      2.415             0.606
+id_eb         2.948  2.974  2.949       2.971         0.111          0.145     2.791      2.422             0.478
+id_raw        2.948  3.454  3.375       2.911         0.139          0.152     2.791      3.006             0.536
+
+-- leave-one-benchmark-out, identity key = name_effort --
+ pooled over held-out benchmarks (mse* row-weighted; cov_* on the pairs whose key is covered):
+               mse0    mse  mse_c  mse_shrunk  mean_pearson  mean_spearman  cov_mse0  cov_mse_c  cov_mean_pearson
+method                                                                                                           
+id_attr:attr  2.948  2.502  2.368       2.371         0.501          0.486      2.15      1.899             0.572
+id_eb         2.948  3.067  3.033       3.083         0.036          0.015      2.15      1.883             0.455
+id_raw        2.948  3.520  3.391       2.997         0.059          0.019      2.15      2.243             0.511
+
+-- leave-one-benchmark-out, identity key = full --
+ pooled over held-out benchmarks (mse* row-weighted; cov_* on the pairs whose key is covered):
+               mse0    mse  mse_c  mse_shrunk  mean_pearson  mean_spearman  cov_mse0  cov_mse_c  cov_mean_pearson
+method                                                                                                           
+id_attr:attr  2.948  2.471  2.344       2.346         0.508          0.491     0.936      0.501             0.692
+id_eb         2.948  2.914  2.913       2.948         0.291          0.199     0.936      0.643             0.635
+id_raw        2.948  2.934  2.920       2.948         0.291          0.199     0.936      0.683             0.635
+
+-- leave-one-benchmark-out, identity key = canon --
+        benchmark               method  n  coverage  pearson  spearman  mse0    mse  mse_c  slope  mse_shrunk  cov_n  cov_pearson  cov_mse0  cov_mse_c
+        matharena                 zero 81     0.321      NaN       NaN 4.457  4.457  4.457  0.000       4.457     26          NaN     6.260      6.260
+        matharena                 attr 81     0.321    0.466     0.559 4.457  3.644  3.535  1.036       3.524     26        0.681     6.260      5.105
+        matharena              attr+fe 81     0.321    0.484     0.605 4.457 12.794  3.423  1.044       3.416     26        0.683     6.260      5.118
+        matharena           attr+small 81     0.321    0.440     0.525 4.457  3.692  3.627  0.812       3.698     26        0.674     6.260      5.215
+        matharena        attr+small+fe 81     0.321    0.450     0.611 4.457 16.749  3.556  0.794       3.588     26        0.692     6.260      5.247
+        matharena            attr+fill 81     0.321    0.470     0.579 4.457  3.610  3.511  1.036       3.501     26        0.548     6.260      5.119
+        matharena         attr+fill+fe 81     0.321    0.487     0.635 4.457 12.749  3.410  1.044       3.404     26        0.551     6.260      5.106
+        matharena                 date 81     0.321    0.706     0.651 4.457  3.805  3.516  1.117       3.423     26        0.739     6.260      4.991
+        matharena              date+fe 81     0.321    0.711     0.651 4.457  4.329  3.464  0.999       3.465     26        0.751     6.260      4.946
+        matharena               id_raw 81     0.321    0.133     0.006 4.457  4.525  4.483  0.731       4.404     26        0.433     6.260      5.110
+        matharena                id_eb 81     0.321    0.110    -0.004 4.457  4.468  4.443  0.982       4.440     26        0.415     6.260      5.333
+        matharena         id_attr:attr 81     0.321    0.451     0.559 4.457  3.707  3.578  0.971       3.587     26        0.638     6.260      5.084
+        matharena id_attr:attr+fe+fill 81     0.321    0.473     0.615 4.457 12.956  3.461  0.979       3.463     26        0.518     6.260      5.116
+        matharena   stack:attr+fe+fill 81     0.321    0.480     0.595 4.457 11.415  3.444  1.044       3.437     26        0.541     6.260      4.874
+   multi_swebench                 zero 82     0.732      NaN       NaN 2.050  2.050  2.050  0.000       2.050     60          NaN     1.869      1.869
+   multi_swebench                 attr 82     0.732    0.324     0.290 2.050  1.948  1.901  0.991       1.898     60        0.204     1.869      1.953
+   multi_swebench              attr+fe 82     0.732    0.267     0.240 2.050 17.468  2.215  0.899       2.118     60        0.177     1.869      2.312
+   multi_swebench           attr+small 82     0.732    0.270     0.176 2.050  2.099  2.064  1.085       2.123     60        0.165     1.869      2.052
+   multi_swebench        attr+small+fe 82     0.732    0.234     0.189 2.050 17.291  2.420  0.977       2.388     60        0.148     1.869      2.436
+   multi_swebench            attr+fill 82     0.732    0.311     0.302 2.050  2.026  1.930  1.006       1.932     60        0.200     1.869      1.971
+   multi_swebench         attr+fill+fe 82     0.732    0.259     0.256 2.050 16.815  2.260  0.907       2.163     60        0.170     1.869      2.355
+   multi_swebench                 date 82     0.732    0.220     0.188 2.050  2.237  2.088  1.732       2.707     60        0.168     1.869      2.017
+   multi_swebench              date+fe 82     0.732    0.223     0.194 2.050  5.953  2.434  1.182       2.726     60        0.168     1.869      2.403
+   multi_swebench               id_raw 82     0.732    0.203     0.205 2.050  2.777  2.746  0.060       2.014     60        0.271     1.869      2.724
+   multi_swebench                id_eb 82     0.732    0.184     0.204 2.050  2.050  2.035 -0.148       2.094     60        0.264     1.869      1.783
+   multi_swebench         id_attr:attr 82     0.732    0.325     0.302 2.050  1.951  1.900  0.923       1.875     60        0.209     1.869      1.951
+   multi_swebench id_attr:attr+fe+fill 82     0.732    0.261     0.256 2.050 16.783  2.260  0.851       2.110     60        0.173     1.869      2.352
+   multi_swebench   stack:attr+fe+fill 82     0.732    0.235     0.222 2.050 17.162  2.115  0.907       2.060     60        0.079     1.869      2.181
+   real_webagents                 zero 26     0.577      NaN       NaN 2.490  2.490  2.490  0.000       2.490     15          NaN     1.037      1.037
+   real_webagents                 attr 26     0.577    0.620     0.499 2.490  1.586  1.541  0.985       1.538     15        0.675     1.037      0.627
+   real_webagents              attr+fe 26     0.577    0.607     0.528 2.490 11.523  1.658  0.687       1.583     15        0.659     1.037      0.733
+   real_webagents           attr+small 26     0.577    0.611     0.586 2.490  1.658  1.616  0.868       1.671     15        0.453     1.037      0.853
+   real_webagents        attr+small+fe 26     0.577    0.579     0.567 2.490 10.828  1.659  0.588       1.825     15        0.393     1.037      0.979
+   real_webagents            attr+fill 26     0.577    0.620     0.535 2.490  1.627  1.542  0.974       1.537     15        0.668     1.037      0.637
+   real_webagents         attr+fill+fe 26     0.577    0.603     0.548 2.490 11.108  1.673  0.681       1.594     15        0.654     1.037      0.740
+   real_webagents                 date 26     0.577    0.320     0.360 2.490  2.250  2.239  1.148       2.235     15        0.342     1.037      0.942
+   real_webagents              date+fe 26     0.577    0.359     0.493 2.490  4.337  2.177  0.680       2.186     15        0.342     1.037      1.040
+   real_webagents               id_raw 26     0.577    0.242     0.236 2.490  2.775  2.749  0.142       2.401     15        0.572     1.037      1.252
+   real_webagents                id_eb 26     0.577    0.202     0.213 2.490  2.416  2.411  0.334       2.415     15        0.486     1.037      0.806
+   real_webagents         id_attr:attr 26     0.577    0.619     0.499 2.490  1.592  1.545  0.963       1.539     15        0.674     1.037      0.631
+   real_webagents id_attr:attr+fe+fill 26     0.577    0.603     0.548 2.490 11.094  1.678  0.667       1.599     15        0.654     1.037      0.745
+   real_webagents   stack:attr+fe+fill 26     0.577    0.613     0.568 2.490  8.988  1.553  0.681       1.645     15        0.644     1.037      0.607
+researchcodebench                 zero 31     0.516      NaN       NaN 1.765  1.765  1.765  0.000       1.765     16          NaN     0.973      0.973
+researchcodebench                 attr 31     0.516    0.616     0.606 1.765  1.556  1.099  0.802       1.138     16        0.779     0.973      0.404
+researchcodebench              attr+fe 31     0.516    0.626     0.617 1.765  9.245  1.074  0.613       1.167     16        0.737     0.973      0.451
+researchcodebench           attr+small 31     0.516    0.391     0.266 1.765  1.771  1.511  0.706       1.500     16        0.263     0.973      0.948
+researchcodebench        attr+small+fe 31     0.516    0.416     0.241 1.765 10.209  1.494  0.556       1.481     16        0.217     0.973      1.014
+researchcodebench            attr+fill 31     0.516    0.602     0.557 1.765  1.667  1.127  0.783       1.168     16        0.752     0.973      0.436
+researchcodebench         attr+fill+fe 31     0.516    0.618     0.608 1.765  8.827  1.091  0.602       1.183     16        0.717     0.973      0.475
+researchcodebench                 date 31     0.516    0.396     0.292 1.765  1.641  1.490  0.930       1.489     16        0.052     0.973      1.084
+researchcodebench              date+fe 31     0.516    0.396     0.292 1.765  2.967  1.538  0.637       1.491     16        0.052     0.973      1.191
+researchcodebench               id_raw 31     0.516    0.076     0.123 1.765  2.576  2.463  0.164       1.758     16        0.503     0.973      1.268
+researchcodebench                id_eb 31     0.516    0.036     0.096 1.765  1.889  1.870  0.534       1.786     16        0.438     0.973      0.790
+researchcodebench         id_attr:attr 31     0.516    0.614     0.601 1.765  1.563  1.102  0.771       1.150     16        0.780     0.973      0.402
+researchcodebench id_attr:attr+fe+fill 31     0.516    0.618     0.607 1.765  8.811  1.094  0.583       1.194     16        0.718     0.973      0.473
+researchcodebench   stack:attr+fe+fill 31     0.516    0.624     0.580 1.765  5.175  1.143  0.602       1.312     16        0.623     0.973      0.664
+ pooled over held-out benchmarks (mse* row-weighted; cov_* on the pairs whose key is covered):
+                       mse0     mse  mse_c  mse_shrunk  mean_pearson  mean_spearman  cov_mse0  cov_mse_c  cov_mean_pearson
+method                                                                                                                    
+attr                  2.948   2.474  2.347       2.347         0.506          0.488     2.616      2.272             0.585
+attr+fe               2.948  13.886  2.433       2.399         0.496          0.497     2.616      2.479             0.564
+attr+fill             2.948   2.511  2.353       2.355         0.501          0.493     2.616      2.289             0.542
+attr+fill+fe          2.948  13.518  2.450       2.414         0.492          0.512     2.616      2.502             0.523
+attr+small            2.948   2.587  2.509       2.562         0.428          0.388     2.616      2.450             0.389
+attr+small+fe         2.948  15.330  2.618       2.636         0.420          0.402     2.616      2.679             0.363
+date                  2.948   2.732  2.547       2.743         0.410          0.373     2.616      2.412             0.325
+date+fe               2.948   4.743  2.657       2.760         0.422          0.407     2.616      2.628             0.328
+id_attr:attr          2.948   2.500  2.364       2.363         0.502          0.490     2.616      2.266             0.576
+id_attr:attr+fe+fill  2.948  13.578  2.469       2.419         0.489          0.506     2.616      2.503             0.516
+id_eb                 2.948   2.961  2.943       2.952         0.133          0.127     2.616      2.311             0.401
+id_raw                2.948   3.392  3.346       2.904         0.163          0.143     2.616      2.866             0.444
+stack:attr+fe+fill    2.948  12.391  2.401       2.412         0.488          0.491     2.616      2.370             0.472
+zero                  2.948   2.948  2.948       2.948           NaN            NaN     2.616      2.616               NaN

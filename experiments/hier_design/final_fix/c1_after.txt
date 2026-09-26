@@ -1,0 +1,33 @@
+formative: 240 runs in 589s
+true                   ALC 0.17975  minus true +0.00000 +- 0.00000  B0:0.2410 B1:0.2066 B3:0.1826 B7:0.1654 B15:0.1532 B31:0.1409  failures 0 unconverged 0
+old: multi_swebench left ALC 0.19353  minus true +0.01378 +- 0.00096  B0:0.2909 B1:0.2306 B3:0.1935 B7:0.1710 B15:0.1560 B31:0.1424  failures 0 unconverged 0
+new: multi_swebench left ALC 0.18189  minus true +0.00214 +- 0.00037  B0:0.2491 B1:0.2098 B3:0.1842 B7:0.1665 B15:0.1537 B31:0.1414  failures 0 unconverged 0
+old: matharena left    ALC 0.18781  minus true +0.00806 +- 0.00071  B0:0.2608 B1:0.2186 B3:0.1905 B7:0.1715 B15:0.1566 B31:0.1428  failures 0 unconverged 0
+new: matharena left    ALC 0.18152  minus true +0.00177 +- 0.00035  B0:0.2491 B1:0.2095 B3:0.1839 B7:0.1658 B15:0.1533 B31:0.1410  failures 0 unconverged 0
+old: all REFERENCE     ALC 0.18298  minus true +0.00323 +- 0.00041  B0:0.2491 B1:0.2106 B3:0.1855 B7:0.1682 B15:0.1549 B31:0.1422  failures 0 unconverged 0
+new: all REFERENCE     ALC 0.18165  minus true +0.00190 +- 0.00034  B0:0.2491 B1:0.2091 B3:0.1837 B7:0.1662 B15:0.1539 B31:0.1416  failures 0 unconverged 0
+new: REFERENCE, sigma_mu widened 3.6 ALC 0.18191  minus true +0.00216 +- 0.00033  B0:0.2491 B1:0.2103 B3:0.1838 B7:0.1662 B15:0.1539 B31:0.1416  failures 0 unconverged 0
+calibration [true] pred/obs(n): 0.0:0.056/0.052(45403) 0.1:0.149/0.144(58320) 0.2:0.244/0.248(65772) 0.3:0.380/0.382(119926) 0.4:0.450/0.447(29658) 0.5:0.549/0.557(37449) 0.6:0.648/0.656(41386) 0.7:0.749/0.762(27810) 0.8:0.847/0.866(23214) 0.9:0.938/0.953(11862)
+   mean pred 0.4019 mean obs 0.4050
+   B0: ECE(5 bins) 0.0058 max gap 0.0058
+   B1: ECE(5 bins) 0.0081 max gap 0.0235
+   B3: ECE(5 bins) 0.0081 max gap 0.0296
+   B7: ECE(5 bins) 0.0090 max gap 0.0186
+   B15: ECE(5 bins) 0.0093 max gap 0.0148
+   B31: ECE(5 bins) 0.0066 max gap 0.0153
+calibration [old: all REFERENCE] pred/obs(n): 0.0:0.061/0.041(32892) 0.1:0.149/0.116(47607) 0.2:0.255/0.210(65794) 0.3:0.351/0.308(48760) 0.4:0.478/0.409(121431) 0.5:0.548/0.545(41269) 0.6:0.650/0.657(39217) 0.7:0.746/0.763(33374) 0.8:0.847/0.877(21613) 0.9:0.933/0.958(8843)
+   mean pred 0.4351 mean obs 0.4050
+   B0: ECE(5 bins) 0.0900 max gap 0.0900
+   B1: ECE(5 bins) 0.0490 max gap 0.0611
+   B3: ECE(5 bins) 0.0361 max gap 0.0495
+   B7: ECE(5 bins) 0.0302 max gap 0.0416
+   B15: ECE(5 bins) 0.0258 max gap 0.0340
+   B31: ECE(5 bins) 0.0198 max gap 0.0310
+calibration [new: all REFERENCE] pred/obs(n): 0.0:0.058/0.050(42402) 0.1:0.151/0.138(53639) 0.2:0.249/0.227(57135) 0.3:0.345/0.321(55170) 0.4:0.481/0.413(104916) 0.5:0.554/0.533(30436) 0.6:0.648/0.621(42801) 0.7:0.748/0.732(34459) 0.8:0.846/0.849(26637) 0.9:0.936/0.946(13205)
+   mean pred 0.4333 mean obs 0.4050
+   B0: ECE(5 bins) 0.0900 max gap 0.0900
+   B1: ECE(5 bins) 0.0451 max gap 0.0727
+   B3: ECE(5 bins) 0.0214 max gap 0.0351
+   B7: ECE(5 bins) 0.0128 max gap 0.0216
+   B15: ECE(5 bins) 0.0118 max gap 0.0175
+   B31: ECE(5 bins) 0.0109 max gap 0.0190

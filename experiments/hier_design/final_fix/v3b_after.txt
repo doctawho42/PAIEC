@@ -1,0 +1,18 @@
+t3 default link weight w/o attributes 0.1605312495100173
+t3 default       T1 (31, 31) T2 (0, 1) O1 None O2 None: exact 0.2912 line 0.3015 (+0.0103) unconv 0
+t3 default       T1 (0, 31) T2 (1, 1) O1 None O2 None: exact 0.5761 line 0.5678 (-0.0083) unconv 0
+t3 default       T1 (31, 31) T2 (0, 3) O1 (3, 31) O2 (0, 7): exact 0.1302 line 0.1380 (+0.0077) unconv 0
+t3 default       T1 (0, 15) T2 (2, 3) O1 (15, 15) O2 (7, 7): exact 0.6304 line 0.6251 (-0.0053) unconv 0
+t3 default       T1 (20, 31) T2 (0, 0) O1 None O2 (5, 31): exact 0.3450 line 0.3501 (+0.0051) unconv 0
+t3 REFERENCE link weight w/o attributes 0.14850136239782016
+t3 REFERENCE     T1 (31, 31) T2 (0, 1) O1 None O2 None: exact 0.2995 line 0.3053 (+0.0059) unconv 0
+t3 REFERENCE     T1 (0, 31) T2 (1, 1) O1 None O2 None: exact 0.7005 line 0.6947 (-0.0059) unconv 0
+t3 REFERENCE     T1 (31, 31) T2 (0, 3) O1 (3, 31) O2 (0, 7): exact 0.0966 line 0.1063 (+0.0097) unconv 0
+t3 REFERENCE     T1 (0, 15) T2 (2, 3) O1 (15, 15) O2 (7, 7): exact 0.6751 line 0.6670 (-0.0081) unconv 0
+t3 REFERENCE     T1 (20, 31) T2 (0, 0) O1 None O2 (5, 31): exact 0.3752 line 0.3789 (+0.0037) unconv 0
+gauss REFERENCE link weight w/o attributes 0.14850136239782016
+gauss REFERENCE  T1 (31, 31) T2 (0, 1) O1 None O2 None: exact 0.3380 line 0.3357 (-0.0023) unconv 0
+gauss REFERENCE  T1 (0, 31) T2 (1, 1) O1 None O2 None: exact 0.6620 line 0.6643 (+0.0023) unconv 0
+gauss REFERENCE  T1 (31, 31) T2 (0, 3) O1 (3, 31) O2 (0, 7): exact 0.1454 line 0.1508 (+0.0053) unconv 0
+gauss REFERENCE  T1 (0, 15) T2 (2, 3) O1 (15, 15) O2 (7, 7): exact 0.6570 line 0.6515 (-0.0055) unconv 0
+gauss REFERENCE  T1 (20, 31) T2 (0, 0) O1 None O2 (5, 31): exact 0.3871 line 0.3892 (+0.0021) unconv 0

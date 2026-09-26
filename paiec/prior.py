@@ -119,11 +119,13 @@ class SubjectPrior:
         fit_prior builds it (alpha 2, no intercept), fitted on the standings;
         u = x' C x is the uncertainty of the ridge's coefficients at x.
     identity(subject) -> (mean, v) or None: the same canonical name's standing
-        on the public benchmarks it was seen on, as a leave-one-benchmark-out
-        attribute residual (or raw, when attributes are off), benchmark
-        offsets removed, with noise v = s2d / k over the k benchmarks that
-        mean covers. paiec.hier precision-weights it against theta's prior and
-        caps the weight: after attributes almost nothing of a standing transfers.
+        on the public benchmarks it was seen on, as an attribute residual from
+        ridges that saw neither the benchmark nor the name (_residuals), or
+        raw when attributes are off, benchmark offsets removed, with noise
+        v = s2d / k over the k benchmarks that mean covers. paiec.hier
+        precision-weights it against theta's prior and caps the weight: after
+        attributes no transfer is measurable (tau2_res -0.002 of a residual
+        variance of 3.09 on the public data, a name-bootstrap sd of 0.44).
 
     table rows are [raw mean, residual mean or None, benchmarks behind the raw
     mean, benchmarks behind the residual one]. from_dict validates shapes and
@@ -366,6 +368,8 @@ def standings(pairs, exclude=()):
 
 
 def _ridge(rows, alpha):
+    """(coef, spec, X, (X'X + alpha I)^-1) on rows: the spec (provider and
+    effort columns, imputation medians) is fixed by the rows' attributes."""
     import pandas as pd
     import warnings
     df = pd.DataFrame([attrs(s) for _, s, _, _ in rows])
@@ -380,6 +384,107 @@ def _ridge(rows, alpha):
     A = X.T @ X + alpha * np.eye(X.shape[1])
     Ai = np.linalg.inv(A)
     return Ai @ X.T @ z, spec, X, Ai
+
+
+#: ridge penalty of the identity pass (_residuals for tau2_res): least squares
+#: in effect. At the run-time alpha the two ridges behind a name's residuals
+#: share their shrinkage toward 0 and tau2 comes out high (from_standings)
+ID_ALPHA = 1e-6
+
+
+def _residuals(rows, alpha, X=None):
+    """(resid, weights): each standing's attribute residual from a ridge that
+    saw neither its benchmark nor any row of its model; all nan with fewer
+    than two benchmarks.
+
+    Every ridge is fitted on X, the design of all rows under the full ridge's
+    spec (default: _ridge(rows)'s), which is what the run-time prior uses and
+    holds no standing. A spec rebuilt on each training subset dropped the
+    columns with fewer than 8 rows left in it (37 of the 67 public ridges:
+    effort 'high' in 19, meta in 18, bytedance in 15), and a dropped column's
+    effect went into both of a name's residuals: with the shrinkage at alpha
+    2 (from_standings), +0.14 on tau2 = 0 drawn on the public design (step-2b
+    review, verify_id/synth_tau.py).
+
+    Row i on benchmark b gets z_i less the prediction of a ridge fitted
+    without b, centred by that ridge's mean prediction over b's rows (z is
+    centred within b). A canonical name with rows on other benchmarks too
+    gets, on each of its benchmarks, a ridge of its own that also leaves out
+    every row of the name (21 names on the public data, 67 ridges in all).
+    Without that, the ridge that predicts the name on b had fitted its
+    standing on the others, which pulls its residuals on two benchmarks
+    apart: their mean cross-product estimated tau2 - 2 h Var(z) for rows of
+    leverage h (-0.24 on the public data). Each ridge is centred on its own
+    mean: centring on the benchmark ridge's mean, which has seen the name,
+    lets it back in. Rows without a canonical name link nothing. A row with
+    no training row left keeps nan.
+
+    weights[i], for the rows of a linked name: the prediction's centred
+    smoother weights over all rows (w' z is its centred prediction, zero
+    where the ridge did not train)."""
+    n = len(rows)
+    z = np.array([r[2] for r in rows])
+    bench = np.array([r[0] for r in rows])
+    names = np.array([canon_name(r[1]) for r in rows], dtype=object)
+    resid, weights = np.full(n, np.nan), {}
+    benches = sorted(set(bench))
+    if len(benches) < 2:
+        return resid, weights
+    X = _ridge(rows, alpha)[2] if X is None else np.asarray(X, float)
+    eye = alpha * np.eye(X.shape[1])
+    seen = defaultdict(set)
+    for b, k in zip(bench, names):
+        if k:
+            seen[k].add(b)
+    for b in benches:
+        te = np.flatnonzero(bench == b)
+        D = X[te]
+        linked = sorted({names[i] for i in te if len(seen.get(names[i], ())) >= 2})
+        for k in [None] + linked:
+            keep = bench != b if k is None else (bench != b) & (names != k)
+            own = np.ones(len(te), bool) if k is None else names[te] == k
+            tr = np.flatnonzero(keep)
+            if not len(tr):
+                resid[te[own]] = np.nan
+                continue
+            Xt = X[tr]
+            Ai = np.linalg.inv(Xt.T @ Xt + eye)
+            pred = D @ (Ai @ (Xt.T @ z[tr]))
+            resid[te[own]] = z[te[own]] - (pred[own] - pred.mean())
+            if k is not None:
+                W = D @ Ai @ Xt.T
+                Wc = W[own] - W.mean(0)
+                for i, w in zip(te[own], Wc):
+                    full = np.zeros(n)
+                    full[tr] = w
+                    weights[int(i)] = full
+    return resid, weights
+
+
+def _link_noise(members, weights, group, sigma2):
+    """noise(k, b1, b2) -> (c0, c1): what the two ridges' errors add to the
+    cross-product of name k's residuals on b1 and b2 is c0 + c1 tau2,
+    averaged over the rows of the two cells.
+
+    A ridge's centred prediction is w'z (_residuals), so the two errors
+    covary by w1' Cov(z) w2 about the attribute function. Rows of one name
+    (`group`: one id per name, and per row for rows without one) share tau2,
+    every row has sigma2 in all, so Cov(z) = (sigma2 - tau2) I + tau2 S with
+    S the same-name indicator: c0 = sigma2 w1'w2 and c1 = W1'W2 - w1'w2, W
+    the weights summed per name. On the public design (from_standings) the
+    least-squares pass loses 0.08 to it at tau2 = 0 and 0.15 at 0.3, where
+    without the name term (c1 = 0) the estimate was 0.363 +- 0.022 against
+    0.308 +- 0.019 with it (200 sets, step-2b fix_id/nameterm.py). This
+    takes out the ridges' noise, not a bias they share (from_standings)."""
+    n_groups = int(group.max()) + 1 if len(group) else 0
+    summed = {i: np.bincount(group, w, n_groups) for i, w in weights.items()}
+
+    def noise(k, b1, b2):
+        a = [(weights[i] @ weights[j], summed[i] @ summed[j])
+             for i in members[(k, b1)] for j in members[(k, b2)]]
+        ww, WW = np.mean(a, axis=0)
+        return sigma2 * float(ww), float(WW - ww)
+    return noise
 
 
 def _offsets(cells):
@@ -405,52 +510,104 @@ def _offsets(cells):
     return c
 
 
-def _components(cells):
-    """tau2 (shared across benchmarks: mean cross-product of one name's standings
-    on two benchmarks) and s2d (the name's variance across benchmarks), on
-    offset-corrected per-(name, benchmark) means."""
-    by_k = defaultdict(list)
-    for (k, _), u in cells.items():
-        by_k[k].append(u)
-    multi = [np.array(v) for v in by_k.values() if len(v) >= 2]
+def _components(cells, noise=None):
+    """(tau2, s2d, subtracted) on offset-corrected per-(name, benchmark) means:
+    s2d the name's variance across benchmarks, tau2 the part shared across
+    them, the mean cross-product of one name's values on two benchmarks less
+    what noise(k, b1, b2) = (c0, c1) says the rest adds to it, c0 + c1 tau2,
+    averaged over the same cross-products: tau2 = (xp - c0) / (1 + c1).
+    `subtracted` is xp - tau2 (0 without `noise`). (None, None, None) without
+    a name on two benchmarks."""
+    by_k = defaultdict(dict)
+    for (k, b), u in cells.items():
+        by_k[k][b] = u
+    multi = {k: d for k, d in by_k.items() if len(d) >= 2}
     if not multi:
-        return None, None
-    mu = float(np.mean(np.concatenate(multi)))
-    xp = [(u[a] - mu) * (u[b] - mu) for u in multi for a, b in combinations(range(len(u)), 2)]
-    ss = sum(float(((u - u.mean()) ** 2).sum()) for u in multi)
-    dof = sum(len(u) - 1 for u in multi)
-    return float(np.mean(xp)), ss / dof
+        return None, None, None
+    mu = float(np.mean([u for d in multi.values() for u in d.values()]))
+    xp, c = [], []
+    for k, d in multi.items():
+        for b1, b2 in combinations(sorted(d), 2):
+            xp.append((d[b1] - mu) * (d[b2] - mu))
+            c.append((0.0, 0.0) if noise is None else noise(k, b1, b2))
+    ss = sum(float(((u - u.mean()) ** 2).sum())
+             for u in (np.array(list(d.values())) for d in multi.values()))
+    dof = sum(len(d) - 1 for d in multi.values())
+    c0, c1 = np.mean(c, axis=0)
+    tau2 = (float(np.mean(xp)) - c0) / max(1.0 + c1, 0.5)
+    return float(tau2), ss / dof, float(np.mean(xp) - tau2)
 
 
 def build_prior(pairs, exclude=(), alpha=2.0):
     """SubjectPrior from the included benchmarks, or None when no benchmark with
-    two pairs is left. meta carries what fit_hyper needs: the pooled
-    within-benchmark variance of the standings, the leave-one-benchmark-out
-    attribute residual variance, the mean coefficient uncertainty, and the
-    identity components. meta['benchmarks'] are the benchmarks behind the
-    standings (two pairs or more), meta['included'] every benchmark of `pairs`
-    outside `exclude`: what paiec.hier.HierPredictor compares with the
-    hyperparameters' Hyper.included, so a prior built on pairs filtered
-    beforehand (exclude empty) cannot meet hyperparameters fitted on more.
+    two pairs is left: from_standings on standings(pairs, exclude), with
+    meta['included'] every benchmark of `pairs` outside `exclude`, what
+    paiec.hier.HierPredictor compares with the hyperparameters'
+    Hyper.included, so a prior built on pairs filtered beforehand (exclude
+    empty) cannot meet hyperparameters fitted on more."""
+    rows = standings(pairs, exclude)
+    if not rows:
+        return None
+    return from_standings(rows, alpha, sorted(_by_benchmark(pairs, exclude)), exclude)
+
+
+def from_standings(rows, alpha=2.0, included=None, excluded=()):
+    """SubjectPrior from standings rows [(benchmark, subject, standing,
+    posterior variance)]. meta carries what fit_hyper needs: the pooled
+    within-benchmark variance of the standings, the attribute residual
+    variance, the mean coefficient uncertainty, and the identity components.
+    meta['benchmarks'] are the benchmarks behind the rows; `included`
+    (default: the same) and `excluded` are recorded for the checks
+    fit_hyper and paiec.hier make.
+
+    One residual per row serves the identity table, s2d_res and s2_res:
+    _residuals at the run-time alpha, from a ridge on the full ridge's design
+    that saw neither the row's benchmark nor its model, which is what a new
+    subject on a new benchmark meets. s2_res is the variance a new subject's
+    standing has about its attribute prediction (3.09 on the public data),
+    s2d_res a name's spread across benchmarks (3.00), the table's residual
+    means their average.
+
+    tau2_res, the part of that variance a name shares across benchmarks,
+    comes from a second pass of the same ridges at ID_ALPHA, least squares
+    in effect: the mean cross-product of a name's residuals on two
+    benchmarks, less what the two ridges' noise adds to it (_link_noise).
+    What the two ridges get wrong in common, the noise correction cannot
+    see, and the cross-product counts it as shared standing. At the run-time
+    alpha that is mostly their shrinkage toward 0: on standings drawn on the
+    public design (its 220 rows' names, benchmarks and attributes, f the
+    full ridge's fitted values, a pair deviation of sd 1, a known tau2; 200
+    sets each, step-2b fix_id/synth_shipped.py) the alpha-2 pass gave
+    +0.077 +- 0.009 for tau2 = 0, 0.165 for 0.09 and 0.367 +- 0.018 for 0.3,
+    the least-squares pass +0.019 +- 0.008, 0.105 +- 0.011 and 0.308 +- 0.019
+    at the same spread (per-set sd 0.12 to 0.26). Subtracting the shrinkage
+    cross-product at the fitted coefficients instead took off 0.024 of the
+    passes' difference (fix_id/proto.py): those coefficients are shrunk
+    themselves. Computed exactly, the residuals' systematic part
+    cross-multiplies to 0.082 at alpha 2, 0.034 of it shrinkage, and to
+    0.027 at least squares (fix_id/decomp2.py). That remainder is the one
+    intercept: the ridge fits standings centred within benchmarks whose
+    pools differ, and the offsets it cannot fit bend its slopes the same way
+    for both residuals. It grows with the attribute effects (+0.058 at twice
+    the fitted coefficients) and with effects outside the design (+0.079
+    for one such term; fix_id/shipped_bigmis.txt), so the estimate errs
+    high. A design demeaned within each training benchmark removed it in
+    simulation but took the public estimate to -0.33, below every other
+    variant, so it is not used. On the public data tau2_res is -0.002
+    (0.097 at alpha 2, kept in meta['tau2_res_alpha']), -0.51 to +0.08
+    leaving one benchmark out, with a cluster-bootstrap sd of 0.44 over the
+    21 linked names (fix_id/boot_fixed.txt): nothing measurable is shared.
 
     The standings are posterior means, shrunk toward 0, so a true standing's
     variance is theirs plus the mean posterior variance (Laplace-EM's own
     fixed point for s2_t, e.g. matharena 7.39 = 7.21 + 0.18), and likewise for
     a residual: the noise is added, not subtracted."""
-    rows = standings(pairs, exclude)
-    if not rows:
-        return None
     coef, spec, X, Ai = _ridge(rows, alpha)
     z = np.array([r[2] for r in rows])
     noise = np.array([r[3] for r in rows])
-    bench = np.array([r[0] for r in rows])
-    benches = sorted(set(bench))
-    resid = np.full(len(rows), np.nan)
-    for b in benches if len(benches) >= 2 else ():
-        tr, te = bench != b, bench == b
-        c_b, spec_b, _, _ = _ridge([r for r, k in zip(rows, tr) if k], alpha)
-        pred = np.array([design_row(attrs(rows[i][1]), spec_b) @ c_b for i in np.flatnonzero(te)])
-        resid[te] = z[te] - (pred - pred.mean())
+    benches = sorted({r[0] for r in rows})
+    resid, w_alpha = _residuals(rows, alpha, X)
+    resid_id, weights = _residuals(rows, ID_ALPHA, X)
     ok = np.isfinite(resid)
     total = float(np.mean(z ** 2) + noise.mean())
     s2_res = float(np.mean(resid[ok] ** 2) + noise[ok].mean()) if ok.any() else None
@@ -459,20 +616,30 @@ def build_prior(pairs, exclude=(), alpha=2.0):
     cov = max(sigma2, 1e-6) * Ai @ X.T @ X @ Ai
     u = np.einsum("ij,jk,ik->i", X, cov, X)
 
-    cells_raw, cells_res = defaultdict(list), defaultdict(list)
+    cells_raw, cells_res, cells_id, members = (defaultdict(list) for _ in range(4))
+    group, ids = np.zeros(len(rows), np.int64), {}
     for i, (b, s, _, _) in enumerate(rows):
         k = canon_name(s)
+        group[i] = ids.setdefault(k or ("row", i), len(ids))
         if k:
             cells_raw[(k, b)].append(z[i])
             if ok[i]:
                 cells_res[(k, b)].append(resid[i])
-    cells_raw = {kb: float(np.mean(v)) for kb, v in cells_raw.items()}
-    cells_res = {kb: float(np.mean(v)) for kb, v in cells_res.items()}
-    off_raw, off_res = _offsets(cells_raw), _offsets(cells_res)
-    cells_raw = {(k, b): v - off_raw.get(b, 0.0) for (k, b), v in cells_raw.items()}
-    cells_res = {(k, b): v - off_res.get(b, 0.0) for (k, b), v in cells_res.items()}
-    tau_raw, s2d_raw = _components(cells_raw)
-    tau_res, s2d_res = _components(cells_res)
+                cells_id[(k, b)].append(resid_id[i])
+                members[(k, b)].append(i)
+
+    def centred(cells):
+        cells = {kb: float(np.mean(v)) for kb, v in cells.items()}
+        off = _offsets(cells)
+        return {(k, b): v - off.get(b, 0.0) for (k, b), v in cells.items()}
+    cells_raw, cells_res, cells_id = centred(cells_raw), centred(cells_res), centred(cells_id)
+    tau_raw, s2d_raw, _ = _components(cells_raw)
+    # what the ridges' errors are made of: the standings' own variance about
+    # the attribute function, the residuals' less the prediction's (the
+    # coefficients' covariance keeps s2_res, as before)
+    s2z = max(float(np.mean(resid[ok] ** 2) - u[ok].mean()), 1e-6) if ok.any() else 0.0
+    tau_alpha, s2d_res, _ = _components(cells_res, _link_noise(members, w_alpha, group, s2z))
+    tau_res, _, link_noise = _components(cells_id, _link_noise(members, weights, group, s2z))
     table = defaultdict(lambda: [[], []])
     for (k, b), v in cells_raw.items():
         table[k][0].append(v)
@@ -480,10 +647,12 @@ def build_prior(pairs, exclude=(), alpha=2.0):
         table[k][1].append(v)
     table = {k: [float(np.mean(r)), float(np.mean(e)) if e else None, len(r), len(e)]
              for k, (r, e) in sorted(table.items())}
-    meta = {"benchmarks": benches, "included": sorted(_by_benchmark(pairs, exclude)),
-            "excluded": sorted(set(exclude)), "n_rows": len(rows),
+    meta = {"benchmarks": benches, "included": benches if included is None else sorted(included),
+            "excluded": sorted(set(excluded)), "n_rows": len(rows),
             "total_var": total, "s2_res": s2_res, "u_mean": float(u.mean()),
-            "tau2_raw": tau_raw, "tau2_res": tau_res, "s2d_raw": s2d_raw, "s2d_res": s2d_res,
+            "tau2_raw": tau_raw, "tau2_res": tau_res, "link_noise": link_noise,
+            "tau2_res_alpha": tau_alpha,
+            "s2d_raw": s2d_raw, "s2d_res": s2d_res,
             "linked": sum(1 for r in table.values() if r[2] >= 2), "alpha": alpha}
     return SubjectPrior(coef, spec, cov, table, {"raw": s2d_raw, "resid": s2d_res}, meta)
 
@@ -519,8 +688,27 @@ def fit_hyper(pairs, exclude=(), prior=None, widen=WIDEN, g_cap=G_CAP, nu_mu=0.0
                       new benchmark (to be settled by the evaluation)
       sigma_d/g       the median item variance of multi-subject benchmarks,
                       split by their median group share, capped at g_cap
-      sigma_theta     identity tau2 of attribute residuals, clipped to
-                      [0.01, 0.2] (the analyses' CI upper bound is 0.17)
+      sigma_theta     identity tau2 of attribute residuals (from_standings),
+                      clipped to [0.01, 0.2]: -0.002 on all five public
+                      benchmarks, so sigma_theta 0.1 and a link weight of
+                      0.0018; -0.51 to +0.08 leaving one out (sigma_theta 0.29
+                      without matharena, 0.1 otherwise). Its noise is large (a
+                      name-bootstrap sd of 0.44 on the public data, 0.12 on
+                      synthetic standings a third as noisy) and its bias
+                      positive (+0.02 at the public fit's coefficients, more
+                      with larger or unmodelled effects). The floor keeps
+                      theta proper and the link weight near 0.002 when noise
+                      takes the estimate below zero, as in five of those six
+                      fits. The ceiling is itself within noise of zero, and it
+                      keeps one high draw from setting the link weight past
+                      0.036 (sigma_delta 2.30 there), where the identity
+                      weight has already reached id_cap on every public row
+                      whose name has two residual benchmarks and on 73% of the
+                      others (0.083 or more for the rest; at the floor 91% and
+                      12%): above it only the link would move. Neither bound
+                      is fitted: the evaluation found link weights up to 0.3
+                      worth nothing measurable at formative size
+                      (docs/findings.md)
       sigma_delta     LOBO attribute residual variance less theta's and the
                       coefficients' share, times widen[1]. With a single
                       multi-subject benchmark there is no LOBO residual: its
@@ -643,7 +831,8 @@ def from_json(d):
     except (TypeError, KeyError, ValueError) as err:
         raise ValueError(f"hyperparameters: {err!r}") from err
     for k, v in hyper.to_dict().items():
-        if k not in ("excluded", "included") and (not math.isfinite(v) or (k != "mu0" and v < 0)):
+        if k not in ("excluded", "included") and \
+                (not math.isfinite(v) or (k not in ("mu0", "shift") and v < 0)):
             raise ValueError(f"hyperparameter {k} = {v}")
     return prior, hyper
 

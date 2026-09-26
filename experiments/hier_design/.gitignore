@@ -1,0 +1,9 @@
+# regenerated caches and bulky outputs of the step-2 design scripts
+__pycache__/
+runs.pkl
+flat.parquet
+*.pkl
+item_signal.json
+prior_sweep.json
+predictor_check.json
+crossed.json

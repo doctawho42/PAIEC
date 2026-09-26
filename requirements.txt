@@ -1,9 +1,9 @@
 # Run-time requirements of the submission; tools/build_submission.py ships this file.
 # Codabench does not install extra packages by default, so nothing is pinned: a pin
 # the preinstalled version misses could only trigger an install that is not allowed.
-# Only numpy is required. Without scipy or scikit-learn the predictor keeps the
-# attribute prior and the subject's own labels and drops the item-difficulty model.
+# The shipped model (paiec_rt.hier, text term off) needs numpy alone and never loads
+# scipy or scikit-learn. Only the rollback build (--legacy, the Predictor) uses them,
+# optionally: without them it keeps the attribute prior and the subject's own labels
+# and drops the item-difficulty model.
 # Development dependencies are in pyproject.toml: pip install -e ".[dev]"
 numpy
-scipy
-scikit-learn

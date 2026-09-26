@@ -1,0 +1,11 @@
+rep 0 done (189s)
+rep 1 done (370s)
+rep 2 done (554s)
+rep 3 done (759s)
+rep 4 done (1345s)
+rep 5 done (2726s)
+n_s 26 nu 3.0 B1 : excess Brier exact 0.03014; line +0.00081+-0.00037 laplace +0.00109+-0.00047; |p-exact| line 0.0137 (max 0.030) laplace 0.0181; toward 0.5 line +0.0128 laplace +0.0180
+n_s 26 nu 3.0 B3 : excess Brier exact 0.02347; line +0.00006+-0.00021 laplace +0.00014+-0.00035; |p-exact| line 0.0084 (max 0.020) laplace 0.0150; toward 0.5 line +0.0077 laplace +0.0150
+n_s 26 nu 3.0 B7 : excess Brier exact 0.01433; line +0.00009+-0.00010 laplace +0.00026+-0.00019; |p-exact| line 0.0041 (max 0.012) laplace 0.0103; toward 0.5 line +0.0034 laplace +0.0103
+n_s 26 nu 3.0 B15: excess Brier exact 0.00728; line -0.00000+-0.00003 laplace +0.00014+-0.00008; |p-exact| line 0.0017 (max 0.004) laplace 0.0065; toward 0.5 line +0.0014 laplace +0.0065
+n_s 26 nu 3.0 B31: excess Brier exact 0.00344; line +0.00000+-0.00001 laplace +0.00007+-0.00003; |p-exact| line 0.0006 (max 0.002) laplace 0.0037; toward 0.5 line +0.0005 laplace +0.0037

@@ -1,0 +1,7 @@
+trap12 worst rel error of posterior mean 1.56e-03
+trap16 worst rel error of posterior mean 9.20e-05
+trap20 worst rel error of posterior mean 4.99e-06
+trap16w worst rel error of posterior mean 3.04e-04
+gl8 worst rel error of posterior mean 1.65e-01
+gl12 worst rel error of posterior mean 1.16e-01
+gl16 worst rel error of posterior mean 8.09e-02

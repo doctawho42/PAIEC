@@ -118,7 +118,8 @@ prior.REFERENCE (0.52 under the earlier REFERENCE, whose sigma_delta was 1.0):
 against exact quadrature one subject on two benchmarks was off by up to 0.010
 at the defaults without attributes, 0.010 under REFERENCE and 0.025 at weight
 0.3, where a Gaussian level stays within 0.006 (final_verify/v3b_link_t.py,
-rerun in step-2 final_fix/v3b_after.txt).
+rerun in step-2 final_fix/v3b_after.txt and, at the current defaults, in
+step-2b fix_id/link_fixed_defaults.txt).
 Mixing linked t levels jointly would cost LAM^k refits for k levels, and is
 not done. It costs LAM refits per benchmark and a line per node per target: 5
 to 10 times the Gaussian level's time (5.8 against 0.6 ms a call on one
@@ -138,19 +139,35 @@ CLOSE_MAX steps near the mode) is counted in HierPredictor.unconverged.
 Linking a subject across the benchmarks of a run goes through theta alone, so
 its weight is Hyper.link_weight = sigma_theta^2 / (sigma_theta^2 + sigma_delta^2):
 how far a subject's standing on one benchmark, however well measured, moves its
-prediction on another. The two step-2 analyses that seem to disagree on it
-measure different things. levels-variance's 86% transferable is the raw share on
-real_webagents and researchcodebench, 12 subjects and no attributes, where
-subject-transfer also finds a raw correlation of 0.56. Over the four
-multi-subject benchmarks, with benchmark offsets removed, the raw shared share
-is 0.30 to 0.36, and once the attribute mean is taken out it is -0.06
-[-0.21, 0.07] on the accuracy scale: what transfers is what release date,
-provider and size already say. So with an attribute prior the default weight is
-small (the public tau2 of attribute residuals is negative and clipped to 0.01);
-without one, the variance the attributes would have explained (sigma_attr^2)
-goes into theta, which is shared, and the weight is (sigma_theta^2 +
-sigma_attr^2) / (that + sigma_delta^2), 0.16 at the defaults. Flags.link=False turns linking off, and
-Hyper.relink(w) sets the weight at a fixed total, so the evaluation can decide.
+prediction on another. Over the four multi-subject public benchmarks, with
+benchmark offsets removed, a named model's standings share 1.41 of their
+variance of 4.12 across benchmarks (levels-variance's 86% is the raw share on
+real_webagents and researchcodebench alone, 12 subjects), and what they share
+is what release date, provider and size already say. The part of the
+attribute residual that is shared is tau2_res (paiec.prior.from_standings):
+the mean cross-product of a name's residuals on two benchmarks, each from a
+least-squares ridge on the full design fitted without that benchmark and
+without the name, less what the two ridges' noise adds to it. It is -0.002 on
+the public data (-0.51 to +0.08 leaving one benchmark out, a bootstrap sd of
+0.44 over the 21 linked names), fit_hyper clips it to [0.01, 0.2], and so
+sigma_theta is 0.1 and the weight 0.0018 at the defaults. Estimated
+otherwise, it went wrong through the ridges. One that had seen the same name
+on the other benchmarks pulls its residuals apart: their mean cross-product
+estimates tau2 - 2 h Var(z) for rows of leverage h (-0.24 on the public data;
+the step-2 finding of -0.06 [-0.21, 0.07] on the accuracy scale was of this
+kind). Ridges that rebuilt the design on each training subset, dropping
+columns left with fewer than 8 rows, or that shrank at the run-time alpha,
+share errors that the cross-product counts as shared standing (+0.23 on the
+public data; on standings drawn on the public design with tau2 = 0, +0.14
+for both and +0.08 for the shrinkage alone). tests/test_hier.py checks the
+recovery of a known tau2, 0 and 0.3, on a design where a rebuilt spec drops a
+column. Without an attribute prior the variance the attributes would have
+explained (sigma_attr^2) goes into theta, which is shared, and the weight is
+(sigma_theta^2 + sigma_attr^2) / (that + sigma_delta^2), 0.16 at the
+defaults. Flags.link=False turns linking off, and Hyper.relink(w) sets the
+weight at a fixed total, so the evaluation can decide: at formative size no
+weight up to 0.3 made a measurable difference (docs/findings.md), as a
+subject rarely meets two benchmarks in one run.
 
 Size. The fit is dense in its columns (levels, standings, pair deviations,
 group levels), and each Newton step costs their cube. A key keeps at most
@@ -237,6 +254,11 @@ class Hyper:
     benchmarks under every exclusion: a leave-one-benchmark-out score carries
     that much optimism, as the Predictor's does (docs/findings.md).
 
+    An experiment moves the priors with dataclasses.replace, no code edited:
+    the level prior by mu0, sigma_mu and nu_mu, the subject prior by
+    attr_scale and shift (below). HierPredictor checks only excluded and
+    included against the subject prior, and replace keeps both.
+
     mu0, sigma_mu   level of a new benchmark at attribute score 0 (the public
                     Rasch levels less their pool's mean attribute score, which
                     is what the run-time eta adds theta's prior mean to): their
@@ -263,11 +285,13 @@ class Hyper:
                     0.0006 on public runs (pair-cluster SE 0.0016): the
                     evaluation decides
     sigma_theta     standing shared across benchmarks after attributes: the
-                    identity tau2 of attribute residuals, clipped to [0.01, 0.2]
-                    (public: negative, so 0.1)
-    sigma_delta     pair deviation around the attribute prior: the LOBO
-                    attribute residual variance less theta's and the
-                    coefficients' share, widened 1.4x likewise
+                    identity tau2 of attribute residuals from least-squares
+                    ridges that saw neither the benchmark nor the name, less
+                    their noise, clipped to [0.01, 0.2] (public: -0.002, so
+                    0.1; see paiec.prior.fit_hyper for the clip)
+    sigma_delta     pair deviation around the attribute prior: the variance
+                    of those residuals less theta's and the coefficients'
+                    share, widened 1.4x likewise
     sigma_attr      the spread the attributes explain; it goes back into
                     theta's prior variance when there is no attribute prior
     sigma_d, g      the median item variance of the multi-subject benchmarks,
@@ -285,6 +309,16 @@ class Hyper:
                     researchcodebench where no floor applies
     text_share      share of the item residual the optional text term takes
     id_cap          largest weight the identity table may get
+    attr_scale      multiplies the attribute prior's mean standing m_s
+                    (SubjectPrior.attribute), not its uncertainty; 1 is the
+                    fitted prior. Neither it nor shift is fitted: they are
+                    for experiments that move the prior (dataclasses.replace)
+    shift           added to every subject's prior mean, so to every pair's
+                    prior logit. Every eta holds exactly one level and one
+                    theta, so this is the same model as mu0 + shift (the
+                    posterior over etas is identical; tests/test_hier.py)
+                    and spelt separately only so an experiment can move the
+                    subject prior without redefining the level. 0 by default
     excluded        the benchmarks these were fitted without
     included        the benchmarks they were fitted on, as fit_hyper saw
                     them; when not given (the defaults, a Hyper built by hand
@@ -297,14 +331,16 @@ class Hyper:
     sigma_mu: float = 2.676
     nu_mu: float = 0.0
     sigma_theta: float = 0.1
-    sigma_delta: float = 2.371
-    sigma_attr: float = 1.032
+    sigma_delta: float = 2.382
+    sigma_attr: float = 1.018
     sigma_d: float = 2.671
     sigma_g: float = 1.542
     slip: float = 0.01
     guess: float = 0.5
     text_share: float = 0.2
     id_cap: float = 0.1
+    attr_scale: float = 1.0
+    shift: float = 0.0
     excluded: tuple = ()
     included: tuple = None
 
@@ -1670,8 +1706,9 @@ class HierPredictor:
 
     # per-subject and per-item pieces, independent of labeled, memoised
     def theta_prior(self, sk, subject):
-        """(mean, variance) of theta for one subject dict: attributes, then the
-        identity table precision-weighted against them. The dict is read as the
+        """(mean, variance) of theta for one subject dict: Hyper.shift plus the
+        attribute mean times Hyper.attr_scale, then the identity table
+        precision-weighted against them. The dict is read as the
         text its key hashes, so two dicts sharing a key share a prior whichever
         came first (release_date 2024 and '2024'); a prior that fails on it
         gives the no-attribute prior rather than a failed fit."""
@@ -1682,14 +1719,14 @@ class HierPredictor:
 
     def _theta_prior(self, subject):
         h, cfg, pr = self.hyper, self.cfg, self.prior
-        base = (0.0, h.sigma_theta ** 2 + h.sigma_attr ** 2)
+        base = (h.shift, h.sigma_theta ** 2 + h.sigma_attr ** 2)
         try:
             subject = {f: _text(subject.get(f)) for f in SUBJECT_FIELDS}
-            m, V = 0.0, h.sigma_theta ** 2
+            m, V = h.shift, h.sigma_theta ** 2
             attr = cfg.attributes and pr is not None and pr.has_attributes
             if attr:
                 ma, u = pr.attribute(subject)
-                m, V = m + ma, V + u
+                m, V = m + h.attr_scale * ma, V + u
             else:
                 V += h.sigma_attr ** 2
             if cfg.identity and pr is not None:

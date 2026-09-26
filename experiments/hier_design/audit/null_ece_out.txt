@@ -1,0 +1,3 @@
+runs 0..39: ECE-ALC hier - Predictor observed +0.0108 ± 0.0022; under perfect calibration +0.0095 ± 0.0006; excess +0.0014 ± 0.0022
+  Predictor: observed ECE-ALC 0.1377, null 0.0463
+  hier: observed ECE-ALC 0.1486, null 0.0557

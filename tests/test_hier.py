@@ -15,7 +15,7 @@ from paiec import prior as PR
 from paiec.hier import (Hyper, HierPredictor, Problem, _Items, expect_sig, item_groups, make_hier,
                         mcq_text, parse_features, select_keys)
 from paiec.mcq import floor_of
-from paiec.subjects import Spec
+from paiec.subjects import Spec, attrs, design_row
 from tests.synth import make_pairs
 
 sig = lambda x: 0.5 * (1 + np.tanh(0.5 * np.asarray(x, float)))
@@ -1107,3 +1107,237 @@ def test_canonical_name_links_variants():
     assert model.identity_key(b"a", a) == model.identity_key(b"b", b)
     full = HierPredictor(None, Hyper(), subject_key="full")
     assert full.identity_key(b"a", a) != full.identity_key(b"b", b)
+
+
+# --- the identity components --------------------------------------------------------
+
+def drawn_standings(seed, tau2, sd, n_b=4, n_names=10, extra=4, n_meta=0, effect=2.0, v=0.1):
+    """Standings rows as prior.standings gives them, with a known shared part:
+    z = f(provider, release date) + theta_name + delta, centred within each
+    benchmark; n_names models on every benchmark, `extra` others on one each.
+    With n_meta, that many models of provider meta are on b0 and b1 only, and
+    one more on each of the two: meta's 2 n_meta + 2 rows reach Spec's 8 with
+    both benchmarks in, so the full design has the column (effect `effect`)
+    and a spec rebuilt without b0 or b1 would drop it."""
+    rng = np.random.default_rng(seed)
+    n = n_names + n_b * extra
+    m = n + (n_meta + 2 if n_meta else 0)
+    prov, days = rng.integers(0, 3, m), rng.integers(0, 900, m)
+    prov[n:] = 3
+    f = 0.8 * (prov == 0) - 0.5 * (prov == 2) + effect * (prov == 3) + 1.2 * (days - 450) / 450
+    theta = rng.normal(0, math.sqrt(tau2), m)
+    subs = [subject(f"model {k}", provider=("openai", "anthropic", "google", "meta")[prov[k]],
+                    release_date=str(np.datetime64("2023-01-01") + int(days[k]))) for k in range(m)]
+    rows = []
+    for b in range(n_b):
+        who = list(range(n_names)) + list(range(n_names + b * extra, n_names + (b + 1) * extra))
+        if n_meta and b < 2:
+            who += list(range(n, n + n_meta)) + [n + n_meta + b]
+        z = f[who] + theta[who] + rng.normal(0, sd, len(who))
+        rows += [(f"b{b}", subs[k], float(zk), v) for k, zk in zip(who, z - z.mean())]
+    return rows
+
+
+def test_identity_residuals_leave_the_benchmark_and_the_name_out():
+    """A name's residual on b comes from a ridge fitted without b and without
+    any row of the name, centred on that ridge's own mean over b, so it does
+    not move with the name's standings elsewhere; a name seen once keeps the
+    benchmark-out ridge. Every ridge is fitted on the full ridge's design,
+    including a provider column a spec rebuilt on the training rows would
+    drop. The smoother weights reproduce the centred prediction, at the
+    run-time alpha and at the identity pass's."""
+    rows = drawn_standings(0, 0.3, 0.7, n_b=3, n_names=5, extra=3, n_meta=3)
+    z = np.array([r[2] for r in rows])
+    names = [PR.canon_name(r[1]) for r in rows]
+    bench = [r[0] for r in rows]
+    _, spec, X, _ = PR._ridge(rows, 2.0)
+    assert "meta" in spec.providers
+    assert "meta" not in PR._ridge([r for r in rows if r[0] != "b0"], 2.0)[1].providers
+
+    def by_hand(i, drop_name, alpha):
+        tr = [j for j in range(len(rows)) if bench[j] != bench[i]
+              and not (drop_name and names[j] == names[i])]
+        te = [j for j in range(len(rows)) if bench[j] == bench[i]]
+        c = np.linalg.solve(X[tr].T @ X[tr] + alpha * np.eye(X.shape[1]), X[tr].T @ z[tr])
+        pred = X[te] @ c
+        return z[i] - (pred[te.index(i)] - pred.mean()), pred[te.index(i)] - pred.mean()
+    linked = names.index("model 1", 5)                  # model 1 on b1
+    alone = names.index("model 6")                      # an extra on b0
+    meta = names.index("model 14")                      # meta, on b0 and b1
+    for alpha in (2.0, PR.ID_ALPHA):
+        resid, weights = PR._residuals(rows, alpha)
+        for i, drop in ((linked, True), (meta, True), (alone, False)):
+            want, centred = by_hand(i, drop, alpha)
+            assert resid[i] == pytest.approx(want, abs=1e-8)
+            if drop:
+                assert weights[i] @ z == pytest.approx(centred, abs=1e-8)
+    resid, weights = PR._residuals(rows, 2.0)
+    assert set(weights) == {i for i in range(len(rows))
+                            if names[i] in {f"model {k}" for k in (0, 1, 2, 3, 4, 14, 15, 16)}}
+    moved = list(rows)
+    for j in range(len(rows)):
+        if names[j] == "model 1" and bench[j] != "b1":
+            moved[j] = (*rows[j][:2], rows[j][2] + 3.0, rows[j][3])
+    again, _ = PR._residuals(moved, 2.0)
+    assert again[linked] == pytest.approx(resid[linked], abs=1e-12)
+    assert again[alone] != pytest.approx(resid[alone], abs=1e-6)
+    assert np.all(np.isnan(PR._residuals([r for r in rows if r[0] == "b0"], 2.0)[0]))
+
+
+def test_identity_tau2_is_recovered_on_standings_with_a_known_shared_part():
+    """The shared part tau2 comes back within noise, for 0 and for 0.3, from
+    standings drawn with it on a design where meta's column, worth 2 logits,
+    has fewer than 8 rows once b0 or b1 is left out: over 200 sets the fixed
+    estimator gave -0.003 +- 0.003 and 0.281 +- 0.010 (a little low at 0.3:
+    the offsets and the mean are taken from the same cells). Before the fix
+    (a spec rebuilt on each training subset, residuals at alpha 2) these 30
+    sets gave +0.041 +- 0.008 for 0, which fails here (step-2b
+    fix_id/test_size.txt); on standings drawn on the public design, +0.144.
+    What is left is the bias the ridges share (paiec.prior.from_standings),
+    about +0.02 there."""
+    for tau2 in (0.0, 0.3):
+        got = []
+        for seed in range(30):
+            prior = PR.from_standings(drawn_standings(seed, tau2, 0.7, n_names=20, extra=8, n_meta=3))
+            got.append(prior.meta["tau2_res"])
+            assert prior.meta["linked"] == 23 and "meta" in prior.spec.providers
+            assert 0 < prior.meta["link_noise"] < 0.3
+        got = np.array(got)
+        se = got.std(ddof=1) / math.sqrt(len(got))
+        assert se < (0.015 if tau2 == 0 else 0.04), (tau2, se)
+        assert abs(got.mean() - tau2) < 3 * se, (tau2, got.mean(), se)
+
+
+# --- hooks for moving the priors ------------------------------------------------------
+
+def _theta_prior_before_hooks(self, subject):
+    """HierPredictor._theta_prior as it was before Hyper.attr_scale and
+    Hyper.shift (commit bba726c)."""
+    h, cfg, pr = self.hyper, self.cfg, self.prior
+    base = (0.0, h.sigma_theta ** 2 + h.sigma_attr ** 2)
+    try:
+        subject = {f: H._text(subject.get(f)) for f in H.SUBJECT_FIELDS}
+        m, V = 0.0, h.sigma_theta ** 2
+        attr = cfg.attributes and pr is not None and pr.has_attributes
+        if attr:
+            ma, u = pr.attribute(subject)
+            m, V = m + ma, V + u
+        else:
+            V += h.sigma_attr ** 2
+        if cfg.identity and pr is not None:
+            obs = pr.identity(subject, residual=attr)
+            if obs is not None:
+                rbar, vid = obs
+                w = min(V / (V + vid), h.id_cap)
+                m, V = m + w * rbar, (1 - w) ** 2 * V + w * w * vid
+        if math.isfinite(m) and math.isfinite(V) and V > 0:
+            return m, V
+    except Exception:
+        pass
+    return base
+
+
+def hooks_run():
+    """Subjects with attributes, one in the toy identity table, on two
+    benchmarks with features; targets on labeled and new items, a new
+    benchmark and a new subject."""
+    subs = [subject("Gizmo-2 (high)", provider="OpenAI", release_date="2025-06-01"),
+            subject("widget", provider="anthropic", release_date="2024-03-01", reasoning_effort="high"),
+            subject("plain")]
+    labeled = [[[s, item(j, bid, f"tier=t{j % 3}")], int((j + k + b) % 3 == 0)]
+               for b, bid in enumerate(("benchmark_1", "benchmark_2"))
+               for k, s in enumerate(subs) for j in range(6 + 3 * k)]
+    targets = [[s, item(j, bid, f"tier=t{j % 4}")]
+               for s in subs + [subject("newcomer", provider="openai", release_date="2025-01-01")]
+               for bid in ("benchmark_1", "benchmark_2", "benchmark_3") for j in (0, 40)]
+    return labeled, targets
+
+
+@pytest.mark.parametrize("hyper", [Hyper(), Hyper(sigma_mu=1.829, nu_mu=3.0)])
+def test_the_prior_hooks_at_their_defaults_change_nothing(hyper):
+    """attr_scale 1 and shift 0 give bit-for-bit what the code gave before
+    they existed (the old _theta_prior, the only reader of either), under
+    every flag that changes how theta's prior is used, with and without a
+    subject prior; moved, they do move the predictions."""
+    from dataclasses import replace
+    import types
+    labeled, targets = hooks_run()
+    assert (hyper.attr_scale, hyper.shift) == (1.0, 0.0)
+    for prior in (toy_prior(), None):
+        for flags in ({}, {"attributes": False}, {"identity": False}, {"link": False},
+                      {"delta": False}, {"line": False}):
+            new = HierPredictor(prior, hyper, **flags)
+            old = HierPredictor(prior, hyper, **flags)
+            old._theta_prior = types.MethodType(_theta_prior_before_hooks, old)
+            for lab in ([], labeled[:7], labeled):
+                assert [new.predict(t, lab) for t in targets] == \
+                    [old.predict(t, lab) for t in targets], (prior is None, flags, len(lab))
+            assert new.failures == old.failures == 0
+    base = [HierPredictor(toy_prior(), hyper).predict(t, labeled) for t in targets]
+    for moved in (replace(hyper, attr_scale=0.5), replace(hyper, shift=-0.4)):
+        ps = [HierPredictor(toy_prior(), moved).predict(t, labeled) for t in targets]
+        assert max(abs(a - b) for a, b in zip(ps, base)) > 0.01
+
+
+def test_attr_scale_scales_the_attribute_mean_and_shift_adds_to_it():
+    """theta's prior mean is shift + attr_scale * m_s + the identity term, whose
+    weight depends on the variance alone; the variance does not move. Without
+    attributes the scale does nothing and the shift still applies, also to
+    the no-attribute fallback of a prior that fails."""
+    from dataclasses import replace
+    prior, h = toy_prior(), Hyper()
+    plain = subject("widget", provider="anthropic", release_date="2024-03-01")
+    known = subject("Gizmo-2 (high)", provider="OpenAI", release_date="2025-06-01")
+    for scale, shift in ((0.0, 0.0), (0.5, 0.0), (2.0, -0.7)):
+        hh = replace(h, attr_scale=scale, shift=shift)
+        ma, u = prior.attribute(plain)
+        mt, vt = HierPredictor(prior, hh).theta_prior(b"p", plain)
+        assert mt == pytest.approx(shift + scale * ma, abs=1e-12)
+        assert vt == pytest.approx(h.sigma_theta ** 2 + u, abs=1e-12)
+        m0, v0 = HierPredictor(prior, h).theta_prior(b"k", known)
+        mt, vt = HierPredictor(prior, hh).theta_prior(b"k", known)
+        ma, _ = prior.attribute(known)
+        assert mt - shift - scale * ma == pytest.approx(m0 - ma, abs=1e-12) and vt == v0
+        off = HierPredictor(prior, hh, attributes=False, identity=False)
+        assert off.theta_prior(b"p", plain) == pytest.approx((shift, h.sigma_theta ** 2 + h.sigma_attr ** 2))
+    broken = toy_prior()
+    broken.coef = broken.coef[:-1]                      # attribute() raises
+    got = HierPredictor(broken, replace(h, shift=0.3)).theta_prior(b"p", plain)
+    assert got == pytest.approx((0.3, h.sigma_theta ** 2 + h.sigma_attr ** 2))
+
+
+def test_shift_is_the_level_moved_by_the_same_amount():
+    """Every eta holds one level and one theta, so moving every subject's prior
+    by c is the same model as moving mu0 by c: the same predictions at every
+    budget, Gaussian or Student-t level, up to the fit's tolerance."""
+    from dataclasses import replace
+    labeled, targets = hooks_run()
+    for h in (Hyper(), Hyper(sigma_mu=1.829, nu_mu=3.0)):
+        for c in (-1.5, 0.8):
+            a = HierPredictor(toy_prior(), replace(h, shift=c))
+            b = HierPredictor(toy_prior(), replace(h, mu0=h.mu0 + c))
+            for lab in ([], labeled[:7], labeled):
+                pa, pb = [a.predict(t, lab) for t in targets], [b.predict(t, lab) for t in targets]
+                assert pa == pytest.approx(pb, abs=1e-9), (h.nu_mu, c, len(lab))
+
+
+def test_the_level_prior_is_overridden_by_replace():
+    """mu0, sigma_mu and nu_mu set by dataclasses.replace are what a new
+    benchmark's B0 prediction uses, and the hooks survive prior.json."""
+    from dataclasses import replace
+    prior = toy_prior()
+    s, it = subject("widget", provider="anthropic"), item(0, "benchmark_9")
+    for h in (replace(Hyper(), mu0=-3.0, sigma_mu=0.7), replace(Hyper(), mu0=1.0, sigma_mu=4.0)):
+        model = HierPredictor(prior, h, floor=False)
+        mt, vt = model.theta_prior(b"any", s)
+        v = h.sigma_mu ** 2 + vt + h.sigma_delta ** 2 + h.sigma_d ** 2 + h.sigma_g ** 2
+        want = (1 - h.slip) * float(sig(h.mu0 + mt + math.sqrt(v) * ZF) @ WF)
+        assert model.predict([s, it], []) == pytest.approx(want, abs=1e-9)
+    t3 = replace(Hyper(), nu_mu=3.0)
+    assert HierPredictor(prior, t3).predict([s, it], []) != HierPredictor(prior, Hyper()).predict([s, it], [])
+    moved = replace(Hyper(), attr_scale=0.5, shift=-0.7, mu0=-2.0, sigma_mu=1.5, nu_mu=4.0)
+    assert PR.from_json(json.loads(json.dumps(PR.to_json(prior, moved))))[1] == moved
+    old = {k: v for k, v in Hyper().to_dict().items() if k not in ("attr_scale", "shift")}
+    assert Hyper.from_dict(old) == Hyper()               # a prior.json from before the hooks
+    with pytest.raises(ValueError):
+        PR.from_json({**PR.to_json(None, Hyper()), "hyper": {**Hyper().to_dict(), "attr_scale": -1.0}})
