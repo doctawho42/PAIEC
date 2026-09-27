@@ -367,15 +367,16 @@ def standings(pairs, exclude=()):
     return rows
 
 
-def _ridge(rows, alpha):
+def _ridge(rows, alpha, design=None):
     """(coef, spec, X, (X'X + alpha I)^-1) on rows: the spec (provider and
-    effort columns, imputation medians) is fixed by the rows' attributes."""
+    effort columns, imputation medians) is fixed by the rows' attributes;
+    `design` holds Spec.from_frame's optional terms (None: none of them)."""
     import pandas as pd
     import warnings
     df = pd.DataFrame([attrs(s) for _, s, _, _ in rows])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        spec = Spec.from_frame(df)
+        spec = Spec.from_frame(df, **(design or {}))
     # no subject with a date or a size leaves a nan median, and nan everywhere
     spec.med_days = spec.med_days if math.isfinite(spec.med_days) else 0.0
     spec.med_log_size = spec.med_log_size if math.isfinite(spec.med_log_size) else 0.0
@@ -538,20 +539,22 @@ def _components(cells, noise=None):
     return float(tau2), ss / dof, float(np.mean(xp) - tau2)
 
 
-def build_prior(pairs, exclude=(), alpha=2.0):
+def build_prior(pairs, exclude=(), alpha=2.0, design=None):
     """SubjectPrior from the included benchmarks, or None when no benchmark with
     two pairs is left: from_standings on standings(pairs, exclude), with
     meta['included'] every benchmark of `pairs` outside `exclude`, what
     paiec.hier.HierPredictor compares with the hyperparameters'
     Hyper.included, so a prior built on pairs filtered beforehand (exclude
-    empty) cannot meet hyperparameters fitted on more."""
+    empty) cannot meet hyperparameters fitted on more. `design`: the optional
+    attribute terms (paiec.subjects.Spec.from_frame's keywords), none by
+    default."""
     rows = standings(pairs, exclude)
     if not rows:
         return None
-    return from_standings(rows, alpha, sorted(_by_benchmark(pairs, exclude)), exclude)
+    return from_standings(rows, alpha, sorted(_by_benchmark(pairs, exclude)), exclude, design)
 
 
-def from_standings(rows, alpha=2.0, included=None, excluded=()):
+def from_standings(rows, alpha=2.0, included=None, excluded=(), design=None):
     """SubjectPrior from standings rows [(benchmark, subject, standing,
     posterior variance)]. meta carries what fit_hyper needs: the pooled
     within-benchmark variance of the standings, the attribute residual
@@ -601,8 +604,13 @@ def from_standings(rows, alpha=2.0, included=None, excluded=()):
     The standings are posterior means, shrunk toward 0, so a true standing's
     variance is theirs plus the mean posterior variance (Laplace-EM's own
     fixed point for s2_t, e.g. matharena 7.39 = 7.21 + 0.18), and likewise for
-    a residual: the noise is added, not subtracted."""
-    coef, spec, X, Ai = _ridge(rows, alpha)
+    a residual: the noise is added, not subtracted.
+
+    `design` is passed to Spec.from_frame (the optional terms of
+    paiec.subjects); every ridge here, the identity passes included, uses the
+    full ridge's design, and meta['design'] records a design that is not the
+    default."""
+    coef, spec, X, Ai = _ridge(rows, alpha, design)
     z = np.array([r[2] for r in rows])
     noise = np.array([r[3] for r in rows])
     benches = sorted({r[0] for r in rows})
@@ -654,6 +662,8 @@ def from_standings(rows, alpha=2.0, included=None, excluded=()):
             "tau2_res_alpha": tau_alpha,
             "s2d_raw": s2d_raw, "s2d_res": s2d_res,
             "linked": sum(1 for r in table.values() if r[2] >= 2), "alpha": alpha}
+    if design:
+        meta["design"] = dict(design)
     return SubjectPrior(coef, spec, cov, table, {"raw": s2d_raw, "resid": s2d_res}, meta)
 
 
@@ -797,9 +807,11 @@ def fit_hyper(pairs, exclude=(), prior=None, widen=WIDEN, g_cap=G_CAP, nu_mu=0.0
                     "excluded": held, "included": sorted(by)}), rep
 
 
-def build(pairs, exclude=(), nu_mu=0.0):
-    """(SubjectPrior or None, Hyper) from every pair outside `exclude`."""
-    prior = build_prior(pairs, exclude)
+def build(pairs, exclude=(), nu_mu=0.0, design=None):
+    """(SubjectPrior or None, Hyper) from every pair outside `exclude`; `design`
+    as in build_prior (the hyperparameters' levels are centred under the
+    prior it gives)."""
+    prior = build_prior(pairs, exclude, design=design)
     hyper, _ = fit_hyper(pairs, exclude, prior, nu_mu=nu_mu)
     return prior, hyper
 

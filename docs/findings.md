@@ -1486,3 +1486,667 @@ researchcodebench -0.002 to +0.008) are not re-measured here; split scope
 'benchmark'; the level and date-shift sensitivity regimes (level_mean -1.2 and
 -2.0, no date shift). ECE was not recorded. Latency comes from five runs on a
 loaded machine. The stored differences are float32 (1.7e-9).
+
+## Neural embeddings do not carry difficulty to an unseen benchmark
+
+`python experiments/emb_transfer.py` (results in `results/emb_transfer.json`;
+needs the Qwen3-Embedding-0.6B features from `experiments/llm_features.py`)
+
+Target: Rasch difficulty per item, subject ability divided out, standardised
+within benchmark, on the four multi-subject benchmarks (swe_rebench had no
+embeddings yet). Hyperparameters nested throughout.
+
+| Pearson r (matharena / multi_swebench / real_webagents / researchcodebench) | |
+|---|---|
+| leave-one-benchmark-out, embedding ridge (benchmark-centred) | -0.16 / -0.03 / -0.23 / -0.02 |
+| leave-one-benchmark-out, embedding kNN | -0.08 / -0.01 / -0.02 / +0.16 |
+| leave-one-benchmark-out, TF-IDF+SVD ridge, same items | -0.18 / -0.05 / -0.06 / -0.25 |
+| within benchmark, 5-fold, embedding ridge | 0.66 / 0.27 / 0.38 / 0.51 |
+| within benchmark, item_features group mean alone | 0.57 / 0.12 / 0.41 / 0.52 |
+| within benchmark, whole groups left out | 0.40 / 0.16 / -0.02 / -0.09 |
+
+Transfer to an unseen benchmark is null to negative, no better than TF-IDF,
+and R² as predicted is at most 0 everywhere. With the slope carried over from
+the other three benchmarks the covariate moves pair Brier by -0.0005 on
+average, and the carried slope has the wrong sign. Inside a benchmark the
+embedding mostly identifies the item_features group, which hier already
+learns from labels, and it already fails across groups on two benchmarks.
+Hidden runs give about one pair and at most 31 labels per benchmark, so the
+within-benchmark signal cannot be learned there either. The embeddings are kept
+for analysis only.
+
+## Item covariates with a known sign
+
+`python experiments/itemcov_eval.py --stage signs`, then `--stage harness`,
+`--stage harness --scale train`, `--stage inventory` and `--stage show` (11
+minutes on one process, under 0.9 GB, beside other jobs. Every number below
+is in `results/itemcov_eval.json`. The harness stage reads the stored rows of
+`experiments/harness.py` (`data/harness_rows`, 650 runs) and never recomputes
+hier; the rows' provenance is copied from `results/harness_thresholds.json`)
+
+`paiec/itemcov.py` reads covariates off the item dict that predict() receives.
+It uses no labels and no model, and each covariate's sign is declared in
+advance (higher = harder):
+
+* **ordinal_difficulty**: an item_features key whose name says difficulty
+  (difficulty, level, tier, stars, rating, elo, hardness, complexity, grade),
+  with a number or an easy < medium < hard word as its value, or a work count
+  (n_steps, num_files, ...). hier.select_keys drops all-numeric keys and treats
+  words as unordered groups, so this is the reading hier does not do.
+* **position**: log(1 + index) from a position-named key, which here means
+  matharena's problem_idx. **position_within** is its percentile within the
+  competition. It reads the other items' features, so it is a diagnostic
+  only.
+* **format_score**: proof +1, multiple choice -1, and short answer, code and
+  free text 0, parsed from item_content.
+* **log_length**: log(1 + characters).
+* **stated_size**: log(1 + the first amount of work the text states). In
+  researchcodebench that is the "Approximately 7 line(s) of code" of each TODO
+  block.
+* **image_ref**: the text points at an image it does not hold ("See image", a
+  markdown image).
+
+Every function is benchmark-agnostic and never raises (`tests/test_itemcov.py`).
+
+### The sign check
+
+This is the Spearman correlation with item difficulty on each unit:
+
+* on the four multi-subject parents, honest Rasch difficulty: the mean over
+  the harness's five subject folds, each fitted without that fold's subjects;
+* on swe_rebench (one subject, 10.6 trials an item), -logit of the smoothed pass
+  rate;
+* on mmdocrag (fractional responses), -logit of the mean response. This is a
+  directional sixth unit and is not counted.
+
+The ± is a bootstrap SE over item_features groups (over items on swe_rebench
+and mmdocrag). The number in brackets is the correlation within groups, which
+is what a covariate can add to hier's group effects. A unit counts when at
+least 20 items carry the cue and at least 10 of them differ from its most
+common value.
+
+| covariate | matharena | multi_swebench | real_webagents | researchcodebench | swe_rebench | mmdocrag | declared sign / units |
+|---|---|---|---|---|---|---|---|
+| ordinal_difficulty | absent | absent | absent | absent | absent | absent | 0 / 0 |
+| position | -0.03 ± 0.12 (+0.16) | absent | absent | absent | absent | absent | 0 / 1 |
+| position_within | +0.12 ± 0.05 (+0.15) | absent | absent | absent | absent | absent | 1 / 1 |
+| format_score | +0.19 ± 0.13 (+0.07) | constant | constant | 3 items off | 3 items off | 3 items off | 1 / 1 |
+| log_length | +0.28 ± 0.08 (+0.06) | -0.02 ± 0.05 (+0.00) | +0.36 ± 0.08 (+0.29) | -0.10 ± 0.17 (-0.43) | +0.04 ± 0.01 | +0.05 ± 0.02 | 3 / 5 |
+| stated_size | absent | absent | absent | +0.50 ± 0.06 (+0.43) | absent | absent | 1 / 1 |
+| image_ref | -0.04 ± 0.09 | +0.05 ± 0.03 (+0.05) | absent | -0.08 ± 0.15 | +0.05 ± 0.01 | absent | 2 / 4 |
+
+The plan allows a transferred slope only if two things hold on at least 4 of the
+5 units: the declared sign, and agreement with the mean of the other units when
+each unit is left out. No candidate passes, and most could not:
+
+* No public item carries a difficulty-named field.
+* position, format and stated size each vary on one benchmark only.
+* image references vary on four benchmarks, with no consistent sign.
+* log_length is the only covariate present everywhere, and its sign is not
+  stable. It is positive on matharena (+0.28) and real_webagents (+0.36),
+  negative on researchcodebench (-0.10 overall, -0.43 within paper; its
+  prompts are whole papers), and null on the SWE sets. Within groups
+  it has the declared sign on 4 of 5 units, but it agrees with the other
+  units' mean on none, because researchcodebench's -0.43 outweighs the rest.
+
+Formats parse cleanly on matharena: 231 proofs (IMO, USAMO, IMC, Putnam,
+Miklós), 338 multiple choice (Kangaroo), 944 short answers, and 242 items whose
+content is only a system prompt. On matharena, "proof +0.93 against integer
+-0.48" was mostly a difference between competitions: within competition the
+format's correlation is +0.07. Every candidate therefore gets only the
+zero-centred per-pair slope from B7, with prior sd at most 0.5.
+
+### Through the harness
+
+The harness scores each covariate as an offset on the shipped hier, using
+test-like runs (300), mix/whole runs (150) and public R1 runs (100 per weighting)
+(`experiments/harness.py`). x is standardised within each benchmark: it is 0
+where an item lacks the cue, or where fewer than 10 of the benchmark's items
+differ from the most common value, and it is clipped at ±3 sd. The per-pair
+prior sd is s per within-benchmark sd (`BenchScaleEngine`, see the side findings
+for why).
+
+* "Allowed nested" is nested leave-one-parent-out selection over s in {0.1,
+  0.25, 0.5}, from B7.
+* The forced lines switch one configuration on everywhere, without selection.
+* The placebo permutes x within each benchmark (three draws, differences
+  averaged). It shows what the same configuration gains or costs from noise
+  with the same support.
+
+Differences are paired ALC against the shipped hier, written "± run SE / cluster
+SE / stratified SE".
+
+| covariate, allowed nested | test-like | mix/whole | worst parent | R1 benchmark-first | R1 pair-uniform | folds on | gate |
+|---|---|---|---|---|---|---|---|
+| position | 0 | 0 | 0 | 0 | 0 | (3/4) | no |
+| position_within | 0 | 0 | 0 | 0 | 0 | 0/4 | no |
+| format_score | 0 | 0 | 0 | 0 | 0 | (3/4) | no |
+| log_length | +0.00003 ± 0.00001 / 0.00002 / 0.00002 | -0.00010 | +0.00004 | -0.00012 | -0.00020 | 3/4 | no |
+| stated_size | 0 | 0 | 0 | 0 | 0 | (3/4) | no |
+| image_ref | +0.00003 ± 0.00001 / 0.00001 / 0.00001 | +0.00004 | +0.00013 | +0.00001 | +0.00005 | 2/4 | no |
+
+No covariate passes the gate (test-like ≤ -0.002). Nested selection cannot
+switch on a covariate that varies on one parent only. With that parent held
+out, its inner folds see a constant and choose off. On the other folds, the
+choice is made on that parent's inner gains and applied to parents where x is
+constant, which gives the "folds on" in brackets and a difference of exactly 0.
+
+log_length and image_ref are switched on in some folds and do nothing. ordinal
+difficulty is constant on every stored item, so q = p.
+
+Switched on regardless, the forced per-pair line with s = 0.5 from B7 does this
+on the parents that carry the cue (test-like, per held-out parent ± cluster SE,
+placebo in brackets):
+
+| covariate | parent | test-like | mix/whole | R1 bench-first / pair-uniform | within-pair r (test-like) |
+|---|---|---|---|---|---|
+| stated_size | researchcodebench | **-0.0022 ± 0.0005** (+0.0008) | -0.0062 ± 0.0008 | -0.0064 / -0.0060 | +0.41 |
+| position | matharena | -0.0004 ± 0.0003 (+0.0007) | -0.0011 ± 0.0005 | -0.0013 / -0.0013 | -0.09 |
+| position_within | matharena | +0.0011 ± 0.0003 (+0.0009) | +0.0009 ± 0.0003 | -0.0008 / -0.0005 | -0.04 |
+| format_score | matharena | +0.0002 ± 0.0001 (+0.0010) | +0.0002 | -0.0012 / -0.0007 | -0.01 |
+| log_length | four parents | +0.0002, +0.0004 ± 0.0001, -0.0005 ± 0.0007, +0.0002 (+0.0002 to +0.0010) | -0.0003 overall | -0.0004 / -0.0005 overall | +0.05 |
+| image_ref | matharena, multi_swebench, researchcodebench | +0.0005 ± 0.0002, +0.0001, +0.0003 (+0.0004 to +0.0007) | +0.0004 overall | +0.0003 / +0.0004 overall | -0.02 |
+
+(The within-pair r is the harness table's `r_within_pair_tl`: the mean over
+test-like pairs on which x varies of its correlation with honest difficulty
+over the pair's evaluated items.)
+
+Only stated_size carries item signal that the per-pair slope can use. It reads
+on the threshold table where the table says it should:
+
+* Its within-pair r of 0.41 lies between the table's r = 0.3 and r = 0.5 rows
+  (within-pair 0.25 and 0.42).
+* Those rows' forced per-pair lines give -0.0004 and -0.0023 per appearance,
+  on all four parents.
+* It gains -0.0022 per appearance, on the one parent that has the cue.
+
+All of the gain comes from B7 on: -0.0007, -0.0009 and -0.0014 of Brier at B7,
+B15 and B31 over all test-like appearances. Its sign is what one would
+declare: more code to write is harder. But it exists on one public benchmark,
+so neither the nested rule nor the sign rule can be met. At s = 0.25 it gains
+-0.0011 ± 0.0002 against a placebo of +0.0002. Pooled over all test-like
+appearances, the best forced line is -0.0005, a quarter of the gate.
+
+matharena's problem_idx correlates +0.16 with difficulty within competition in
+sample. It does not survive the pseudo-benchmarks, where the within-pair r is
+-0.09, and it gains -0.0004 against a placebo of +0.0007. Its percentile
+within the competition loses more than its placebo.
+
+### What this could do on the hidden test
+
+Nothing here acts at B0: a centred offset is 0 without labels, and an absolute
+offset is a level shift, which is the level prior's job. The per-pair slope acts
+only from B7. hier's formative run scored 0.237 and 0.195 at B0 and B1,
+against 0.196, 0.184, 0.178 and 0.183 at B3 to B31. So B0 and B1, which carry
+0.3 of the weight and most of the headroom, are out of this section's reach.
+
+A hidden benchmark that states sizes as researchcodebench does would gain about
+0.002 on its own pairs if the slope were switched on. That is about 0.0003 of
+a run's ALC if one hidden benchmark in seven did. A benchmark whose stated
+sizes carry no signal would cost about +0.0008 on its pairs (the placebo).
+
+How often hidden benchmarks carry such cues is speculative. The organisers'
+inventory (`results/inventory.csv`, 161 titles) holds no items, and a title
+says what a benchmark is about, not which fields its items carry. The title scan
+(`--stage inventory`) finds:
+
+* 1 title naming per-item levels (PhyBlock, "progressive");
+* 5 multi-step or planning benchmarks;
+* 9 agent benchmarks;
+* 6 code, 2 math and 1 proof benchmark;
+* no multiple-choice benchmark;
+* 60 (37%) on images, video, charts, documents or 3D.
+
+The step-2 classification of the same 161 benchmarks (scratch provenance:
+rethink2 methodology-critic `c_inventory_meta.json`, 95% category agreement
+with 80 hand labels) gives text QA 39%, images 30%, agents 15%, code 6.5%, video
+4.6%, math 2.8% and audio 2.8%. Read by class:
+
+* **Ordinal fields.** Public item_features hold grouping metadata (competition,
+  lang, website, paper) plus one index, and nothing difficulty-named on any of
+  the five benchmarks. Some source datasets do carry levels: GAIA's Level 1-3
+  and Online-Mind2Web's easy/medium/hard among agents, LiveCodeBench's
+  difficulty in code, MATH's levels in math. Whether the organisers pass such
+  levels into item_features is unknown. A guess is 0 to 1 of 7 hidden
+  benchmarks.
+
+  Nothing public could calibrate a slope for one. The harness table puts an
+  honest-r 0.3 covariate at -0.0024 with a transferred slope, but a transferred
+  slope needs the cue on public parents. The per-pair slope needs r of about
+  0.5.
+* **Position.** Contest-style math only (2.8%).
+* **Format.** It varies within a benchmark only in mixed sets like matharena. A
+  QA or multiple-choice benchmark usually has a single format, which centring
+  removes.
+* **Stated size.** Researchcodebench-style code prompts, which are rare.
+* **Image references.** Constant in image benchmarks (30%), where every item
+  holds an image.
+* **Length.** Present everywhere, with an unknown sign.
+
+### Side findings
+
+* **The shipped multiple-choice floor misfires on matharena.**
+  `paiec/mcq.py`'s floor, which hier applies, misses all 336 Kangaroo items.
+  Those are five-option multiple choice with the options in the image; the
+  text says "(A, B, C, D, or E)". The floor also fires on 20 AIME and HMMT
+  integer-answer items whose TikZ drawings label points "(A)" to "(E)".
+  `itemcov.n_options` cuts drawings out and reads such a list. The shipped
+  floor is not changed here.
+* **The harness's per-pair scale is wrong for some covariates.** The harness's
+  per-pair prior sd is s over the sd of x pooled across the training parents'
+  evaluated items. That is right for its degraded oracles, which are
+  standardised on all four parents. It is wrong for a covariate that is absent
+  from a parent or that carries benchmark-level offsets:
+  * format_score, with matharena held out, has a pooled sd of 0.047. That turns
+    s = 0.5 into a prior sd of 10.7 per unit, and its forced per-pair line on
+    matharena costs +0.0023 instead of +0.0002.
+  * log_length's pooled sd of 2.36 shrinks s = 0.5 to 0.21 per unit.
+
+  `--scale train` reproduces these numbers (`harness_train_scale`). A
+  covariate should be standardised within benchmark before
+  `harness.py --stage eval` reads it.
+
+### Verdict: ship none of them
+
+* No candidate passes the sign rule. The one present everywhere, log length,
+  changes sign between benchmarks.
+* No candidate passes the gate. Nested test-like differences are between 0 and
+  +0.00003, where the gate needs -0.002.
+* The one cue with real item signal is researchcodebench's stated size (r +0.50,
+  -0.0022 on its pairs from B7 when forced). It exists on one public benchmark,
+  so it cannot be selected leave-one-parent-out, and its expected value on the
+  hidden test is at most about 0.0003.
+* These covariates cannot reach B0 or B1, where the hidden test's headroom
+  is.
+
+`paiec/itemcov.py` stays research-only.
+
+**What was cut.**
+
+* Difficulty-named fields could not be evaluated: there are none in the public
+  data, and there is no fixed a-priori slope, because the plan allows a
+  non-zero slope only through the sign rule.
+* Counts of numbers, lines or file paths in the text were not tried. Earlier
+  findings show cheap text statistics do not transfer.
+* x is standardised over the whole parent, not over a run's visible items.
+* position_within reads the parent's item list.
+* The transferred and hybrid lines are reported in the results file for
+  reference only.
+* There are three placebo draws per line.
+
+## Subject side at budgets 0 and 1
+
+`python experiments/subject_side.py --stage verify`, then `--stage diag`, then
+`--stage run --jobs 2` for the single candidates (1 h 53 min, plus about 15
+minutes in two stopped starts whose finished rows were kept). The combinations
+ran as `--stage run --jobs 2 --configs E+Dclip,E+Dlog,E+Dhc,H+E` (about 70
+minutes; it was started with `,T,T1.8` appended and stopped once the Gaussian
+tasks were done, so it left no `passes` record). The Student-t levels ran as
+`--stage run --jobs 2 --configs T,T1.8` (67 minutes). `--summarise` comes last.
+Everything ran on two spawned worker processes of a machine shared with other
+jobs. Every number below is in `results/subject_side.json`, and `--summarise`
+rebuilds its summary from the rows. The rows hold per-pair Brier by budget for
+every configuration and run; they live outside the repository, by default in
+`data/subject_side_rows`.
+
+The second formative run of the shipped hier scored 0.237, 0.195, 0.196, 0.184,
+0.178 and 0.183 by budget. B0 and B1 carry 0.3 of ALC's weight. At those two
+budgets the model has little beyond its level prior and its subject prior. This
+section measures four changes to those priors against exactly what ships. Each
+change sits behind a flag that is off by default.
+
+**Candidates.** Three of them are terms of the attribute ridge behind theta's
+prior. They are `paiec.subjects`' optional `Spec` terms, reached through
+`prior.build(design=...)`. The fourth changes the level prior.
+
+* H, harness identity. It adds a column for each canonical harness string with
+  at least 8 training rows (lower case; runs of space, '-', '_', '/' and '.'
+  become one space). The present/absent flag stays on top of these columns, and
+  an unseen harness string gets the flag alone. This is Ge et al.'s additive
+  theta_LLM + theta_scaffold.
+* E, ordered reasoning effort. A has-effort flag and a rank (minimal -2, low
+  -1, medium 0, high 1, xhigh 2, with max read as xhigh) replace the per-level
+  dummies. Today the only dummy is 'high', the one level with 8 rows.
+* D, the form of the release date:
+  * Dclip is linear, with the date held to the training rows' range.
+  * Dhinge is linear plus a second slope from the training median date on.
+  * Dhc combines the two.
+  * Dlog uses the log of days since 2023, a saturating trend.
+* T, a Student-t level (3 df, as a scale mixture) at LEVEL's centre. T uses
+  scale 2.5. T1.8 uses 1.8, which is LEVEL's width without the 1.44 widening.
+
+Everything else is `submission/model.py`'s LEVEL (mu0 -2.5, sigma_mu 2.5,
+attr_scale 0.5) over `prior.build`, fitted without each target's parent
+benchmark. The harness and the runs are those of
+`experiments/level_calibration.py`. At their defaults the new terms change
+nothing:
+
+* The default design gives the earlier prior, hyperparameters and hier
+  predictions bit for bit (`tests/test_hier.py`).
+* It rebuilds the shipped prior.json's subject prior exactly.
+* The legacy Predictor's path (`subject_frame`, `design`, `design_row`,
+  `fit_prior`) gives identical coefficients with each benchmark left out.
+* `paiec/hier.py` is unchanged. The Student-t level is its existing
+  `Hyper.nu_mu`.
+
+**Runs.**
+
+* Test-like runs (seed 2, runs 0 to 299). This is the primary regime and uses
+  the runs of "Item signal from the pair's own labels".
+* Groups merged at random, and wholes (seed 3, runs 0 to 199).
+* Public R1 as the guard: benchmark-first runs 0 to 149 and pair-uniform runs 0
+  to 99.
+* Test-like runs without the date shift (seed 3, runs 0 to 99). This regime is
+  here because the test-like date shift of 1.25 years is a synthetic knob. It
+  acts on a prior through the prior's date term (`paiec/testlike.py`,
+  `date_shift`).
+
+The Student-t level costs five to nine times as much. It scores test-like runs
+0 to 99, mix/whole 0 to 59 and R1 0 to 59 and 0 to 39.
+
+Two checks tie the harness to earlier results:
+
+* On the same runs, 'ship' reproduces itemsig_eval's base exactly (ALC 0.165755
+  and 0.171062).
+* On one test-like run and one public run, the harness matches
+  `official.run_official` (with deep copies) pair for pair for 'ship', H and
+  E+Dhc (`--stage verify`, difference 0).
+
+**Gates**, as the plan sets them. A component ships only if all of these hold:
+
+* Nested leave-one-parent-out selection switches it on, in at least three of
+  the four folds.
+* The nested test-like difference is at most -0.002.
+* No held-out parent is above +0.002.
+* Neither public weighting loses more than 0.001.
+
+Nested selection works like this. For each held-out parent, it takes the
+configuration (or 'ship') with the lowest mean difference on the other parents'
+appearances, taking the worse of the two shifted test-like regimes. It then
+scores that choice on the held-out parent. A target's prediction depends only
+on its own parent's prior, so a mix of choices across parents is exactly what
+running them would give. The inner appearances, though, were scored with priors
+fitted without their own parent but with the held-out one. The selection is
+therefore nested in the configuration, not in every coefficient. The standings
+check below is strictly nested.
+
+### What the public data can identify
+
+Harness strings exist on one multi-subject benchmark, multi_swebench: 81 of 82
+pairs, 12 strings, six of them on 12 pairs each. swe_rebench's single pair also
+has one (OpenHands), but that pair has no standing. reasoning_effort exists
+only on matharena: 23 of 81 pairs (high 12, xhigh 4, low 3, medium 3, max 1).
+
+So when a parent is left out, a harness or effort column is either untrained
+(its benchmark is the one held out) or has no target to act on (it is not).
+Under leave-one-parent-out, H and E act only through the other coefficients
+they move. Their direct effect cannot be measured here; only its
+within-benchmark analogue can.
+
+That analogue is on the standings, the attribute ridge's target. Leave out one
+model name at a time, with every benchmark in training: the harnesses are seen
+and the model is new, which is Ge et al.'s setting. There, the harness columns
+cut multi_swebench's MSE from 1.30 to 1.04. Within that benchmark the harness is
+the largest attribute: on the full fit its standing is +0.75 for Agentless,
+-0.75 for MSWE-agent and -0.35 for OpenHands.
+
+Whether any of this carries to another benchmark, the public data cannot say.
+The one cross-benchmark case is swe_rebench's pair on public runs, which H
+scores with multi_swebench's OpenHands coefficient. It costs +0.0005 on that
+pair.
+
+Release dates are on every benchmark, so the date form is the only candidate
+identified with a benchmark left out. Held-out standings (`--stage diag`; ridge
+at alpha 2; MSE with the prediction centred within the benchmark):
+
+| design | matharena | multi_swebench | real_webagents | researchcodebench | mean |
+|---|---|---|---|---|---|
+| ship (linear) | 5.42 | 1.18 | 2.06 | 1.70 | 2.59 |
+| H | 5.54 | 1.18 | 2.05 | 1.71 | 2.62 |
+| E | 5.42 | 1.11 | 1.91 | 1.82 | 2.57 |
+| Dclip | 5.43 | 1.18 | 2.06 | 1.80 | 2.61 |
+| Dhinge | 4.94 | 1.07 | 1.85 | 1.69 | 2.39 |
+| Dhc | 4.95 | 1.07 | 1.85 | 1.80 | 2.42 |
+| Dlog | 6.21 | 1.29 | 2.04 | 1.87 | 2.85 |
+
+(The standings' variances are 7.21, 1.70, 2.78 and 2.60.) Within the public
+range the trend is convex, not saturating. The hinge, whose second slope is
+steeper, fits every held-out benchmark better. The log form fits worst.
+
+A strictly nested choice takes, for each fold, the design with the lowest error
+on the other benchmarks, each fitted without both. The hinge wins three folds of
+four: matharena, multi_swebench and real_webagents. researchcodebench's fold
+picks E+Dhc, which loses there.
+
+E's gain on multi_swebench and real_webagents is indirect. The effort rank
+explains matharena's high-effort 2025-26 models, so the date slope falls: from
+2.54 to 2.22 per 400 days with multi_swebench held out, and from 2.57 to 2.27
+and 2.63 to 2.27 for the other two.
+
+Beyond the data, the forms part ways. Standings on the full fit, for an OpenAI
+subject without a size (item-level scale, before attr_scale 0.5; the latest
+public release is 2026-04-24):
+
+| design | 2025-06 | 2026-04 | 2026-09 | 2027-06 |
+|---|---|---|---|---|
+| ship | +1.30 | +3.13 | +4.05 | +5.70 |
+| Dclip | +1.30 | +3.13 | +3.27 | +3.27 |
+| Dhinge | +1.09 | +3.40 | +4.56 | +6.63 |
+| Dhc | +1.09 | +3.40 | +3.57 | +3.57 |
+| Dlog | +1.29 | +2.40 | +2.86 | +3.56 |
+
+### On the runs
+
+Differences are against 'ship'. The test-like column gives ± run SE / cluster
+SE; the other columns are means only. The last two columns are the test-like
+Brier differences at B0 and B1.
+
+| configuration | test-like | mix/whole | no date shift | R1 benchmark-first | R1 pair-uniform | B0 | B1 |
+|---|---|---|---|---|---|---|---|
+| H | +0.00007 ± 0.00001 / 0.00003 | +0.00007 | +0.00005 | +0.00009 | +0.00008 | +0.0003 | +0.0002 |
+| E | -0.00097 ± 0.00004 / 0.00013 | -0.00096 | -0.00005 | -0.00002 | +0.00001 | -0.0047 | -0.0017 |
+| Dclip | +0.00012 ± 0.00011 / 0.00031 | -0.00026 | +0.00001 | +0.00004 | +0.00002 | -0.0001 | +0.0005 |
+| Dhinge | +0.00055 ± 0.00011 / 0.00030 | +0.00062 | -0.00066 | -0.00037 | -0.00045 | +0.0030 | +0.0007 |
+| Dhc | +0.00052 ± 0.00006 / 0.00019 | +0.00015 | -0.00065 | -0.00034 | -0.00043 | +0.0022 | +0.0010 |
+| Dlog | -0.00099 ± 0.00015 / 0.00046 | -0.00132 | +0.00078 | +0.00063 | +0.00076 | -0.0058 | -0.0013 |
+| E+Dclip | -0.00069 ± 0.00013 / 0.00038 | -0.00104 | -0.00005 | +0.00001 | +0.00003 | -0.0040 | -0.0010 |
+| E+Dlog | -0.00167 ± 0.00018 / 0.00054 | -0.00195 | +0.00068 | +0.00060 | +0.00077 | -0.0091 | -0.0025 |
+| E+Dhc | -0.00045 ± 0.00008 / 0.00024 | -0.00080 | -0.00064 | -0.00034 | -0.00042 | -0.0025 | -0.0008 |
+| H+E | -0.00090 ± 0.00004 / 0.00015 | -0.00089 | -0.00001 | +0.00007 | +0.00009 | -0.0044 | -0.0016 |
+
+'ship' itself scores 0.1658, 0.1711, 0.1585, 0.2051 and 0.2020 in these
+regimes. The combinations were chosen after the singles' first 121 test-like
+runs had been seen. Each of them is E with a date form that did not lose on
+average there, or E with H.
+
+**Where the differences sit.** Almost all of every difference is at B0 and B1:
+63 to 89% of each ALC difference above 0.0002 (one exception is Dclip on
+mix/whole, at 48%). Nothing moves by more than 0.0005 of Brier from B7 on.
+
+**Per held-out parent on test-like runs.** Matharena is where the date forms
+split: Dlog and E+Dlog +0.0044 ± 0.0014, Dclip and E+Dclip +0.0041, Dhc +0.0023,
+Dhinge -0.0025. E and H cannot act on matharena (see above).
+
+**The date shift drives the date results.** For every date form the two
+shifted regimes and the unshifted one disagree in sign. E's gain is gone
+without the shift (-0.00005). The shift moves test-like subjects 1.25 years
+later, most of them past every public release. A design that extrapolates less
+then lowers their B0 prediction on pairs tilted low, and it scores. E
+extrapolates less through its lower slope, Dlog through its curvature, and Dclip
+by construction.
+
+On the subjects' own dates, and on public runs, the same designs change nothing
+(E, Dclip) or lose (Dlog +0.0006 to +0.0008). The hinge fits held-out standings
+best and gains 0.0004 to 0.0007 there, but it loses under the shift because it
+extrapolates more steeply.
+
+So the test-like regime cannot choose between date forms. Whatever it prefers,
+it prefers because of a synthetic knob, and that knob was tuned for the legacy
+prior's linear date term: testlike's docstring notes that a predictor reading
+dates otherwise "gets a different optimism from it".
+
+### Nested selection
+
+For each configuration against 'ship' on its own, and for the choice among all
+ten:
+
+| selection | folds on | test-like | mix/whole | R1 benchmark-first | R1 pair-uniform | no date shift | worst held-out parent |
+|---|---|---|---|---|---|---|---|
+| E vs ship | 4 | -0.00097 ± 0.00033 | -0.00096 ± 0.00049 | -0.00002 | +0.00001 | -0.00005 | 0 (matharena) |
+| H vs ship | 1 | +0.00008 | +0.00007 | +0.00005 | +0.00008 | +0.00005 | +0.0004 (matharena) |
+| Dclip vs ship | 1 | +0.00080 | +0.00060 | 0 | +0.00001 | +0.00001 | +0.0041 (matharena) |
+| Dhinge vs ship | 1 | +0.00068 | +0.00109 | -0.00005 | -0.00005 | -0.00019 | +0.0017 (multi_swebench) |
+| Dhc vs ship | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Dlog vs ship | 3 | +0.00033 | +0.00084 | +0.00048 | +0.00056 | +0.00050 | +0.0044 (matharena) |
+| E+Dlog vs ship | 3 | +0.00008 | +0.00088 | +0.00048 | +0.00061 | +0.00048 | +0.0044 (matharena) |
+| E+Dhc vs ship | 3 | +0.00011 | +0.00023 | -0.00029 | -0.00036 | -0.00046 | +0.0023 (matharena) |
+| all ten, selected on both shifted regimes | E 3, Dlog 3, Dhinge 1 | +0.00076 ± 0.00102 | +0.00197 ± 0.00112 | +0.00043 ± 0.00014 | +0.00056 ± 0.00013 | +0.00029 | +0.0044 (matharena) |
+| all ten, selected on test-like alone | E 4, Dlog 3 | -0.00052 ± 0.00118 | -0.00005 | +0.00047 | +0.00058 | +0.00043 | +0.0044 (matharena) |
+
+(± is the cluster SE, with the selection redone in every resample. E+Dclip,
+at +0.00028 with matharena +0.0041, and H+E, at -0.00031 with matharena
++0.0004, are in the results file. Each is switched on in three folds.) No
+component passes:
+
+* **E** is switched on in every fold, never loses on a held-out parent and costs
+  nothing on public runs. But it gains half the -0.002 the gate asks for, and
+  that gain rests entirely on the synthetic date shift.
+* **Dlog** is switched on in three folds. One of them is matharena held out,
+  where it then costs +0.0044. It also costs 0.0005 on public runs.
+* **H** acts only indirectly (+0.00005 to +0.00009 everywhere).
+* **Dclip, Dhinge and Dhc** are switched on in at most one fold.
+* **Combined.** Selected on both shifted regimes, the choice loses on test-like
+  runs as well (+0.0008 and +0.0020). Selected on the primary regime alone, it
+  gains 0.0005 there and loses 0.0005 on public runs.
+
+### The Student-t level
+
+Differences against 'ship' on the Student-t runs (± run SE / cluster SE):
+
+| configuration | test-like | mix/whole | R1 benchmark-first | R1 pair-uniform | ms a call | slowest call |
+|---|---|---|---|---|---|---|
+| T (scale 2.5) | +0.00005 ± 0.00013 / 0.00017 | +0.00039 ± 0.00011 / 0.00020 | +0.00113 ± 0.00021 / 0.00029 | +0.00057 ± 0.00025 / 0.00028 | 4.4 to 6.7 | 1.06 s |
+| T1.8 | -0.00000 ± 0.00002 / 0.00003 | -0.00003 ± 0.00003 / 0.00005 | +0.00021 ± 0.00008 / 0.00010 | +0.00043 ± 0.00013 / 0.00014 | 4.5 to 6.6 | 0.92 s |
+| ship (Gaussian) | | | | | 0.77 to 1.22 | 0.31 s |
+
+**T.** At the shipped scale, a t level carries its extra tail mass into every
+B0 prediction. On test-like runs that costs +0.0019 at B0; on public runs it
+gains 0.002 at B0 and then gives back 0.001 to 0.003 at each of B1 and B3.
+
+**T1.8.** At scale 1.8 the t is level with the Gaussian on test-like runs
+(0.00000 and -0.00003) and loses 0.0002 to 0.0004 on public runs.
+
+**Nested.** Selection switches T1.8 on in one fold (multi_swebench held out),
+for a nested +0.00004. So the earlier tie holds at the shipped level, with the
+t mixture as it is now. The cost is five to nine times the Gaussian's per call,
+with single calls up to a second.
+
+### Latency
+
+On the same runs, the Gaussian candidates take 0.78 to 1.04 ms a call, as
+'ship' does (0.80 to 1.04 ms; slowest call 0.16 to 0.31 s). Their slowest
+single call is 0.43 s or less,
+except one call of E's at 1.53 s on a public run. That is likely load on the
+shared machine, since the other 49 slowest-call figures are 0.07 to 0.43 s. The
+new terms add at most eight columns to a ridge that is fitted offline, plus as
+many multiplications to each subject's prior mean at run time.
+
+### Verdict: ship none of them
+
+The shipped hier stays as it is, and every flag stays off. By the gates:
+
+* **Harness identity (H)** cannot be measured leaving a parent out. The public
+  data hold harness strings on one multi-subject benchmark. Its only
+  cross-benchmark test, one swe_rebench pair, loses 0.0005. Within
+  multi_swebench the harness is the largest attribute, as Ge et al. find, but
+  that is within-benchmark transfer, not what the hidden test asks for.
+* **Ordered effort (E)** is the only candidate with no measured downside.
+  Nested selection switches it on in all four folds, but it gains -0.00097 ±
+  0.00033, half the bar. All of the gain comes through a lower date slope under
+  the synthetic date shift; without the shift it is -0.00005.
+* **The date form (D)** is decided by the date shift, not by data. On real
+  dates the hinge gains 0.0004 to 0.0007 and fits held-out standings best. It
+  loses under the shift, and the forms that win under the shift lose on real
+  dates and on matharena.
+* **The Student-t level (T)** ties or loses, at five to nine times the cost.
+
+**What this says about the headroom at B0 and B1.** The subject side moves B0
+and B1 only by what it says about a subject past the public dates. How far the
+hidden subjects lie past 2026-04 is exactly what the test-like regime's date
+shift assumes and no public run can check. Taken at face value, E+Dlog would
+cut test-like B0 by 0.009 and B1 by 0.0025. That is a bet on the shift
+hypothesis, and it fails the parent and guard gates.
+
+The next formative feedback, read per pair together with the first run's nine
+pairs (as "What actually shipped, after the audit" already asks), is where to
+look. The question is whether hier's B0 excess over B31 (0.054 on the second
+run) sits on low-rate pairs, where an optimistic subject prior would put it. If
+it does, damping the date term is worth testing again. That would be a global
+change to one hyperparameter, attr_scale or a date clip, not a per-benchmark
+fact. If it does not, the hinge's better fit on real dates is the better bet.
+The test-like regime alone cannot decide this.
+
+**What was cut.**
+
+* Only one seed per regime was run.
+* The Student-t level ran on 100/60/60/40 runs and not without the date shift.
+* There was no strict nested harness pass, with priors refitted without both the
+  outer and the inner parent; only the standings check is strictly nested.
+* attr_scale and LEVEL were not re-tuned together with the date forms.
+* The harness threshold (8 rows) and the effort ranks were not varied, and
+  effort is read from the field only, not from names.
+* Only split scope 'pair' was run, with no dense runs and no level-mean
+  sensitivities.
+* The combinations were chosen after part of the singles was seen.
+
+## The multiple-choice floor, corrected
+
+`python experiments/mcq_floor.py --stage items`, then `--stage run` (sharded,
+about 50 minutes on two processes), `--stage summary`; every number below is in
+`results/mcq_floor.json`. `tests/test_mcq.py` pins the adopted floor.
+
+hier floors a target at c = Hyper.guess × `mcq.floor_of(mcq_text(content))`, in
+the likelihood of a floored item's labels as well as in its prediction; the
+shipped guess is 0.5, so c = 0.1 on a five-option item. On the public items the
+floor as it stood at bd0be67 got two things wrong, both on matharena:
+
+* the 336 Kangaroo items are five-option multiple choice with the options in an
+  image, named in the text only as "(A, B, C, D, or E)": no floor;
+* 20 integer-answer AIME and HMMT items hold TikZ drawings whose
+  `\coordinate (A)` labels read as options (A)..(E): a false floor.
+
+`paiec/mcq.py` now cuts closed drawing blocks (TikZ, Asymptote, picture) out
+before reading options and falls back to an "(A, B, …, or X)" list. Over all
+12,632 public items of the six benchmarks, raw and as hier reads them, only
+those 356 items change. The replay used a first version of the fix that read
+exactly the same options on every public text but was quadratic in the worst
+case; the adopted revision is linear (tests/test_mcq.py compares it with the
+old floor on adversarial texts).
+
+Corrected minus shipped, 200 runs per regime, same runs for both arms (± run SE
+/ pair-cluster SE):
+
+| regime | ALC | matharena appearances | elsewhere | B0 |
+|---|---|---|---|---|
+| test-like (seed 2) | -0.00026 ± 0.00003 / 0.00008 | -0.0014 per appearance | 0 (within 3e-7) | -0.0009 |
+| public R1, benchmark-first | -0.00027 ± 0.00004 / 0.00011 | -0.0012 | 0 | -0.0011 |
+| public R1, pair-uniform | -0.00045 ± 0.00005 / 0.00013 | -0.0012 | 0 | -0.0020 |
+
+The gain sits at B0 and B1 and almost all of it is the list reading: at low
+budgets the shipped level, moved down for the hidden test, under-predicts the
+public Kangaroo items (0.33 to 0.42 against observed 0.72 to 0.80 at B0), and
+the floor lifts them. That is specific to public matharena, so the hidden-test
+value is probably smaller; it is still the correct reading of a five-option
+item. The drawing cut alone is neutral (+0.00001 test-like). A hard floor
+(guess 1) would gain a further 0.0002 to 0.0003 from the same under-prediction
+and is not adopted.
+
+One fit went wrong under the fix: r1p run 108, a matharena pair made only of
+Kangaroo items, where hier's floored Newton fit stopped unconverged at B31 in a
+collapsed mode (0.22 predicted against 0.79 observed). It is counted in the r1p
+number above. The runs did not record how many other fits stopped unconverged
+without collapsing; the floored fit's robustness is an open issue in
+paiec/hier.py, and the fix makes more pairs floored.
+
+Verdict: adopted in `paiec/mcq.py`. `dist/paiec.zip` still ships the old floor
+until the archive is rebuilt.

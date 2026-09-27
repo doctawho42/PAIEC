@@ -1341,3 +1341,164 @@ def test_the_level_prior_is_overridden_by_replace():
     assert Hyper.from_dict(old) == Hyper()               # a prior.json from before the hooks
     with pytest.raises(ValueError):
         PR.from_json({**PR.to_json(None, Hyper()), "hyper": {**Hyper().to_dict(), "attr_scale": -1.0}})
+
+
+# --- optional attribute terms (paiec.subjects Spec, prior.build(design=...)) ---------------
+
+def _design_row_before_options(a, spec):
+    """paiec.subjects.design_row as it was before the optional terms existed
+    (commit bd0be67), kept here to pin the default design to it."""
+    days = spec.med_days if a["days"] != a["days"] else a["days"]
+    ls = spec.med_log_size if a["log_size"] != a["log_size"] else a["log_size"]
+    row = [1.0, (days - 400) / 400, float(a["has_date"]), ls, float(a["has_size"]),
+           float(a["small"]), float(a["big"]), float(a["think"]), float(a["harness"])]
+    row += [1.0 if a["provider"] == p else 0.0 for p in spec.providers]
+    row += [1.0 if a["effort"] == e else 0.0 for e in spec.efforts]
+    return np.array(row)
+
+
+def _from_frame_before_options(cls, df, min_count=8):
+    """paiec.subjects.Spec.from_frame before the optional terms (bd0be67)."""
+    prov = [p for p, c in df.provider.value_counts().items()
+            if c >= min_count and p != "unknown"]
+    eff = [e for e, c in df.effort.value_counts().items()
+           if c >= min_count and e != "none"]
+    return cls(prov, eff, df.days.median(), df.log_size.median())
+
+
+def attribute_pairs():
+    """Eight subjects on three benchmarks, with dates, providers, sizes,
+    harness strings (variants of one spelling among them) and efforts."""
+    dates = ["2024-03-01", "2024-09-15", "2025-01-20", "2025-06-01", "2025-11-30", "2026-02-10",
+             "", "2023-10"]
+    prov = ["OpenAI", "Anthropic", "OpenAI", "Google", "Anthropic", "Google", "OpenAI", "Meta"]
+    harn = ["OpenHands", "SWE-agent", "", "OpenHands", "Agentless", "", "swe_agent", "OpenHands"]
+    eff = ["high", "low", "", "medium", "xhigh", "high", "", "minimal"]
+    names = ["Alpha 7B", "Beta Pro", "Gamma mini", "Delta (Think)", "Eps 70B", "Zeta flash",
+             "Eta large", "Theta 1.5B"]
+    pairs = make_pairs(n_subjects=8, n_benchmarks=3, n_items=60, seed=5)
+    for p in pairs:
+        s = int(p.subject_id[1:])
+        p.subject.update(normalized_name=names[s], provider=prov[s], release_date=dates[s],
+                         harness=harn[s], reasoning_effort=eff[s])
+    return pairs
+
+
+def attribute_run(pairs):
+    by = {}
+    for p in pairs:
+        by.setdefault(p.benchmark_id, []).append(p)
+    labeled = [[[p.subject, r.item], r.label] for b, ps in sorted(by.items())
+               for p in ps[:5] for r in p.responses[:4]]
+    new = {"item_content": "a new item", "item_features": "tier=y", "interactors": "",
+           "benchmark_id": "b9"}
+    targets = [[pairs[i].subject, pairs[i].responses[40].item] for i in (0, 4, 10, 23)]
+    targets += [[pairs[7].subject, new],
+                [subject("Newcomer", provider="OpenAI", release_date="2027-03-01",
+                         harness="Brand-New Harness", reasoning_effort="X-High"), new]]
+    return labeled, targets
+
+
+def test_the_default_design_is_the_design_before_the_options(monkeypatch):
+    """With no design (None or {}), prior.build gives bit for bit the prior,
+    hyperparameters and hier predictions of the code before the optional
+    terms existed, run side by side here; the default Spec writes the four
+    keys it always wrote, and a spec dict without the new keys reads back as
+    the default."""
+    pairs = attribute_pairs()
+    labeled, targets = attribute_run(pairs)
+
+    def fitted(design):
+        prior, hyper = PR.build(pairs, (), design=design)
+        m = HierPredictor(prior, hyper)
+        preds = [m.predict(t, lab) for lab in ([], labeled[:9], labeled) for t in targets]
+        return prior, hyper, preds
+
+    new = [fitted(None), fitted({})]
+    with monkeypatch.context() as mp:
+        mp.setattr(PR, "design_row", _design_row_before_options)
+        mp.setattr(PR.Spec, "from_frame", classmethod(_from_frame_before_options))
+        old = fitted(None)
+    for prior, hyper, preds in new:
+        assert np.array_equal(prior.coef, old[0].coef) and np.array_equal(prior.cov, old[0].cov)
+        assert prior.to_dict() == old[0].to_dict() and hyper == old[1]
+        assert preds == old[2]
+        assert list(prior.spec.to_dict()) == ["providers", "efforts", "med_days", "med_log_size"]
+        assert "design" not in prior.meta
+    for p in pairs:
+        a = attrs(p.subject)
+        assert np.array_equal(design_row(a, new[0][0].spec), _design_row_before_options(a, new[0][0].spec))
+    legacy = {"providers": ["openai"], "efforts": ["high"], "med_days": 500.0, "med_log_size": 3.0}
+    back = Spec.from_dict(legacy)
+    assert back.to_dict() == legacy and (back.harnesses, back.effort_order, back.date_form,
+                                         back.date_lo) == ([], False, "linear", None)
+
+
+def test_optional_design_terms_are_what_they_say():
+    """Harness columns take canonical spellings and leave an unseen harness
+    on the flag alone; the ordered effort replaces the dummies with a flag and
+    the rank; the date forms clip, bend and saturate as documented."""
+    from paiec.subjects import EFFORT_RANK, canon_harness, effort_rank
+    assert canon_harness("MSWE-Agent") == canon_harness("mswe_agent") == "mswe agent"
+    assert canon_harness(None) == "" and canon_harness("x" * 10_000) == "x" * 64
+    assert [effort_rank(e) for e in ("minimal", "Low", "medium", "HIGH", "x-high", "max")] == \
+        [-2.0, -1.0, 0.0, 1.0, 2.0, 2.0]
+    assert all(effort_rank(e) != effort_rank(e) for e in ("", "none", "auto", None, 3))
+    assert EFFORT_RANK["xhigh"] > EFFORT_RANK["high"] > EFFORT_RANK["medium"] > EFFORT_RANK["low"]
+    spec = Spec(["openai"], [], 700.0, 3.0, harnesses=["openhands", "swe agent"], effort_order=True)
+    row = lambda **kw: design_row(attrs(subject("m", **kw)), spec)
+    base = len(design_row(attrs(subject("m")), Spec(["openai"], [], 700.0, 3.0)))
+    assert len(row()) == base + 2 + 2
+    assert list(row(harness="OpenHands")[[8, -2, -1]]) == [1.0, 1.0, 0.0]
+    assert list(row(harness="SWE_agent")[[8, -2, -1]]) == [1.0, 0.0, 1.0]
+    assert list(row(harness="Agentless")[[8, -2, -1]]) == [1.0, 0.0, 0.0]      # back-off
+    assert list(row()[[8, -2, -1]]) == [0.0, 0.0, 0.0]
+    assert list(row(reasoning_effort="xhigh")[-4:-2]) == [1.0, 2.0]
+    assert list(row(reasoning_effort="low")[-4:-2]) == [1.0, -1.0]
+    assert list(row()[-4:-2]) == [0.0, 0.0]
+    d = lambda form, date, **kw: design_row(
+        attrs(subject("m", release_date=date)), Spec([], [], 700.0, 3.0, date_form=form, **kw))
+    rng = {"date_lo": 300.0, "date_hi": 1000.0}
+    late, far = "2026-01-01", "2027-06-01"          # days 1096 and 1612
+    assert d("clip", late, **rng)[1] == d("clip", far, **rng)[1] == (1000 - 400) / 400
+    assert d("clip", "2024-06-01", **rng)[1] == d("linear", "2024-06-01")[1]
+    assert d("hinge", far)[-1] == pytest.approx((1612 - 700) / 400) and d("hinge", "2024-01-01")[-1] == 0
+    assert d("hinge_clip", far, **rng)[-1] == pytest.approx((1000 - 700) / 400)
+    assert d("log", far)[1] == pytest.approx(math.log(1612 / 400))
+    assert d("log", "2022-06-01")[1] == pytest.approx(math.log(60 / 400))
+    with pytest.raises(ValueError):
+        Spec([], [], 700.0, 3.0, date_form="cubic")
+
+
+@pytest.mark.parametrize("design", [{"harness_ids": True, "harness_min": 3}, {"effort_order": True},
+                                    {"date_form": "clip"}, {"date_form": "hinge_clip"},
+                                    {"date_form": "log"},
+                                    {"harness_ids": True, "effort_order": True, "date_form": "hinge"}])
+def test_a_design_survives_prior_json_and_moves_the_prior(design):
+    """A prior built with optional terms records them in its spec (and in
+    meta['design']), validates, round-trips through prior.json to the same
+    predictions, and predicts something else than the default design."""
+    pairs = attribute_pairs()
+    labeled, targets = attribute_run(pairs)
+    prior, hyper = PR.build(pairs, (), design=design)
+    spec = prior.spec
+    assert prior.meta["design"] == design and len(prior.coef) == len(design_row(attrs({}), spec))
+    if design.get("harness_ids"):
+        # 9, 6 and 3 rows; the default harness_min is Spec's min_count, 8
+        want = ["openhands", "swe agent", "agentless"] if design.get("harness_min") == 3 \
+            else ["openhands"]
+        assert spec.harnesses == want
+    if design.get("effort_order"):
+        assert spec.effort_order and spec.efforts == []
+    if design.get("date_form") in ("clip", "hinge_clip"):
+        assert (spec.date_lo, spec.date_hi) == (273.0, 1136.0)
+    back, hb = PR.from_json(json.loads(json.dumps(PR.to_json(prior, hyper))))
+    assert back.spec.to_dict() == spec.to_dict() and hb == hyper
+    a, b = HierPredictor(prior, hyper), HierPredictor(back, hb)
+    base_prior, base_hyper = PR.build(pairs, ())
+    c = HierPredictor(base_prior, base_hyper)
+    for lab in ([], labeled):
+        pa, pb = [a.predict(t, lab) for t in targets], [b.predict(t, lab) for t in targets]
+        assert pa == pb and all(0 < p < 1 for p in pa)
+        assert a.failures == 0
+    assert pa != [c.predict(t, labeled) for t in targets]

@@ -1,0 +1,1584 @@
+{
+ "info": {
+  "matharena": {
+   "items": 1512,
+   "item_ids": 1633,
+   "missing_key": 0,
+   "key_idset_mismatch": 0,
+   "pairs": 81,
+   "responses": 89952,
+   "groups": 25,
+   "b_sd": 1.7921109049957245,
+   "degenerate": 542
+  },
+  "multi_swebench": {
+   "items": 2078,
+   "item_ids": 2126,
+   "missing_key": 0,
+   "key_idset_mismatch": 0,
+   "pairs": 82,
+   "responses": 57975,
+   "groups": 8,
+   "b_sd": 1.2025549020650443,
+   "degenerate": 0
+  },
+  "real_webagents": {
+   "items": 233,
+   "item_ids": 233,
+   "missing_key": 0,
+   "key_idset_mismatch": 0,
+   "pairs": 26,
+   "responses": 4058,
+   "groups": 12,
+   "b_sd": 1.1950181467541572,
+   "degenerate": 0
+  },
+  "researchcodebench": {
+   "items": 212,
+   "item_ids": 212,
+   "missing_key": 0,
+   "key_idset_mismatch": 0,
+   "pairs": 31,
+   "responses": 6784,
+   "groups": 20,
+   "b_sd": 1.675045349887973,
+   "degenerate": 0
+  }
+ },
+ "lobo": {
+  "emb_ridge_raw": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.1827079259511082,
+    "spearman": -0.12839012049118756,
+    "r2_best_linear": 0.03338218620535564,
+    "r2_as_predicted": -1.9174949595415498,
+    "hp": 0.01,
+    "oracle_hp": 1000,
+    "oracle_pearson": -0.10264973806897727,
+    "pearson_within_group": -0.09833496041120178,
+    "pearson_text_bearing": -0.2507693338100252,
+    "pearson_ci_groupboot": [
+     -0.30142543629793506,
+     -0.06028114735383066
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.028770652713991467,
+    "spearman": 0.021967500635554995,
+    "r2_best_linear": 0.0008277504575891046,
+    "r2_as_predicted": -4.903556700676959,
+    "hp": 0.01,
+    "oracle_hp": 0.3,
+    "oracle_pearson": -0.016609493935743017,
+    "pearson_within_group": 0.00152964214953599,
+    "pearson_text_bearing": -0.028770652713991467,
+    "pearson_ci_groupboot": [
+     -0.16434595413962358,
+     0.04611084628387806
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.23023247002137076,
+    "spearman": -0.2041881785969152,
+    "r2_best_linear": 0.05300699025214139,
+    "r2_as_predicted": -0.0021517189546294,
+    "hp": 1000,
+    "oracle_hp": 0.01,
+    "oracle_pearson": 0.1842600724723563,
+    "pearson_within_group": -0.08057711155960266,
+    "pearson_text_bearing": -0.23023247002137076,
+    "pearson_ci_groupboot": [
+     -0.4565477347414249,
+     0.01090251449370648
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.018295226797664182,
+    "spearman": -0.03289652322112395,
+    "r2_best_linear": 0.0003347153235779696,
+    "r2_as_predicted": -0.8949480259107541,
+    "hp": 0.1,
+    "oracle_hp": 1000,
+    "oracle_pearson": 0.04351051198268098,
+    "pearson_within_group": -0.13497095193395722,
+    "pearson_text_bearing": -0.018295226797664182,
+    "pearson_ci_groupboot": [
+     -0.310165236096405,
+     0.25222208205730573
+    ]
+   }
+  },
+  "emb_ridge_centred": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.1633419035135008,
+    "spearman": -0.11617877138069382,
+    "r2_best_linear": 0.026680577443413806,
+    "r2_as_predicted": -1.658849982194499,
+    "hp": 0.01,
+    "oracle_hp": 1000,
+    "oracle_pearson": -0.0986592083752642,
+    "pearson_within_group": -0.09985168128633035,
+    "pearson_text_bearing": -0.24776596780056007,
+    "pearson_ci_groupboot": [
+     -0.28826258504526914,
+     -0.03549508651744178
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.029754151954983037,
+    "spearman": 0.02285170556341868,
+    "r2_best_linear": 0.0008853095585602209,
+    "r2_as_predicted": -5.406220726633391,
+    "hp": 0.01,
+    "oracle_hp": 0.3,
+    "oracle_pearson": -0.020192356067634715,
+    "pearson_within_group": 0.005500523086555857,
+    "pearson_text_bearing": -0.029754151954983037,
+    "pearson_ci_groupboot": [
+     -0.16146416743692243,
+     0.043833186890473406
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.23242452874947045,
+    "spearman": -0.21225333175970074,
+    "r2_best_linear": 0.05402116156441342,
+    "r2_as_predicted": -0.003331822149570618,
+    "hp": 1000,
+    "oracle_hp": 0.01,
+    "oracle_pearson": 0.180385533405598,
+    "pearson_within_group": -0.07039606767607229,
+    "pearson_text_bearing": -0.23242452874947045,
+    "pearson_ci_groupboot": [
+     -0.44235863859627156,
+     -0.0070860085318748866
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.023133608469492604,
+    "spearman": -0.03566592347227372,
+    "r2_best_linear": 0.00053516384081978,
+    "r2_as_predicted": -0.9035140905368626,
+    "hp": 0.1,
+    "oracle_hp": 1000,
+    "oracle_pearson": 0.057896230928174766,
+    "pearson_within_group": -0.15189353624168195,
+    "pearson_text_bearing": -0.023133608469492604,
+    "pearson_ci_groupboot": [
+     -0.32036678773024974,
+     0.25708598869265586
+    ]
+   }
+  },
+  "emb_ridge_centred_balanced": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.10837891789429568,
+    "spearman": -0.06174659933230297,
+    "r2_best_linear": 0.011745989843938485,
+    "r2_as_predicted": -2.145487155474518,
+    "hp": 0.01,
+    "oracle_hp": 1000,
+    "oracle_pearson": -0.049032452523187844,
+    "pearson_within_group": -0.0871618319037088,
+    "pearson_text_bearing": -0.22497992650239937,
+    "pearson_ci_groupboot": [
+     -0.2503505316800747,
+     0.02542561396554385
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.021067607210885762,
+    "spearman": 0.019249814467584066,
+    "r2_best_linear": 0.00044384407359216577,
+    "r2_as_predicted": -3.1525992870052884,
+    "hp": 0.03,
+    "oracle_hp": 0.01,
+    "oracle_pearson": -0.018390122108645608,
+    "pearson_within_group": -0.0047971380862394985,
+    "pearson_text_bearing": -0.021067607210885762,
+    "pearson_ci_groupboot": [
+     -0.08973487582500307,
+     0.020610829436952624
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.1376141380101515,
+    "spearman": -0.10555525966935833,
+    "r2_best_linear": 0.01893765098027702,
+    "r2_as_predicted": -0.002572288912845666,
+    "hp": 1000,
+    "oracle_hp": 0.01,
+    "oracle_pearson": 0.24394686355859702,
+    "pearson_within_group": 0.026047797348062496,
+    "pearson_text_bearing": -0.1376141380101515,
+    "pearson_ci_groupboot": [
+     -0.3293190634308675,
+     0.07504695430820825
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.05836355582529887,
+    "spearman": 0.009822409763396526,
+    "r2_best_linear": 0.0034063046485727773,
+    "r2_as_predicted": -0.8081632254814763,
+    "hp": 0.1,
+    "oracle_hp": 0.01,
+    "oracle_pearson": 0.07233544211371068,
+    "pearson_within_group": -0.12578630301329685,
+    "pearson_text_bearing": 0.05836355582529887,
+    "pearson_ci_groupboot": [
+     -0.2708458586314893,
+     0.32727019905141164
+    ]
+   }
+  },
+  "emb_knn_raw": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.08352552555369198,
+    "spearman": -0.090048177975842,
+    "r2_best_linear": 0.006976513419020453,
+    "r2_as_predicted": -0.4036070579766924,
+    "hp": 10,
+    "oracle_hp": 200,
+    "oracle_pearson": -0.01569089032990861,
+    "pearson_within_group": -0.14041982280404097,
+    "pearson_text_bearing": -0.0740956971420439,
+    "pearson_ci_groupboot": [
+     -0.21791003573866174,
+     0.04996967462185606
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.008784885081174192,
+    "spearman": -0.018834696026310403,
+    "r2_best_linear": 7.717420588943688e-05,
+    "r2_as_predicted": -0.007557452392003006,
+    "hp": 100,
+    "oracle_hp": 5,
+    "oracle_pearson": 0.09802058497118125,
+    "pearson_within_group": -0.007607243934880491,
+    "pearson_text_bearing": -0.008784885081174192,
+    "pearson_ci_groupboot": [
+     -0.06202370563239051,
+     0.02467436393279913
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.018053933009434957,
+    "spearman": 0.0019679935361755774,
+    "r2_best_linear": 0.0003259444971091652,
+    "r2_as_predicted": -0.0027807290483421454,
+    "hp": 200,
+    "oracle_hp": 100,
+    "oracle_pearson": 0.07313444079772166,
+    "pearson_within_group": 0.060977840290514715,
+    "pearson_text_bearing": -0.018053933009434957,
+    "pearson_ci_groupboot": [
+     -0.22868258384892928,
+     0.20502696439658427
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.1622392831097194,
+    "spearman": 0.22465397120403596,
+    "r2_best_linear": 0.026321584983955686,
+    "r2_as_predicted": 0.022841595877086784,
+    "hp": 100,
+    "oracle_hp": 200,
+    "oracle_pearson": 0.1651353942580442,
+    "pearson_within_group": 0.006226822661260501,
+    "pearson_text_bearing": 0.1622392831097194,
+    "pearson_ci_groupboot": [
+     -0.1021854622815937,
+     0.3767531862523096
+    ]
+   }
+  },
+  "emb_knn_centred": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.08058117219501804,
+    "spearman": -0.057674486508557526,
+    "r2_best_linear": 0.006493325312323148,
+    "r2_as_predicted": -0.15520084635875753,
+    "hp": 20,
+    "oracle_hp": 5,
+    "oracle_pearson": 0.010429621433384443,
+    "pearson_within_group": -0.06430278728569169,
+    "pearson_text_bearing": -0.06630533390480829,
+    "pearson_ci_groupboot": [
+     -0.1749125921643239,
+     0.021256019358550173
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.00241145602883963,
+    "spearman": -0.03246114568875672,
+    "r2_best_linear": 5.815120179026999e-06,
+    "r2_as_predicted": -0.07445342328450777,
+    "hp": 50,
+    "oracle_hp": 5,
+    "oracle_pearson": 0.01897329192108422,
+    "pearson_within_group": 0.004853947970883131,
+    "pearson_text_bearing": -0.00241145602883963,
+    "pearson_ci_groupboot": [
+     -0.05284490898774566,
+     0.055673796056671526
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.14407750208155443,
+    "spearman": -0.12997131184171565,
+    "r2_best_linear": 0.02075832660606032,
+    "r2_as_predicted": -0.07110246503260353,
+    "hp": 100,
+    "oracle_hp": 10,
+    "oracle_pearson": -0.05759156787631711,
+    "pearson_within_group": -0.01683436755047254,
+    "pearson_text_bearing": -0.14407750208155443,
+    "pearson_ci_groupboot": [
+     -0.33195522476081646,
+     0.037366254318304655
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.07819283064938172,
+    "spearman": 0.0861575521911721,
+    "r2_best_linear": 0.006114118764962889,
+    "r2_as_predicted": -0.2180887334597823,
+    "hp": 5,
+    "oracle_hp": 100,
+    "oracle_pearson": 0.20428833139409092,
+    "pearson_within_group": 0.03724232484676211,
+    "pearson_text_bearing": 0.07819283064938172,
+    "pearson_ci_groupboot": [
+     -0.1624575760903139,
+     0.3115198532467897
+    ]
+   }
+  },
+  "tfidf_ridge_raw": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.13999778676776684,
+    "spearman": -0.12317608651135684,
+    "r2_best_linear": 0.019599380299873112,
+    "r2_as_predicted": -0.416869726036287,
+    "hp": 0.3,
+    "oracle_hp": 1000,
+    "oracle_pearson": 0.04527953963103386,
+    "pearson_within_group": -0.006372063667735702,
+    "pearson_text_bearing": -0.17034800389159946,
+    "pearson_ci_groupboot": [
+     -0.25326307556906863,
+     -0.03535193907791441
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.009657808433095057,
+    "spearman": 0.011552844756511419,
+    "r2_best_linear": 9.3273263730362e-05,
+    "r2_as_predicted": -0.2904655939482157,
+    "hp": 0.01,
+    "oracle_hp": 1000,
+    "oracle_pearson": 0.029080116989388803,
+    "pearson_within_group": -0.005899937637632281,
+    "pearson_text_bearing": -0.009657808433095057,
+    "pearson_ci_groupboot": [
+     -0.05184513242744877,
+     0.04918840578320169
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.05848936730670683,
+    "spearman": -0.08431574214661057,
+    "r2_best_linear": 0.0034210060879388653,
+    "r2_as_predicted": -0.302413436281054,
+    "hp": 0.3,
+    "oracle_hp": 0.01,
+    "oracle_pearson": -0.05607736226363308,
+    "pearson_within_group": -0.09380387357649315,
+    "pearson_text_bearing": -0.05848936730670683,
+    "pearson_ci_groupboot": [
+     -0.21531866035347036,
+     0.10101647977805345
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.25044632954468277,
+    "spearman": -0.22245727085091158,
+    "r2_best_linear": 0.06272336398240384,
+    "r2_as_predicted": -0.002437600093324388,
+    "hp": 1000,
+    "oracle_hp": 0.01,
+    "oracle_pearson": -0.11950493414019608,
+    "pearson_within_group": -0.24781834609638664,
+    "pearson_text_bearing": -0.25044632954468277,
+    "pearson_ci_groupboot": [
+     -0.47818074394065807,
+     0.020633033759201922
+    ]
+   }
+  },
+  "tfidf_ridge_centred": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.18428718530584473,
+    "spearman": -0.11724241286279422,
+    "r2_best_linear": 0.033961766667950755,
+    "r2_as_predicted": -0.3471542706005364,
+    "hp": 0.01,
+    "oracle_hp": 1000,
+    "oracle_pearson": 0.043479853627077715,
+    "pearson_within_group": 0.031229158108034286,
+    "pearson_text_bearing": -0.21924174911365704,
+    "pearson_ci_groupboot": [
+     -0.2914614706871534,
+     -0.05966172961215306
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.049975987462501564,
+    "spearman": 0.0025949282397180963,
+    "r2_best_linear": 0.0024975993228521136,
+    "r2_as_predicted": -0.725258724920004,
+    "hp": 0.01,
+    "oracle_hp": 1000,
+    "oracle_pearson": 0.028512133308014425,
+    "pearson_within_group": -0.0338022730624871,
+    "pearson_text_bearing": -0.049975987462501564,
+    "pearson_ci_groupboot": [
+     -0.1009342279274461,
+     0.01148670354700618
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.061151181446771986,
+    "spearman": -0.08724037418287744,
+    "r2_best_linear": 0.0037394669923360305,
+    "r2_as_predicted": -0.2886521770424182,
+    "hp": 1,
+    "oracle_hp": 0.01,
+    "oracle_pearson": -0.05655186278737558,
+    "pearson_within_group": -0.1204303129059767,
+    "pearson_text_bearing": -0.061151181446771986,
+    "pearson_ci_groupboot": [
+     -0.21601107679560272,
+     0.09723156701967546
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.2525529638659842,
+    "spearman": -0.2339364396081094,
+    "r2_best_linear": 0.06378299955749311,
+    "r2_as_predicted": -0.006027592284315153,
+    "hp": 1000,
+    "oracle_hp": 0.01,
+    "oracle_pearson": -0.12110638019318165,
+    "pearson_within_group": -0.24674824087087233,
+    "pearson_text_bearing": -0.2525529638659842,
+    "pearson_ci_groupboot": [
+     -0.4735213104874087,
+     0.020001324356397076
+    ]
+   }
+  },
+  "tfidf_knn_centred": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.06332930270356414,
+    "spearman": 0.047211799358836966,
+    "r2_best_linear": 0.004010600580919657,
+    "r2_as_predicted": 0.0031437697168120726,
+    "hp": 200,
+    "oracle_hp": 200,
+    "oracle_pearson": 0.06332930270356414,
+    "pearson_within_group": 0.06658707898932714,
+    "pearson_text_bearing": 0.05637164289477153,
+    "pearson_ci_groupboot": [
+     -0.023106539304457035,
+     0.13695682937968057
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.0029922498519710464,
+    "spearman": 0.007665457783201618,
+    "r2_best_linear": 8.95355917662075e-06,
+    "r2_as_predicted": -0.26384463501391875,
+    "hp": 10,
+    "oracle_hp": 50,
+    "oracle_pearson": 0.04996785934766087,
+    "pearson_within_group": 0.011185121000470174,
+    "pearson_text_bearing": 0.0029922498519710464,
+    "pearson_ci_groupboot": [
+     -0.03373187328392692,
+     0.060164568951658955
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.07718255096624474,
+    "spearman": -0.058969754642341866,
+    "r2_best_linear": 0.005957146173656966,
+    "r2_as_predicted": -0.6129483433650813,
+    "hp": 5,
+    "oracle_hp": 5,
+    "oracle_pearson": -0.07718255096624474,
+    "pearson_within_group": -0.05795461171930231,
+    "pearson_text_bearing": -0.07718255096624474,
+    "pearson_ci_groupboot": [
+     -0.14889427009264897,
+     0.023357958401651266
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.09658818743967865,
+    "spearman": -0.16060843663895474,
+    "r2_best_linear": 0.009329277952882496,
+    "r2_as_predicted": -0.5776453660393261,
+    "hp": 5,
+    "oracle_hp": 5,
+    "oracle_pearson": -0.09658818743967865,
+    "pearson_within_group": -0.1885960606731711,
+    "pearson_text_bearing": -0.09658818743967865,
+    "pearson_ci_groupboot": [
+     -0.40293694416053755,
+     0.11113435100293109
+    ]
+   }
+  },
+  "tfidf_content_sparse_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.023470021827324154,
+    "spearman": 0.0262246414866176,
+    "r2_best_linear": 0.0005508419245750723,
+    "r2_as_predicted": -0.10744621255513032,
+    "hp": 0.3,
+    "oracle_hp": 30,
+    "oracle_pearson": 0.09171391810795054,
+    "pearson_within_group": 0.08127001377925251,
+    "pearson_text_bearing": -0.009783853171097411,
+    "pearson_ci_groupboot": [
+     -0.12495718264826279,
+     0.1434359157105605
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.0018943641869300985,
+    "spearman": 0.02504148797244989,
+    "r2_best_linear": 3.588615672723333e-06,
+    "r2_as_predicted": -0.11084585242259326,
+    "hp": 0.3,
+    "oracle_hp": 30,
+    "oracle_pearson": 0.026828342808249236,
+    "pearson_within_group": 0.008857539782805145,
+    "pearson_text_bearing": -0.0018943641869300985,
+    "pearson_ci_groupboot": [
+     -0.055005695430220214,
+     0.03532906969750315
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.020889787072504582,
+    "spearman": -0.024108645593362833,
+    "r2_best_linear": 0.00043638320393457955,
+    "r2_as_predicted": -0.11597235969183228,
+    "hp": 0.3,
+    "oracle_hp": 0.3,
+    "oracle_pearson": -0.020889787072504582,
+    "pearson_within_group": -0.0639760439070055,
+    "pearson_text_bearing": -0.020889787072504582,
+    "pearson_ci_groupboot": [
+     -0.17017236564324822,
+     0.12796154721934344
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.08873570662433433,
+    "spearman": -0.11024071933757458,
+    "r2_best_linear": 0.007874025630119932,
+    "r2_as_predicted": -0.005062994692217604,
+    "hp": 30,
+    "oracle_hp": 0.3,
+    "oracle_pearson": 0.20888467710361797,
+    "pearson_within_group": -0.1488868012832573,
+    "pearson_text_bearing": -0.08873570662433433,
+    "pearson_ci_groupboot": [
+     -0.37690090016229616,
+     0.19816034177251435
+    ]
+   }
+  },
+  "loglen_ridge_raw": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.14970208626229287,
+    "spearman": -0.15275575773649508,
+    "r2_best_linear": 0.022410714631282976,
+    "r2_as_predicted": -0.0002603549002224703,
+    "hp": 0.03,
+    "oracle_hp": 10,
+    "oracle_pearson": -0.14970208626229276,
+    "pearson_within_group": 0.033485367862927676,
+    "pearson_text_bearing": -0.3068109436024966,
+    "pearson_ci_groupboot": [
+     -0.24775616610203433,
+     -0.047143177389322985
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.016642649325099568,
+    "spearman": -0.021108915067539938,
+    "r2_best_linear": 0.0002769777765582371,
+    "r2_as_predicted": -0.001252783070391228,
+    "hp": 0.03,
+    "oracle_hp": 0.1,
+    "oracle_pearson": -0.016642649325099537,
+    "pearson_within_group": 0.005224291849866973,
+    "pearson_text_bearing": -0.016642649325099568,
+    "pearson_ci_groupboot": [
+     -0.11413597942977607,
+     0.059243516730610415
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": 0.3840427326573688,
+    "spearman": 0.3609708081083962,
+    "r2_best_linear": 0.14748882050693926,
+    "r2_as_predicted": 0.004118883994342126,
+    "hp": 0.01,
+    "oracle_hp": 3,
+    "oracle_pearson": 0.38404273265736905,
+    "pearson_within_group": 0.2858898298397201,
+    "pearson_text_bearing": 0.3840427326573688,
+    "pearson_ci_groupboot": [
+     0.20028817580670985,
+     0.5264504251380857
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.1740699546136874,
+    "spearman": -0.10364519745584282,
+    "r2_best_linear": 0.030300349099211192,
+    "r2_as_predicted": -0.060810427853607685,
+    "hp": 0.3,
+    "oracle_hp": 1000,
+    "oracle_pearson": -0.17406995461368732,
+    "pearson_within_group": 0.008778154525215385,
+    "pearson_text_bearing": -0.1740699546136874,
+    "pearson_ci_groupboot": [
+     -0.37510356804997474,
+     0.190725869158296
+    ]
+   }
+  },
+  "loglen_ridge_centred": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.14970208928821488,
+    "spearman": -0.15275575773649508,
+    "r2_best_linear": 0.02241071553725666,
+    "r2_as_predicted": -0.0011439614417212418,
+    "hp": 10,
+    "oracle_hp": 0.01,
+    "oracle_pearson": -0.14970208928821488,
+    "pearson_within_group": 0.03348536521378552,
+    "pearson_text_bearing": -0.3068109418644882,
+    "pearson_ci_groupboot": [
+     -0.2477561523484632,
+     -0.047143194466837055
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.016642643658826634,
+    "spearman": -0.021108915067539938,
+    "r2_best_linear": 0.00027697758795468236,
+    "r2_as_predicted": -0.03466136587550528,
+    "hp": 0.01,
+    "oracle_hp": 0.1,
+    "oracle_pearson": -0.016642643658826617,
+    "pearson_within_group": 0.005224298740865394,
+    "pearson_text_bearing": -0.016642643658826634,
+    "pearson_ci_groupboot": [
+     -0.114135976707008,
+     0.05924352602441959
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": 0.384042712561459,
+    "spearman": 0.3609708081083962,
+    "r2_best_linear": 0.14748880507156342,
+    "r2_as_predicted": 0.016758202441821024,
+    "hp": 0.01,
+    "oracle_hp": 0.3,
+    "oracle_pearson": 0.38404271256145905,
+    "pearson_within_group": 0.28588981342692316,
+    "pearson_text_bearing": 0.384042712561459,
+    "pearson_ci_groupboot": [
+     0.2002881511086948,
+     0.5264504017931646
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.17406995825182203,
+    "spearman": -0.10364519745584282,
+    "r2_best_linear": 0.030300350365791064,
+    "r2_as_predicted": -0.019232261751783053,
+    "hp": 100,
+    "oracle_hp": 0.1,
+    "oracle_pearson": -0.17406995825182198,
+    "pearson_within_group": 0.008778132355659416,
+    "pearson_text_bearing": -0.17406995825182203,
+    "pearson_ci_groupboot": [
+     -0.37510355749322183,
+     0.19072589492303507
+    ]
+   }
+  }
+ },
+ "within": {
+  "emb_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.6577878142979624,
+    "spearman": 0.6328415419031853,
+    "r2_best_linear": 0.4326848086388907,
+    "r2_as_predicted": 0.4243099144035758,
+    "hps": [
+     0.03,
+     0.03,
+     0.1,
+     0.1,
+     0.1
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.27022525989888785,
+    "spearman": 0.1823424496902525,
+    "r2_best_linear": 0.07302169108742149,
+    "r2_as_predicted": 0.07255658669895038,
+    "hps": [
+     3,
+     3,
+     3,
+     3,
+     3
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": 0.3790697246191731,
+    "spearman": 0.36154713954126805,
+    "r2_best_linear": 0.14369385612285573,
+    "r2_as_predicted": 0.1326305128730242,
+    "hps": [
+     3,
+     30,
+     3,
+     3,
+     3
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.5128726487175912,
+    "spearman": 0.49408513832521594,
+    "r2_best_linear": 0.2630383538025977,
+    "r2_as_predicted": 0.2427388354058615,
+    "hps": [
+     0.1,
+     0.01,
+     0.1,
+     0.01,
+     0.1
+    ]
+   }
+  },
+  "emb_knn": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.561860742795947,
+    "spearman": 0.5146113079154118,
+    "r2_best_linear": 0.3156874942952133,
+    "r2_as_predicted": 0.30236383975559156,
+    "hps": [
+     5,
+     5,
+     5,
+     5,
+     5
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.22286515350921351,
+    "spearman": 0.13026551402675343,
+    "r2_best_linear": 0.04966887664868531,
+    "r2_as_predicted": 0.04740114211802182,
+    "hps": [
+     50,
+     50,
+     50,
+     50,
+     20
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": 0.3941074316008916,
+    "spearman": 0.37209950137862186,
+    "r2_best_linear": 0.15532066764305147,
+    "r2_as_predicted": 0.12824579157759242,
+    "hps": [
+     10,
+     10,
+     5,
+     5,
+     5
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.4919280202673033,
+    "spearman": 0.45228907280919384,
+    "r2_best_linear": 0.24199317712410837,
+    "r2_as_predicted": 0.1924125267854766,
+    "hps": [
+     5,
+     5,
+     5,
+     5,
+     5
+    ]
+   }
+  },
+  "tfidf_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.6715854193407503,
+    "spearman": 0.6413153321960026,
+    "r2_best_linear": 0.4510269754710915,
+    "r2_as_predicted": 0.45077863007816565,
+    "hps": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.24173436037658905,
+    "spearman": 0.17165591011554082,
+    "r2_best_linear": 0.05843550098667862,
+    "r2_as_predicted": 0.05598754241687631,
+    "hps": [
+     30,
+     30,
+     30,
+     10,
+     10
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": 0.32696453606492015,
+    "spearman": 0.3377572859557514,
+    "r2_best_linear": 0.10690580784414846,
+    "r2_as_predicted": 0.1044537367800975,
+    "hps": [
+     1000,
+     1,
+     3,
+     3,
+     3
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.6152352477169456,
+    "spearman": 0.6105245820988505,
+    "r2_best_linear": 0.3785144100333314,
+    "r2_as_predicted": 0.36309764590740823,
+    "hps": [
+     0.01,
+     0.01,
+     0.01,
+     0.01,
+     0.03
+    ]
+   }
+  },
+  "tfidf_knn": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.5631402724735715,
+    "spearman": 0.5426118371485181,
+    "r2_best_linear": 0.3171269664816083,
+    "r2_as_predicted": 0.30424947957956694,
+    "hps": [
+     10,
+     10,
+     5,
+     10,
+     5
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.2524088884651382,
+    "spearman": 0.17665166645551156,
+    "r2_best_linear": 0.06371024697620657,
+    "r2_as_predicted": 0.05313998966258038,
+    "hps": [
+     20,
+     20,
+     20,
+     20,
+     20
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": 0.39620651243536287,
+    "spearman": 0.36361219321764005,
+    "r2_best_linear": 0.15697960049619336,
+    "r2_as_predicted": 0.15682600612582065,
+    "hps": [
+     20,
+     20,
+     20,
+     5,
+     20
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.5608934773256635,
+    "spearman": 0.5384214973166846,
+    "r2_best_linear": 0.3146014929064746,
+    "r2_as_predicted": 0.28210667697465486,
+    "hps": [
+     5,
+     5,
+     5,
+     5,
+     5
+    ]
+   }
+  },
+  "loglen_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.13743918162614527,
+    "spearman": 0.1328449016873732,
+    "r2_best_linear": 0.018889528646064548,
+    "r2_as_predicted": 0.01871407995730079,
+    "hps": [
+     10,
+     0.1,
+     0.01,
+     0.01,
+     0.3
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.03008054657619312,
+    "spearman": -0.04491060253128245,
+    "r2_best_linear": 0.0009048392823225237,
+    "r2_as_predicted": -0.0018114664578339212,
+    "hps": [
+     0.01,
+     30,
+     0.01,
+     0.3,
+     0.01
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": 0.3665697026505823,
+    "spearman": 0.34305118623886405,
+    "r2_best_linear": 0.13437334690133632,
+    "r2_as_predicted": 0.13394420079506542,
+    "hps": [
+     0.01,
+     0.01,
+     0.1,
+     0.1,
+     0.1
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.09170048268773985,
+    "spearman": 0.06084363221623976,
+    "r2_best_linear": 0.008408978525164475,
+    "r2_as_predicted": 0.00665602545591748,
+    "hps": [
+     1000,
+     1000,
+     0.01,
+     0.03,
+     0.03
+    ]
+   }
+  }
+ },
+ "within_group_resid": {
+  "emb_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.4991430617112051,
+    "spearman": 0.48081123343618287,
+    "r2_best_linear": 0.2491437960544359,
+    "r2_as_predicted": 0.18937515335547217,
+    "hps": [
+     0.03,
+     0.03,
+     0.1,
+     0.03,
+     0.03
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.24261939574973246,
+    "spearman": 0.19969718395971242,
+    "r2_best_linear": 0.058864171193965295,
+    "r2_as_predicted": 0.054525692782286805,
+    "hps": [
+     3,
+     3,
+     3,
+     3,
+     3
+    ]
+   },
+   "real_webagents": {
+    "n": 232,
+    "pearson": 0.22771463350256976,
+    "spearman": 0.18706508254064774,
+    "r2_best_linear": 0.05185395431120967,
+    "r2_as_predicted": -0.06772512005368214,
+    "hps": [
+     1,
+     0.1,
+     0.1,
+     3,
+     0.01
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.2949198383070784,
+    "spearman": 0.29898946965072154,
+    "r2_best_linear": 0.08697771102707327,
+    "r2_as_predicted": 0.0456646913048655,
+    "hps": [
+     0.3,
+     0.3,
+     0.3,
+     0.3,
+     0.3
+    ]
+   }
+  },
+  "emb_knn": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.34780923016571286,
+    "spearman": 0.31149360115477503,
+    "r2_best_linear": 0.12097126058846583,
+    "r2_as_predicted": 0.06321959368230523,
+    "hps": [
+     5,
+     5,
+     5,
+     5,
+     5
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.11946304107412459,
+    "spearman": 0.10539755170845397,
+    "r2_best_linear": 0.014271418182677978,
+    "r2_as_predicted": -0.001280039447698389,
+    "hps": [
+     50,
+     20,
+     100,
+     100,
+     10
+    ]
+   },
+   "real_webagents": {
+    "n": 232,
+    "pearson": 0.13679328051372167,
+    "spearman": 0.17302183128693163,
+    "r2_best_linear": 0.018712401593705744,
+    "r2_as_predicted": -0.029111428377139648,
+    "hps": [
+     10,
+     10,
+     5,
+     100,
+     10
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.1234655895967543,
+    "spearman": 0.1501653724985108,
+    "r2_best_linear": 0.015243751814474163,
+    "r2_as_predicted": -0.04913817241779417,
+    "hps": [
+     10,
+     5,
+     50,
+     10,
+     5
+    ]
+   }
+  },
+  "tfidf_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.4242929134174436,
+    "spearman": 0.40437357850676353,
+    "r2_best_linear": 0.18002447637626226,
+    "r2_as_predicted": 0.17480117885626145,
+    "hps": [
+     0.03,
+     3,
+     3,
+     1,
+     3
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.21908165414044534,
+    "spearman": 0.18626719084751378,
+    "r2_best_linear": 0.04799677118091371,
+    "r2_as_predicted": 0.041703124398349556,
+    "hps": [
+     30,
+     30,
+     30,
+     30,
+     30
+    ]
+   },
+   "real_webagents": {
+    "n": 232,
+    "pearson": 0.15412496003722198,
+    "spearman": 0.16157475078952246,
+    "r2_best_linear": 0.023754503306475272,
+    "r2_as_predicted": -0.05994990954078938,
+    "hps": [
+     10,
+     10,
+     1,
+     10,
+     0.1
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": 0.44868561289923126,
+    "spearman": 0.36214201188260725,
+    "r2_best_linear": 0.2013187792227588,
+    "r2_as_predicted": 0.18565192672654252,
+    "hps": [
+     0.3,
+     0.3,
+     1,
+     1,
+     0.3
+    ]
+   }
+  },
+  "loglen_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": -0.009818310287453561,
+    "spearman": 0.015172810276298503,
+    "r2_best_linear": 9.639921690071643e-05,
+    "r2_as_predicted": -0.0020080049708748327,
+    "hps": [
+     1000,
+     0.03,
+     0.1,
+     0.01,
+     0.01
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": -0.04962413536152935,
+    "spearman": -0.07257361227532813,
+    "r2_best_linear": 0.0024625548103793873,
+    "r2_as_predicted": -0.0018263130613529466,
+    "hps": [
+     3,
+     0.3,
+     1,
+     10,
+     0.3
+    ]
+   },
+   "real_webagents": {
+    "n": 232,
+    "pearson": 0.2708198690015158,
+    "spearman": 0.2876501070731393,
+    "r2_best_linear": 0.07334340144599817,
+    "r2_as_predicted": 0.07103980668295728,
+    "hps": [
+     0.03,
+     30,
+     0.01,
+     0.01,
+     300
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.053125151778681004,
+    "spearman": -0.05410697970159363,
+    "r2_best_linear": 0.0028222817515078935,
+    "r2_as_predicted": -0.0013716347002710183,
+    "hps": [
+     300,
+     300,
+     1000,
+     1000,
+     10
+    ]
+   }
+  }
+ },
+ "within_groupcv": {
+  "emb_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.39468506909075807,
+    "spearman": 0.3627091965454141,
+    "r2_best_linear": 0.15577630376317647,
+    "r2_as_predicted": 0.009535933475718128,
+    "hps": [
+     0.1,
+     0.03,
+     0.1,
+     0.1,
+     0.03
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.15626866960901348,
+    "spearman": 0.08332043995279598,
+    "r2_best_linear": 0.02441989710137101,
+    "r2_as_predicted": 0.01354533600442831,
+    "hps": [
+     10,
+     3,
+     3,
+     3,
+     3
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.01466236425796879,
+    "spearman": -0.022909854813858155,
+    "r2_best_linear": 0.00021498492563336064,
+    "r2_as_predicted": -0.059508006002264136,
+    "hps": [
+     3,
+     30,
+     3,
+     3,
+     1
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.08640993680219977,
+    "spearman": -0.08925093683850648,
+    "r2_best_linear": 0.007466677178160158,
+    "r2_as_predicted": -2.5755683467211017,
+    "hps": [
+     0.01,
+     0.01,
+     0.03,
+     0.01,
+     0.01
+    ]
+   }
+  },
+  "emb_knn": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.3181649405351622,
+    "spearman": 0.27068265254369633,
+    "r2_best_linear": 0.1012289293857433,
+    "r2_as_predicted": -0.010302654645071296,
+    "hps": [
+     5,
+     5,
+     5,
+     5,
+     5
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.11101580193597392,
+    "spearman": 0.07975084182032986,
+    "r2_best_linear": 0.012324508279487391,
+    "r2_as_predicted": 0.007597163576099741,
+    "hps": [
+     50,
+     50,
+     50,
+     50,
+     50
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": -0.00634428059657378,
+    "spearman": -0.014208734971192172,
+    "r2_best_linear": 4.0249896288062554e-05,
+    "r2_as_predicted": -0.2926830256049222,
+    "hps": [
+     5,
+     5,
+     5,
+     5,
+     5
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.08621775728060008,
+    "spearman": -0.1868698676252582,
+    "r2_best_linear": 0.007433501670496468,
+    "r2_as_predicted": -0.6260743295447029,
+    "hps": [
+     5,
+     5,
+     5,
+     5,
+     5
+    ]
+   }
+  },
+  "tfidf_ridge": {
+   "matharena": {
+    "n": 1512,
+    "pearson": 0.39907119215080306,
+    "spearman": 0.37191196130512194,
+    "r2_best_linear": 0.15925781640466316,
+    "r2_as_predicted": 0.12658907735866032,
+    "hps": [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   },
+   "multi_swebench": {
+    "n": 2078,
+    "pearson": 0.09557132401711964,
+    "spearman": 0.06107356513050457,
+    "r2_best_linear": 0.009133877974385269,
+    "r2_as_predicted": 0.0013946921639644838,
+    "hps": [
+     30,
+     10,
+     10,
+     10,
+     30
+    ]
+   },
+   "real_webagents": {
+    "n": 233,
+    "pearson": 0.07022327359436883,
+    "spearman": 0.05348664803357938,
+    "r2_best_linear": 0.00493130815430958,
+    "r2_as_predicted": -0.08077510183288195,
+    "hps": [
+     3,
+     3,
+     3,
+     1,
+     1
+    ]
+   },
+   "researchcodebench": {
+    "n": 212,
+    "pearson": -0.009144267416783461,
+    "spearman": 0.04229075760062936,
+    "r2_best_linear": 8.361762658964768e-05,
+    "r2_as_predicted": -1.0096421781044214,
+    "hps": [
+     0.03,
+     0.03,
+     0.01,
+     0.03,
+     0.01
+    ]
+   }
+  }
+ },
+ "group_only": {
+  "matharena": {
+   "n": 1512,
+   "pearson": 0.5730152946124105,
+   "spearman": 0.469839701354081,
+   "r2_best_linear": 0.3283465278597476,
+   "r2_as_predicted": 0.3272634302161973,
+   "eta2_in_sample": 0.3583127564842277,
+   "n_groups": 25
+  },
+  "multi_swebench": {
+   "n": 2078,
+   "pearson": 0.11794267434670987,
+   "spearman": -0.007191363905168159,
+   "r2_best_linear": 0.013910474432054053,
+   "r2_as_predicted": 0.012944691996303992,
+   "eta2_in_sample": 0.021927259296332158,
+   "n_groups": 8
+  },
+  "real_webagents": {
+   "n": 233,
+   "pearson": 0.40627846657202865,
+   "spearman": 0.3565253110062242,
+   "r2_best_linear": 0.165062192400119,
+   "r2_as_predicted": 0.1610814079679873,
+   "eta2_in_sample": 0.22611023366383515,
+   "n_groups": 12
+  },
+  "researchcodebench": {
+   "n": 212,
+   "pearson": 0.5191763848843886,
+   "spearman": 0.4937318460466842,
+   "r2_best_linear": 0.26954411862162275,
+   "r2_as_predicted": 0.25647050233506974,
+   "eta2_in_sample": 0.3876162369626114,
+   "n_groups": 20
+  }
+ },
+ "brier": {
+  "matharena": {
+   "pair_only": 0.20142274795186205,
+   "item_oracle_rasch_in_sample": 0.08285224874443818,
+   "emb_ridge_centred_oracle_slope": 0.19663349606467573,
+   "emb_ridge_centred_slope": 0.35050231588721936,
+   "emb_knn_centred_oracle_slope": 0.2012404130140666,
+   "emb_knn_centred_slope": 0.04325614196357153,
+   "tfidf_ridge_centred_oracle_slope": 0.19834237180623843,
+   "tfidf_ridge_centred_slope": 0.29051389688180784,
+   "emb_ridge_centred_transferred_slope": 0.1984264452235393,
+   "emb_ridge_centred_transferred_slope_value": 0.12304298272500984,
+   "emb_knn_centred_transferred_slope": 0.20123707078405834,
+   "emb_knn_centred_transferred_slope_value": 0.04462853402571234,
+   "tfidf_ridge_centred_transferred_slope": 0.19843331038645415,
+   "tfidf_ridge_centred_transferred_slope_value": 0.20364630857935992
+  },
+  "multi_swebench": {
+   "pair_only": 0.14406547833183161,
+   "item_oracle_rasch_in_sample": 0.07767665867078781,
+   "emb_ridge_centred_oracle_slope": 0.1441256917706534,
+   "emb_ridge_centred_slope": 0.02266185219047176,
+   "emb_knn_centred_oracle_slope": 0.14406640381152036,
+   "emb_knn_centred_slope": -0.0010557187906736517,
+   "tfidf_ridge_centred_oracle_slope": 0.14372422569827673,
+   "tfidf_ridge_centred_slope": 0.11956077695736356,
+   "emb_ridge_centred_transferred_slope": 0.14569259881178803,
+   "emb_ridge_centred_transferred_slope_value": 0.2323231372905924,
+   "emb_knn_centred_transferred_slope": 0.14412425485456232,
+   "emb_knn_centred_transferred_slope_value": 0.05939915427712741,
+   "tfidf_ridge_centred_transferred_slope": 0.14439127637708896,
+   "tfidf_ridge_centred_transferred_slope_value": 0.260630681887508
+  },
+  "real_webagents": {
+   "pair_only": 0.17240896399949787,
+   "item_oracle_rasch_in_sample": 0.09836694823176231,
+   "emb_ridge_centred_oracle_slope": 0.16819884721401046,
+   "emb_ridge_centred_slope": 0.3212035003928137,
+   "emb_knn_centred_oracle_slope": 0.17008230630974502,
+   "emb_knn_centred_slope": 0.25890076326272343,
+   "tfidf_ridge_centred_oracle_slope": 0.17217864495135426,
+   "tfidf_ridge_centred_slope": 0.09249681455683655,
+   "emb_ridge_centred_transferred_slope": 0.16962976948791847,
+   "emb_ridge_centred_transferred_slope_value": 0.1328092545564784,
+   "emb_knn_centred_transferred_slope": 0.1729777629162366,
+   "emb_knn_centred_transferred_slope_value": -0.027253006407338288,
+   "tfidf_ridge_centred_transferred_slope": 0.17335244245889614,
+   "tfidf_ridge_centred_transferred_slope_value": 0.2696520026876837
+  },
+  "researchcodebench": {
+   "pair_only": 0.20482591522823024,
+   "item_oracle_rasch_in_sample": 0.0959985414505166,
+   "emb_ridge_centred_oracle_slope": 0.2047999104977453,
+   "emb_ridge_centred_slope": 0.02526359559174409,
+   "emb_knn_centred_oracle_slope": 0.20406062033329717,
+   "emb_knn_centred_slope": -0.12395944239491276,
+   "tfidf_ridge_centred_oracle_slope": 0.19820475102258409,
+   "tfidf_ridge_centred_slope": 0.39888133422387967,
+   "emb_ridge_centred_transferred_slope": 0.20677599805128516,
+   "emb_ridge_centred_transferred_slope_value": 0.2314558894901683,
+   "emb_knn_centred_transferred_slope": 0.20652144228785102,
+   "emb_knn_centred_transferred_slope_value": 0.10036706214520712,
+   "tfidf_ridge_centred_transferred_slope": 0.2002070507910487,
+   "tfidf_ridge_centred_transferred_slope_value": 0.16752382946533598
+  }
+ },
+ "maxrss_MB": 480.265625,
+ "seconds": 231.8934988975525
+}
