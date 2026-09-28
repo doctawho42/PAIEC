@@ -2843,8 +2843,9 @@ The target is the fold-averaged (≈ in-sample) difficulty: Rasch b fitted
 without each of the harness's five subject folds, averaged over the folds.
 This section and the four after it ("Attempting instead of judging", "Entropy
 profiles and hidden-state probes", the pairwise part of "Few-shot prompting",
-"Fine-tuning an encoder") correlate against it, and the hidden-state heads and
-the encoder train on it. No label enters any label-free feature. But the
+"Fine-tuning an encoder") correlate against it, and so does "Strong model on
+Kaggle: Qwen3-14B rubric and attempts"; the hidden-state heads, the encoder and
+the 14B's rubric heads train on it. No label enters any label-free feature. But the
 average of five fits, each on four fifths of the subjects, is essentially the
 in-sample b: they correlate 0.999 [0.997, 1.0] on the attempt probe's items
 (`results/attempt_probe.json`, references). The gate table's r ("Acceptance
@@ -3009,7 +3010,8 @@ re-read here):
 
 A small zero-shot judge is a dead end for this target. What remains open on the
 language-model side is the attempt route ("Attempting instead of judging"),
-which needs a model that can solve the items.
+which needs a model that can solve the items. A 14B that solves a fifth of
+them took it later ("Strong model on Kaggle: Qwen3-14B rubric and attempts").
 
 ## Attempting instead of judging
 
@@ -3255,6 +3257,8 @@ For the next step:
   With the per-step speed above, that is about 5-6 hours on this machine.
 
 The FLOOR escalation to a stronger proxy on a GPU is reported here, not taken.
+It was taken later, on Kaggle ("Strong model on Kaggle: Qwen3-14B rubric and
+attempts").
 
 **Deployment cost, had it passed.** A hidden run holds about 1,000
 subject-item pairs over 7 benchmarks. Only short-answer mathematics would be
@@ -3522,7 +3526,8 @@ re-read here):
 **What this does not test:**
 
 * the entropy of a generated attempt, the attempt probe's lead (a reasoning
-  trace, not the reading of the task);
+  trace, not the reading of the task; measured later with a 14B, "Strong model
+  on Kaggle: Qwen3-14B rubric and attempts");
 * a larger reader;
 * a fine-tuned head (LoRA);
 * swe_rebench as a fifth unit;
@@ -4162,6 +4167,384 @@ not escalate to a 4B GCM-style LoRA classifier.
 * **MPS nondeterminism.** A resumed epoch reuses the same batches but not
   bit-identical arithmetic.
 
+## Strong model on Kaggle: Qwen3-14B rubric and attempts
+
+On Kaggle (one commit of `kaggle/strong_probe/strong_probe.py`, VERSION k1.2),
+then locally `python experiments/strong_llm_eval.py --stage check-schema`,
+`--stage ingest` (4.5 s), `--stage signs` (14 minutes), `--stage harness` (68
+minutes for 36 covariates), `--stage reference` (8 minutes), `--stage attempts`
+(its default `--attempt-units both` writes both readings: every attempted text
+in 22 s, the probe texts alone in 19 s; `all` or `probe` writes one),
+`--stage verdict`, `--stage run` and `--stage show`, one process at a time. No
+language model is loaded locally. Every number below is in
+`results/strong_llm_eval.json` unless another section of this file is named,
+or it is marked as from the Kaggle log or derived; the results section that
+holds it is named in brackets where it helps. The harness stage reads the
+stored rows of `experiments/harness.py` (library 3f75a549673aae6a) and never
+recomputes hier. The export is in `data/features/kaggle/` and the full Kaggle
+Output in `data/features/kaggle_raw/` (both gitignored).
+
+Which script wrote what: signs, heads, harness and reference ran with the
+script of commit 4d2cc4f (digest afe6db1c3f9b84d2, unchanged at 00bdf04). The
+working tree's script (feb47227acf072d6) changes only the attempts, verdict,
+run and show stages, and adds `run` to the sections ingest drops when the
+features change. Ingest, attempts, verdict and run were re-run with it. Ingest
+refreshed `meta` and dropped nothing, because the features came out
+byte-identical (6e7ce7bbd1a8d2ab), and every number attempts and verdict had
+held came out the same. `attempts` (both readings) and `verdict` record the
+script digest they ran with.
+
+Every local language-model item signal was null, and the attempt probe could
+not be read at all: the 4B solved 2-8% of the problems ("Attempting instead of
+judging", FLOOR). The plan's step 8 escalates to a stronger open model on a
+free GPU, for two uses:
+
+* **Attempts.** Chain-of-thought attempts on matharena, read with the attempt
+  probe's rule, which was fixed before any output existed: FLOOR if graded
+  accuracy is under 10%; GO if the best label-free feature reaches a
+  within-competition rho ≥ 0.35 against honest difficulty, with a 95% lower
+  bound above 0.15, and rho ≥ 0.25 on the 2026 contests; KILL if every feature
+  is below 0.15. The primary feature was fixed by the export's columns and
+  declared log-prob semantics before any output existed: `tok_entropy`, the
+  mean next-token entropy of the raw model distribution over the full
+  vocabulary, which is the 4B's D2 lead. The rule was meant for the 147 probe
+  texts, the texts of the attempt probe's 160 items, which the notebook runs
+  first.
+* **A demand rubric.** An ADeLe/DeLeAn-style rubric (Zhou et al.,
+  arXiv:2503.06378) with Agent Psychometrics' task scales (Ge et al.,
+  arXiv:2604.00594): eight 0-5 demand scales (reasoning, knowledge, work,
+  interaction, volume, atypicality, precision, unguessability), a judged share
+  of strong 2025-26 systems that solve the task (`solve_share`, declared -) and
+  an expert's time (`time_log_minutes`, declared +). Each is read off the
+  distribution of the answer digit, as its expected value, thinking off and
+  greedy. The
+  declared primary is `rubric_ridge`, a ridge over the eight levels fitted
+  leave one parent out. The rubric prompt drops matharena's `problem_idx`, and
+  the sign prong reads matharena net of position.
+
+### The run
+
+* **Model and engine** (meta.manifest). Qwen/Qwen3-14B-AWQ at revision
+  31c69efc29464b6bb0aee1398b5a7b50a99340c3: 4-bit AWQ, fp16, vLLM 0.9.2 on its V0
+  engine, tensor parallel over two T4s (run.notebook.engine). Qwen3-14B is not a
+  matharena subject, so its attempts are not in the target.
+* **One commit** (run.sessions). `ARGS` were empty, so the commit ran the rubric
+  and then the attempts, probe texts first, until the session deadline. The
+  first cell ran at 2026-09-27 18:11:34 UTC and the session lasted 38,368 s
+  (10.66 h). Status: rubric done, attempts stopped at the deadline. The
+  notebook starts a shard only if 1.25 times its expected duration, plus a
+  minute, fits before 11 hours less 5 minutes (`strong_probe.py`, `Clock`).
+* **Prefix caching fails on the T4.** The first engine start failed inside
+  vLLM's Triton `prefix_prefill` kernel on compute capability 7.5
+  ("Unsupported conversion from f16 to f16"). The launch cell recognised the
+  error and restarted the script with `--no-prefix-caching`, which is not part
+  of the job's configuration hash. Everything below ran without prefix caching.
+  The error text and the retry are from the Kaggle session log, which the
+  manifests do not record. A copy of that log, as pasted from the Logs tab up to
+  04:29 UTC (it ends before the session's last shards), is kept beside the
+  Output copy as `session.log` (gitignored); `--stage run` records its path,
+  sha256 and that it shows the `prefix_prefill` error and the
+  `--no-prefix-caching` retry (run.logs). From the first
+  cell to the rubric's start took 591 s (run.derived.before_rubric_s): the
+  installs, the downloads, the plan and both engine starts.
+* **The rubric** took 6,389 s (1.77 h). Its rows were written from 18:24 to
+  20:08 UTC, and it prefilled 999 prompt tokens a second. The plan said 0.61 h
+  (0.75 h in its slow case), assuming prefix caching: with the 1,073-token
+  instruction block shared, 2.05 M of the 6.42 M prompt tokens need a prefill.
+  Without caching all 6.42 M do, and the rubric took 2.9 times the plan. 4,078
+  texts (4,326 item_ids) on the four parents; every answer parsed (parse rate
+  1.00).
+* **The attempts.** k = 4 attempts per text, thinking on, at most 4,096 new
+  tokens. The sampling is the model card's: temperature 0.6, top-p 0.95, top-k
+  20, presence penalty 1.5. After every attempt a greedy continuation forces
+  "**Final Answer** $\boxed{" (the answer log-prob). A shard of 5 texts × 4
+  attempts took 592 s (median of 53 intervals between shard writes; 545 to
+  605). That is 138 generated tokens a second, with the forced readouts' time
+  included: 4.40 M attempt tokens in 8.85 h. The plan assumed 300 (150 in its
+  slow case).
+* **How far it got** (run.timeline, run.progress). 270 of 819 texts in 8.85 h:
+  all 147 probe texts (196 item_ids, done 4.92 h after the rubric, against the
+  plan's 2.28 h and 4.28 h slow) and 123 others (140 item_ids). That is 336
+  items and 1,344 attempt rows: 1,080 attempts, each text's copied to each of
+  its item_ids.
+* **Truncation** (run.export.summary). 96.9% of the attempts hit the 4,096-token
+  cap and had their answer forced; 6.2% closed their reasoning. The mean length
+  is 4,076 tokens. So the attempt features describe the first 4,096 tokens of
+  reasoning, not finished solutions. Graded accuracy against matharena's
+  reference answer is 21.0%, 20.0% on the 2025 contests and 23.1% on the 2026
+  ones (a diagnostic; no feature reads it).
+* **The recorder check.** The notebook's raw recorder matched the engine's
+  greedy log-probs to 0 (maximum gap) over 13,657 forced-readout tokens, and all
+  1,080 attempts carry raw full-vocabulary statistics (`logprobs: raw`). The
+  answer log-prob is the forced greedy readout for every attempt, one
+  distribution for all (ingest.attempt_semantics).
+
+### Coverage
+
+Every row's content hash matched the local text: 4,326 of 4,326, none
+mismatched, missing or unknown (ingest). The rubric covers every item, and
+every response, of the four parents: matharena 1,755 items (1,555 texts),
+multi_swebench 2,126 (2,078), real_webagents 233, researchcodebench 212.
+swe_rebench has no rubric, by design: it has one subject. The attempts cover
+336 matharena items, 41% of matharena's responses, and 6.7% of the test-like
+evaluated items (4.9% mix/whole; 6.6% and 12.3% on public R1).
+
+### The attempts: GO
+
+The target is the fold-averaged (≈ in-sample) difficulty, as in "The 4B judge,
+closed out". The statistic is the attempt probe's: within-competition Spearman
+(ranks within each competition, demeaned, pooled), with a 95% bootstrap over
+the 16 competitions. The probe texts are the ones the notebook flags in
+`_detail/attempt_units.parquet`, a table the export's manifest does not hash.
+The stage records its sha256 (638e595695951277…, in full in
+attempts.probe_only.source_sha256) and checks the flag against the notebook's
+`PROBE_IDS`: a text is a probe text if and only if one of its item_ids is
+listed. All 270 texts agree, and all 160 listed items are under the 147
+flagged texts (attempts.probe_only.probe_ids_check).
+
+| reading | items (competitions) | graded accuracy | tok_entropy, the primary | tok_entropy, 2026 contests | best feature | call |
+|---|---|---|---|---|---|---|
+| the 147 probe texts, as the rule was fixed (attempts.probe_only) | 196 (16) | 20.5% | +0.372 [+0.209, +0.516] | +0.585 [+0.370, +0.755] (58 items) | lp_first1024 +0.379 [+0.186, +0.557]; 2026 +0.508 | GO |
+| all 270 attempted texts (attempts) | 336 (16) | 21.0% | +0.352 [+0.251, +0.448] | +0.488 [+0.337, +0.603] (107 items) | tok_entropy | GO |
+
+* **The primary passes by itself** on the probe texts: 0.372 ≥ 0.35, lower
+  bound 0.209 > 0.15, and 0.585 on the 2026 contests. Those contests post-date
+  the model (Qwen3 was released in April 2025), so their ordering cannot come
+  from memorised problems or solutions, and they are the strongest part of the
+  evidence. On the other contests, labelled 2025 by the rule, the primary gives
+  0.286 [0.090, 0.471] (138 items), so the pooled 0.372 leans on the 2026 ones.
+  Over all 270 texts the split is 0.290 [0.184, 0.407] (229 items) and 0.488.
+  The call's best feature on the probe texts is `lp_first1024`, the mean
+  log-prob over the first 1,024 tokens, at 0.379, 0.007 above the primary. On
+  all 270 texts the primary is the best feature, at 0.352 [0.251, 0.448].
+* **It is not the floor.** Graded accuracy is 20.5% on the probe texts, against
+  the 4B's 2.3% and 7.8% ("Attempting instead of judging"). The truncated attempts are still mostly forced
+  answers, but the model gets a fifth of the problems right.
+* **The reasoning's own uncertainty carries it.** On the probe texts
+  `tok_lp` gives +0.36, the entropy over the first 1,024 tokens +0.36, and the
+  truncation and forced-answer rates +0.36. Agreement between the four answers
+  is weaker (`top_share` +0.24), and the first 256 tokens give +0.21. On all
+  270 texts every feature over the whole attempt, its reasoning or its first
+  tokens, and every answer and rate feature, is a little lower: `tok_lp` +0.34,
+  `ent_first1024` +0.30, truncation +0.28, `top_share` +0.14. The two features
+  over the answer span, `tok_lp_answer` and `tok_entropy_answer`, exist only
+  where an attempt closed its reasoning (16 items on the probe texts, 31 on
+  all). They are wrong-signed on both, -0.23 and -0.37 on the probe texts and
+  -0.09 and -0.14 on all, and too sparse to read.
+* **It is not truncation in disguise.** On the 2026 probe items the
+  truncation rate does not vary, so it orders nothing there, and over all texts
+  it gives +0.11 on the 2026 contests; the entropy gives +0.585 and +0.488.
+* **Length does not explain it.** In the rule's statistic the prompt's length
+  orders difficulty at +0.258 [+0.115, +0.389] on the probe texts, and the
+  entropy follows it at +0.272 [+0.151, +0.386]. The adjustment for length is
+  read in the sign stage's statistic (`llm4b_close.corr_block`: ranks over the
+  benchmark, demeaned within competition), which puts the entropy higher than
+  the rule does. In that statistic the entropy gives +0.47 [+0.30, +0.58] on
+  the probe texts and +0.42 [+0.26, +0.53] net of log length; on all 336 items
+  +0.43 [+0.32, +0.51] and +0.40 [+0.29, +0.47] (attempts, `designs.cot`:
+  `spearman_within_corr_block` and `partial_on_log_length`). Netting out
+  length takes 0.03 to 0.05 off and leaves the rest. Net of competition, log
+  length and position the sign stage gives +0.37 [+0.27, +0.45] on all 336
+  items (signs).
+* **It holds against the strong tier.** Against b over the subjects at or above
+  the median ability it gives +0.28 on the probe texts and +0.30 on all texts.
+* **Beside the 4B's D2.** The quantity is the same (attempts.reference_4b:
+  comparable), but D2 capped attempts at 512 tokens. D2 met the GO numbers
+  post hoc on 32 extreme items (+0.625) and was discounted under its floor.
+  This is a declared primary, on 196 items across each competition's range.
+
+GO is a correlation call. It says the 14B's attempts order matharena's problems
+by difficulty well enough to be worth an ALC test. It says nothing about ALC,
+and on one parent that test cannot be run leave one parent out (below).
+
+### The rubric
+
+Within-group Spearman, oriented (+ = harder), with 95% bootstrap intervals over
+groups (signs). Matharena's column gives the value net of competition, log
+length and position in brackets, which is the sign prong's statistic there.
+"Text-bearing" is matharena without image-only and prompt-only items (1,095
+items, 19 competitions), within competition and, in brackets, net of position
+and log length. The prong counts the parents with the declared sign. The last
+column is a DerSimonian-Laird mean over the four parents with its prediction
+interval.
+
+| feature | matharena | multi_swebench | real_webagents | researchcodebench | matharena text-bearing | prong | random effects [PI] |
+|---|---|---|---|---|---|---|---|
+| rubric_reasoning | +0.07 [-0.04, +0.20] (+0.03) | -0.00 [-0.08, +0.06] | +0.18 [+0.07, +0.30] | +0.28 [+0.16, +0.39] | +0.42 (+0.32) | 3/4 | +0.12 [-0.31, +0.50] |
+| rubric_knowledge | +0.04 [-0.07, +0.15] (-0.01) | +0.03 [-0.05, +0.09] | +0.19 [+0.08, +0.30] | +0.11 [-0.08, +0.30] | +0.31 (+0.21) | 3/4 | +0.06 [-0.13, +0.25] |
+| rubric_work | +0.07 [-0.04, +0.19] (+0.03) | +0.11 [+0.02, +0.17] | +0.22 [+0.12, +0.32] | +0.32 [+0.18, +0.47] | +0.35 (+0.26) | 4/4 | +0.16 [-0.20, +0.48] |
+| rubric_interaction | +0.06 [-0.00, +0.14] (+0.02) | +0.09 [+0.00, +0.15] | +0.12 [-0.03, +0.28] | +0.28 [+0.14, +0.42] | +0.20 (+0.10) | 4/4 | +0.12 [-0.16, +0.38] |
+| rubric_volume | +0.05 [-0.04, +0.16] (-0.01) | +0.03 [-0.07, +0.11] | +0.18 [+0.07, +0.29] | +0.20 [-0.02, +0.44] | +0.32 (+0.20) | 3/4 | +0.09 [-0.19, +0.34] |
+| rubric_atypicality | +0.05 [-0.08, +0.17] (-0.00) | +0.08 [+0.01, +0.13] | +0.19 [+0.06, +0.34] | +0.27 [+0.14, +0.43] | +0.38 (+0.28) | 3/4 | +0.12 [-0.20, +0.42] |
+| rubric_precision | +0.04 [-0.05, +0.15] (-0.01) | -0.04 [-0.12, +0.04] | +0.21 [+0.11, +0.33] | +0.24 [+0.11, +0.42] | +0.31 (+0.20) | 2/4 | +0.10 [-0.37, +0.53] |
+| rubric_unguessability | +0.02 [-0.09, +0.13] (-0.02) | +0.02 [-0.07, +0.09] | +0.14 [+0.01, +0.27] | +0.28 [+0.13, +0.44] | +0.31 (+0.23) | 3/4 | +0.09 [-0.26, +0.43] |
+| solve_share (declared -) | +0.09 [-0.01, +0.21] (+0.05) | +0.11 [-0.01, +0.21] | +0.14 [+0.01, +0.30] | +0.28 [+0.15, +0.47] | +0.42 (+0.34) | 4/4 | +0.13 [-0.10, +0.35] |
+| time_log_minutes | +0.10 [-0.01, +0.24] (+0.07) | +0.10 [-0.01, +0.19] | +0.17 [+0.07, +0.29] | +0.29 [+0.17, +0.45] | +0.45 (+0.36) | 4/4 | +0.14 [-0.10, +0.36] |
+| rubric_sum (unit-weight mean) | +0.07 [-0.02, +0.19] (+0.02) | +0.06 [-0.04, +0.14] | +0.20 [+0.11, +0.30] | +0.28 [+0.10, +0.44] | +0.36 (+0.25) | 4/4 | +0.13 [-0.19, +0.42] |
+
+multi_swebench's intervals resample 8 languages and are indicative.
+
+* **Right-signed and weak.** Nine of the ten features have the declared sign on
+  at least 3 of the 4 parents. The random-effects means are +0.06 to +0.16,
+  and every prediction interval for a new benchmark crosses 0.
+* **Most of the signal is on the two small parents.** real_webagents gives
+  +0.12 to +0.22 and researchcodebench +0.11 to +0.32. multi_swebench, the
+  largest parent, gives -0.04 to +0.11.
+* **matharena splits.** Over all its items, net of position and length, every
+  feature is between -0.02 and +0.07. On the text-bearing items the same net
+  statistic is +0.10 to +0.36, and `time_log_minutes` reaches +0.36. The 4B
+  judge's rating was wrong-signed there, -0.17 net of position once oriented
+  ("The 4B judge, closed out"). The 14B reads the difficulty of a mathematics
+  problem it can see. The prong was fixed in advance on all of matharena's
+  items, so this does not count toward it.
+
+**Heads** (heads). Ridge fitted leave one parent out, the penalty chosen by
+nested leave-one-parent-out, the features and the target standardised within
+benchmark. Pearson over the held-out benchmark / within group; matharena's
+prong statistic (net of competition, log length and position) in brackets.
+
+| head | matharena | multi_swebench | real_webagents | researchcodebench | mean | positive | prong | random effects [PI] | penalties chosen |
+|---|---|---|---|---|---|---|---|---|---|
+| rubric_ridge (primary) | +0.23 / -0.04 (-0.04) | +0.01 / +0.04 | +0.19 / +0.20 | +0.33 / +0.29 | +0.191 | 4/4 | 3/4 | +0.19 [-0.51, +0.73] | 100, 100, 0.1, 1 |
+| rubric_ridge_posfree | +0.23 / -0.05 (-0.04) | +0.01 / +0.04 | +0.19 / +0.20 | +0.33 / +0.29 | +0.190 | 4/4 | 3/4 | +0.19 [-0.50, +0.73] | 100, 100, 0.1, 1 |
+| rubric_all_ridge (levels and their readout diagnostics) | +0.27 / -0.00 (+0.02) | +0.02 / +0.05 | +0.25 / +0.18 | +0.31 / +0.29 | +0.211 | 4/4 | 4/4 | +0.21 [-0.52, +0.76] | 100 in every fold |
+| judge_ridge (levels, solve_share, time) | +0.25 / -0.02 (-0.01) | +0.03 / +0.06 | +0.16 / +0.19 | +0.33 / +0.29 | +0.192 | 4/4 | 3/4 | +0.19 [-0.49, +0.72] | 100, 100, 0.1, 1 |
+
+The heads are positive on every parent, but matharena's +0.23 is competition
+level: within competition it is -0.04, and hier learns a competition's level
+from labels. multi_swebench gives +0.01. The mean of +0.19 is short of the
+0.3 the gate table needs.
+
+### Through the harness
+
+Every oriented rubric feature, `rubric_sum`, each head's out-of-fold
+predictions and every attempt feature went through the harness on the shipped
+hier (`llm4b_close.py`'s recipe: x standardised within benchmark, the B0 term
+on raw x, three placebo draws permuted within benchmark). Test-like ALC
+differences ± pair-cluster SE, with the folds nested selection switched on;
+public R1 benchmark-first / pair-uniform; within-pair r is the mean
+correlation with honest difficulty over a test-like pair's evaluated items.
+
+| covariate | transferred nested | per-pair nested | transferred from B7, forced | per-pair s = 0.5 from B7, forced (placebo) | transferred nested, R1 | within-pair r |
+|---|---|---|---|---|---|---|
+| head rubric_ridge (primary) | +0.00017 ± 0.00036 (4/4) | -0.00015 ± 0.00007 (4/4) | -0.00029 | -0.00004 (+0.00074) | -0.00212 / -0.00215 | 0.108 |
+| head rubric_all_ridge | +0.00005 ± 0.00036 (4/4) | -0.00005 ± 0.00006 (4/4) | -0.00039 | -0.00001 (+0.00077) | -0.00227 / -0.00253 | 0.121 |
+| head judge_ridge | -0.00039 ± 0.00016 (3/4) | -0.00016 ± 0.00006 (4/4) | -0.00027 | -0.00004 (+0.00075) | -0.00172 / -0.00158 | 0.110 |
+| rubric_sum | +0.00027 ± 0.00042 (4/4) | -0.00019 ± 0.00007 (4/4) | -0.00036 | -0.00005 (+0.00065) | -0.00233 / -0.00237 | 0.129 |
+| time_log_minutes | -0.00084 ± 0.00043 (4/4) | -0.00016 ± 0.00006 (4/4) | -0.00058 | +0.00005 (+0.00068) | -0.00370 / -0.00389 | 0.145 |
+| rubric_knowledge | -0.00062 ± 0.00043 (4/4) | -0.00004 ± 0.00007 (4/4) | -0.00052 | -0.00006 (+0.00065) | -0.00319 / -0.00279 | 0.118 |
+| rubric_work | -0.00045 ± 0.00041 (4/4) | -0.00015 ± 0.00009 (4/4) | -0.00063 | -0.00012 (+0.00073) | -0.00326 / -0.00314 | 0.148 |
+| solve_share | +0.00020 ± 0.00019 (1/4) | -0.00003 ± 0.00005 (4/4) | -0.00031 | +0.00008 (+0.00064) | -0.00020 / -0.00009 | 0.127 |
+| rubric_reasoning | +0.00111 ± 0.00030 (2/4) | +0.00004 ± 0.00004 (3/4) | -0.00006 | +0.00015 (+0.00063) | +0.00018 / +0.00019 | 0.094 |
+| att_cot_tok_entropy (attempt primary) | 0 (0/4) | 0 (0/4) | 0 | -0.00011 ± 0.00005 (+0.00003) | 0 / 0 | 0.315 |
+
+* **Nothing passes the gate** (-0.002, nested, on in at least 3 of 4 folds, no
+  parent above +0.002, the public guard). The best nested line of any
+  covariate is `time_log_minutes`' transferred slope at -0.00084 ± 0.00043, on
+  in every fold, with its worst parent at +0.00102. Then come
+  `rubric_knowledge` (-0.00062), `rubric_work` (-0.00045) and the judge head
+  (-0.00039 ± 0.00016). The primary head gives +0.00017 transferred and
+  -0.00015 per-pair.
+* **Within a pair the rubric orders little.** Within-pair r is 0.03 to 0.15 for
+  the rubric features and 0.108 to 0.121 for the heads. The gate table puts the
+  bar at about 0.25.
+* **Public runs read more of it.** On public R1 the transferred nested lines
+  of the heads and of the strongest levels gain -0.0016 to -0.0039 (the
+  primary head -0.00212 and -0.00215). The gate is read on test-like runs, as
+  fixed before; public runs are its guard, not its measure.
+* **A level term at B0 costs.** `rubric_knowledge`'s uncentred B0 term, nested,
+  costs +0.00306 ± 0.00109, and +0.0169 on its worst parent.
+* **The attempts cannot be switched on leave one parent out.** They exist on
+  matharena only, so with matharena held out the transferred slope is fitted
+  on parents where x is constant, and every nested line is exactly 0. Their
+  reading is the forced per-pair lines: -0.00012 ± 0.00005 from B1 and -0.00011
+  ± 0.00005 from B7, against placebos of +0.00004 and +0.00003. Their
+  within-pair r of 0.315 is on the 6.7% of test-like evaluated items they
+  cover.
+
+### What this coverage could give
+
+The reference stage degrades honest difficulty to r on exactly the items the
+primary head covers, all four parents' (4,169 keys in the rows), with 0
+elsewhere (four draws; reference):
+
+| r | transferred nested | per-pair nested | transferred from B1, forced | per-pair s = 0.5 from B7, forced |
+|---|---|---|---|---|
+| 0.2 | -0.00096 | -0.00007 | -0.00105 | +0.00026 |
+| 0.3 | -0.00246 | -0.00029 | -0.00246 | -0.00033 |
+| 0.5 | -0.00722 | -0.00249 | -0.00722 | -0.00219 |
+
+This is the ceiling. A covariate of honest r ≈ 0.3 on all four parents, about
+0.25 within a pair (the gate table, "Acceptance harness"), gives -0.0025
+through a transferred slope, just past the -0.002 gate; the gate table passes
+it on 6 of 8 noise draws. The rubric's heads reach 0.19 across benchmarks and
+0.11 within a pair. The attempt entropy reaches the strength (0.35 to 0.37 by
+the attempt rule, 0.315 within a pair), but on one parent. No transferred slope
+can be fitted for it leave one parent out, and a per-pair slope needs r ≈ 0.5
+(-0.0025 at 0.5).
+
+### Verdict: GO for correlation, NULL for ALC
+
+* **The attempts: GO** on the 147 probe texts the rule was fixed for, and on
+  all 270 texts attempted. The 14B's mean token entropy is the first item-side
+  signal in this repository to pass its correlation bar.
+* **The harness: NULL** (verdict.call "NULL: no declared primary passes"; keep
+  and exploratory_pass empty). The primary head passes the sign prong
+  (positive on 3 of 4 parents; matharena, read net of position, is the one
+  that fails) and fails every nested gate line. No
+  other covariate passes the gate. The attempt primary cannot pass it on one
+  parent, and its forced lines give -0.0001.
+
+Nothing ships. `experiments/strong_llm_eval.py` and the Kaggle kit stay
+research-only.
+
+**What was not done, and why.**
+
+* **The other 549 attempt texts.** At the measured 592 s a shard, they would take
+  about 18.1 h (run.derived), two more 11-hour commits. They cannot change the
+  verdict: they are matharena problems, on the one parent the attempts already
+  cover, so the transferred slope still could not be fitted leave one parent
+  out. The call is GO already.
+* **An entropy-only job on all four benchmarks.** One truncated attempt per
+  item, the token entropy alone, on every parent's items. It is the one
+  variant with upside, because it is what a transferred slope needs: the
+  feature on every parent, so that the slope can be fitted leave one parent
+  out. It is held until the organisers say whether a model can run at predict
+  time. The hidden benchmarks' items are not public, so the feature would have
+  to be computed inside `predict`, where workers are recreated at each of the
+  six checkpoints. On T4s that would be far too slow: at the 138 generated
+  tokens a second measured here, one 1,024-token window for each item of a run
+  of up to 1,000 subject-item pairs is about two hours (derived: 1,000 × 1,024
+  / 138 s), before the checkpoints' repeats.
+
+**Caveats built into the script.**
+
+* **A second-order leak for the heads.** The transferred slope for a held-out
+  parent is fitted on the other parents' out-of-fold x, and their heads saw
+  the held-out parent's items. It favours the covariate, and the result is
+  null anyway.
+* **Standardisation over every covered item.** x is standardised within
+  benchmark over all its covered items; a run-time predictor sees only the
+  run's items.
+* **The target.** The honest target leaves each subject fold out, but the
+  average of the five fits is essentially the in-sample b, which slightly
+  favours a feature ("The 4B judge, closed out"). The features themselves use
+  no label.
+
+**Other caveats.**
+
+* **Truncation.** 97% of the attempts stop at 4,096 tokens, so the attempts are
+  reasoning prefixes with forced answers, and the features read how the model
+  starts, not whether it finishes.
+* **Repeated texts.** The 270 texts stand for 336 item_ids (run.timeline). A
+  repeated text carries the same features under each of its item_ids, and each
+  counts in the correlations.
+* **Two statistics.** The attempt rule ranks within each competition
+  (`attempt_probe.within_rho`); the sign table ranks over the benchmark and
+  demeans within group (`llm4b_close.corr_block`). They give 0.35 and 0.43 for
+  the same feature on the same items, and 0.37 and 0.47 on the probe texts.
+* **One session, one seed**, sampled at temperature 0.6.
+
 ## Meta-learned heads on frozen embeddings
 
 `python experiments/heads_eval.py --rows legacy` (3,223 s on one process with
@@ -4463,8 +4846,10 @@ against the observed 0.019.
 **Archives.**
 
 * **Run 2** was the archive with sha256
-  `2c64eaada491cbf85bd54ae190cdbb28f9d0a13870df0dc77a3a850f90cf661f`, kept in
-  session scratch. Every tracked member is byte-identical to ee5085a, and its
+  `2c64eaada491cbf85bd54ae190cdbb28f9d0a13870df0dc77a3a850f90cf661f`: the file
+  downloaded from the platform's submission page on 2026-09-28 has exactly
+  these bytes, as does the copy kept in session scratch (`record` stage,
+  `archives.run2`). Every tracked member is byte-identical to ee5085a, and its
   prior.json (sha256 `c7ce3b84…`) is byte-identical to today's
   `submission/prior.json`. Rebuilding ee5085a from `git archive` with that
   tree's own `tools/build_submission.py`, default BLAS threading, gives the

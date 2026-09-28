@@ -109,16 +109,16 @@ A forest plot. One row per idea gives its nested test-like ALC difference agains
 - the known-sign cues (six covariates, nested and forced);
 - the subject side (E, H, the date forms, T, T1.8, the combined selection);
 - the meta-learned heads (nested lines are exactly 0; show the forced lines);
-- the closed language-model and encoder probes that give a harness line (the 4B judge, the entropy and hidden-state heads, the fine-tuned encoder);
+- the closed language-model and encoder probes that give a harness line (the 4B judge, the entropy and hidden-state heads, the fine-tuned encoder, the 14B's rubric heads and scales);
 - the multiple-choice floor correction (adopted), for contrast.
 
-The attempt probe (no ALC line: its accuracy was below the floor) and the pairwise comparisons (a q statistic, not an ALC line) go in the caption, not the plot.
+The attempt probe (no ALC line: its accuracy was below the floor), the 14B's attempts (GO for correlation, but on one parent: every nested line is exactly 0, and the forced per-pair line is -0.0001) and the pairwise comparisons (a q statistic, not an ALC line) go in the caption, not the plot.
 
 - itemsig: `results/itemsig_eval.json`, `summary.regimes.<regime>.nested_within`, `.nested_joint`, `.default`, `.in_sample_best`.
 - Known-sign cues: `results/itemcov_eval.json`, `harness` (nested and forced lines per covariate) and `harness_train_scale`.
 - Subject side: `results/subject_side.json`, `summary.nested`, `summary.gates`, `summary.per_config`, `summary.student_t`.
 - Meta-learned heads: `results/heads_eval.json`, `rows.current.configs` (and `rows.legacy.configs`, the study as it ran): `lopo_*` nested, `force_all_*` forced.
-- Closed probes: `results/llm4b_close.json`, `results/hidden_state_probe.json`, `results/finetune_encoder.json` (their harness stages); in-context learning's value map in `results/icl_probe.json`.
+- Closed probes: `results/llm4b_close.json`, `results/hidden_state_probe.json`, `results/finetune_encoder.json` (their harness stages); in-context learning's value map in `results/icl_probe.json`; the 14B's `results/strong_llm_eval.json`, `harness.<covariate>.lines` (nested and forced) and `.placebo`, with the attempt calls in `attempts.decision` and `attempts.probe_only.decision`.
 - MCQ floor: `results/mcq_floor.json`, `regimes`.
 
 ### Fig. 10: Item difficulty does not transfer (§6.1, §6.2)

@@ -1,7 +1,8 @@
 """experiments/strong_llm_eval.py on synthetic Kaggle-like shards (no data, no
 model): the schema check, the join and its hash verification, the attempt
 aggregation, the declared signs, the leave-one-parent-out head, the attempt
-call and the gate verdict."""
+call (on every attempted text and on the probe texts only), the gate verdict
+and the run's facts."""
 import hashlib
 import json
 import math
@@ -809,3 +810,235 @@ def test_the_position_free_head_carries_no_position():
     assert plain["prong"]["fields"]["matharena"] == "partial2_pearson"
     assert plain["prong"]["values"]["matharena"] == plain["per_parent"]["matharena"]["partial2_pearson"]["est"]
     assert plain["positive_parents_prong"] == sum(1 for r in plain["prong"]["values"].values() if r and r > 0)
+
+
+# --- the attempt rule on the probe texts (the units it was fixed for) and the run's facts ------------------
+
+def write_units(kdir, units, extra=None):
+    """_detail/attempt_units.parquet as the notebook's export writes it: one row per unique text."""
+    d = os.path.join(kdir, "_detail")
+    os.makedirs(d, exist_ok=True)
+    pd.DataFrame([{**u, **(extra(u) if extra else {})} for u in units]).to_parquet(
+        os.path.join(d, "attempt_units.parquet"), index=False)
+
+
+def test_probe_units_read_the_notebooks_flag(tmp_path):
+    kdir = str(tmp_path)
+    assert S.probe_units(kdir) is None                                  # no table: no flag
+    units = [{"unit": "u0", "benchmark": "matharena", "item_ids": ["a", "b"], "probe": True},
+             {"unit": "u1", "benchmark": "matharena", "item_ids": ["c"], "probe": True},
+             {"unit": "u2", "benchmark": "matharena", "item_ids": ["d", "e", "f"], "probe": False},
+             {"unit": "u3", "benchmark": "matharena", "item_ids": ["c"], "probe": False}]   # c under both
+    write_units(kdir, units)
+    pu = S.probe_units(kdir)
+    assert pu["probe"] == {("matharena", "a"), ("matharena", "b")}
+    assert pu["rest"] == {("matharena", k) for k in "def"} and pu["conflicting_items"] == 1
+    assert pu["units"] == {"probe": 2, "rest": 2} and pu["items"] == {"probe": 2, "rest": 3}
+    assert pu["path"] == S.UNITS_DETAIL and pu["probe_ids_check"] is None      # unchecked without PROBE_IDS
+    with open(os.path.join(kdir, S.UNITS_DETAIL), "rb") as fh:
+        assert pu["sha256"] == hashlib.sha256(fh.read()).hexdigest()           # the manifest does not hash it
+    # a text is a probe text iff one of its item_ids is listed: u0 (a listed), u1 (c listed; c's other text u3
+    # is unflagged, so the check reads per unit)
+    ok = S.probe_units(kdir, frozenset({"a", "c", "zz"}))["probe_ids_check"]
+    assert ok["units_flag_mismatch"] == 1 and not ok["ok"]                    # u3 holds listed c, unflagged
+    ok = S.probe_units(kdir, frozenset({"b", "c"}))["probe_ids_check"]
+    assert ok["units_checked"] == 4 and ok["listed_in_flagged_units"] == 2 and ok["listed_in_unflagged_units"] == 1
+    write_units(kdir, units[:3])
+    good = S.probe_units(kdir, frozenset({"a", "c", "zz"}))["probe_ids_check"]
+    assert good["ok"] and good["units_flag_mismatch"] == 0 and good["listed_not_attempted"] == 1
+    bad = S.probe_units(kdir, frozenset({"a", "d"}))["probe_ids_check"]        # u1 flagged, none listed; u2 listed
+    assert not bad["ok"] and bad["units_flag_mismatch"] == 2
+    write_units(kdir, units)
+    write_units(kdir, [{k: v for k, v in u.items() if k != "probe"} for u in units])
+    assert S.probe_units(kdir) is None                                  # no flag column
+    j = pd.DataFrame({"benchmark": ["matharena", "matharena", "other"], "item_id": ["a", "z", "a"]})
+    assert S.unit_rows(j, pu["probe"])["item_id"].tolist() == ["a"]     # keyed on (benchmark, item_id)
+
+
+def _probe_fixture(tmp_path, monkeypatch, n=48):
+    """A joined table with planted attempts (the probe texts' tok_entropy follows the
+    difficulty, the others' is noise), its ingest state, and the stage's inputs stubbed."""
+    items, diff = make_items(n, seed=21, benches=("matharena",))
+    rng = np.random.default_rng(22)
+    ids = sorted(items["matharena"])
+    probe = set(ids[: 2 * n // 3])
+    rows = []
+    for i in ids:
+        d = diff[("matharena", i)]
+        ent = d + 0.2 * rng.normal() if i in probe else rng.normal()
+        rows.append({"benchmark": "matharena", "item_id": i, "key": i, "key_official": i, "text_key": i,
+                     "content_sha256": "h", "source": "direct", "rubric_a": rng.normal(),
+                     "att_cot_tok_entropy": ent, "att_cot_top_share": rng.uniform(), "att_cot_graded": 0.4,
+                     "att_cot_k": 4.0})
+    work, kdir = tmp_path / "work", tmp_path / "kaggle"
+    work.mkdir()
+    kdir.mkdir()
+    pd.DataFrame(rows).to_parquet(work / "features.parquet", index=False)
+    units = [{"unit": f"u{k}", "benchmark": "matharena", "item_ids": [i], "probe": i in probe}
+             for k, i in enumerate(ids)]
+    write_units(str(kdir), units)
+    out = str(tmp_path / "out.json")
+    sem = {"primary_attempt": "tok_entropy", "logprobs": "raw", "lp_answer": {"uniform": True}, "notes": [],
+           "d2": {"comparable": True, "reason": "test"}}
+    H.save_json(out, {"ingest": {"features_digest": S.features_digest(str(work)), "attempt_semantics": sem},
+                      "meta": {"manifest": {}}})
+    target = {"matharena": {i: diff[("matharena", i)] for i in ids}}
+    monkeypatch.setattr(S, "targets", lambda work, refresh=False: (target, None, None))
+    monkeypatch.setattr(S.ICE, "load_items", lambda b: items[b])
+    monkeypatch.setattr(S, "ROOT", str(tmp_path))          # no strong-tier targets, no 4B decision
+    return {"work": str(work), "kaggle": str(kdir), "out": out, "probe": probe, "rows": rows}
+
+
+def _args(fx, units):
+    from types import SimpleNamespace
+    return SimpleNamespace(work=fx["work"], kaggle=fx["kaggle"], out=fx["out"], boots=100, attempt_units=units)
+
+
+def test_the_attempt_rule_on_the_probe_texts_sits_beside_the_all_units_reading(tmp_path, monkeypatch):
+    fx = _probe_fixture(tmp_path, monkeypatch)
+    S.stage_attempts(_args(fx, "all"))
+    st = H.load_json(fx["out"])
+    base = st["attempts"]
+    assert "probe_only" not in base and base["designs"]["cot"]["n_items"] == 48
+    # the probe reading leaves every all-units field as it was, bit for bit
+    S.stage_attempts(_args(fx, "probe"))
+    at = H.load_json(fx["out"])["attempts"]
+    assert {k: v for k, v in at.items() if k != "probe_only"} == base
+    po = at["probe_only"]
+    assert po["designs"]["cot"]["n_items"] == len(fx["probe"]) == 32
+    dig, sdig = S.features_digest(fx["work"]), H.digest(["experiments/strong_llm_eval.py"])
+    assert base["features_digest"] == dig and base["script_digest"] == sdig and po["script_digest"] == sdig
+    with open(os.path.join(fx["kaggle"], S.UNITS_DETAIL), "rb") as fh:
+        assert po["source_sha256"] == hashlib.sha256(fh.read()).hexdigest()
+    assert po["probe_ids_check"] is None                    # no strong_probe.py under this ROOT
+    assert po["flagged_units"] == {"probe": 32, "rest": 16} and po["flagged_items"] == {"probe": 32, "rest": 16}
+    assert po["features_digest"] == S.features_digest(fx["work"])
+    rho_p = po["designs"]["cot"]["features_vs_honest"]["tok_entropy"]["rho"]
+    rho_a = base["designs"]["cot"]["features_vs_honest"]["tok_entropy"]["rho"]
+    assert rho_p > rho_a and po["decision"]["call"] == "GO" and po["decision"]["primary"]["feature"] == "tok_entropy"
+    # the same rows through attempt_report directly
+    j = S.load_joined(fx["work"])
+    rep = S.attempt_report(S.unit_rows(j, {("matharena", i) for i in fx["probe"]}), S.targets(None)[0],
+                           {"matharena": S.ICE.load_items("matharena")}, 100, None, exclude={}, primary="tok_entropy")
+    assert rep == po["designs"]
+    # the length partial and its unadjusted counterpart are one statistic (corr_block), not the rule's
+    c = rep["cot"]
+    assert set(c["spearman_within_corr_block"]) == set(c["partial_on_log_length"])
+    assert c["spearman_within_corr_block"]["tok_entropy"]["est"] != c["features_vs_honest"]["tok_entropy"]["rho"]
+    # the verdict carries both decisions
+    v = S.verdict({**H.load_json(fx["out"]), "harness": {}, "signs": {}})
+    assert v["attempts"] == base["decision"] and v["attempts_probe_only"] == po["decision"]
+    # 'all' again keeps the probe reading of these features; 'both' recomputes both
+    S.stage_attempts(_args(fx, "all"))
+    assert H.load_json(fx["out"])["attempts"]["probe_only"] == po
+    S.stage_attempts(_args(fx, "both"))
+    at = H.load_json(fx["out"])["attempts"]
+    assert at["probe_only"]["designs"] == po["designs"] and at["designs"] == base["designs"]
+    # other features: the stored probe reading is dropped, never carried over
+    pd.DataFrame([{**r, "rubric_a": 0.0} for r in fx["rows"]]).to_parquet(
+        os.path.join(fx["work"], "features.parquet"), index=False)
+    S.stage_attempts(_args(fx, "all"))
+    assert "probe_only" not in H.load_json(fx["out"])["attempts"]
+
+
+def _write_probe_ids(root, ids):
+    """kaggle/strong_probe/strong_probe.py under root with only PROBE_IDS, as the notebook spells it."""
+    d = os.path.join(root, "kaggle", "strong_probe")
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, "strong_probe.py"), "w") as fh:
+        fh.write('import os\n#: the probe items\nPROBE_IDS = frozenset("""\n' + " ".join(sorted(ids))
+                 + '\n""".split())\nOTHER = "x y"\n')
+
+
+def test_the_probe_flag_is_checked_against_the_notebooks_probe_ids(tmp_path, monkeypatch):
+    fx = _probe_fixture(tmp_path, monkeypatch, n=24)
+    _write_probe_ids(str(tmp_path), fx["probe"])
+    assert S.strong_probe_ids() == frozenset(fx["probe"])
+    S.stage_attempts(_args(fx, "probe"))
+    chk = H.load_json(fx["out"])["attempts"]["probe_only"]["probe_ids_check"]
+    assert chk["ok"] and chk["probe_ids"] == 16 and chk["listed_in_flagged_units"] == 16
+    assert chk["units_checked"] == 24 and chk["listed_not_attempted"] == 0
+    # a flag that is not PROBE_IDS membership stops the stage, and leaves the stored reading alone
+    before = H.load_json(fx["out"])
+    _write_probe_ids(str(tmp_path), sorted(fx["probe"])[1:])
+    with pytest.raises(SystemExit):
+        S.stage_attempts(_args(fx, "both"))
+    assert H.load_json(fx["out"]) == before
+
+
+def test_strong_probe_ids_read_the_notebook_without_importing_it(tmp_path):
+    ids = S.strong_probe_ids()
+    assert ids is not None and len(ids) == 160                                 # the attempt probe's items
+    assert all(len(i) == 16 and int(i, 16) >= 0 for i in ids)
+    assert S.strong_probe_ids(str(tmp_path / "missing.py")) is None
+    (tmp_path / "x.py").write_text("PROBE = 1\n")
+    assert S.strong_probe_ids(str(tmp_path / "x.py")) is None
+
+
+def test_a_probe_reading_needs_the_flag(tmp_path, monkeypatch):
+    fx = _probe_fixture(tmp_path, monkeypatch, n=24)
+    os.remove(os.path.join(fx["kaggle"], S.UNITS_DETAIL))
+    with pytest.raises(SystemExit):
+        S.stage_attempts(_args(fx, "probe"))
+    S.stage_attempts(_args(fx, "both"))                     # the default reads every unit and skips the probe
+    at = H.load_json(fx["out"])["attempts"]
+    assert at["designs"]["cot"]["n_items"] == 24 and "probe_only" not in at
+
+
+def test_run_facts_from_the_export_and_the_root_manifest(tmp_path):
+    kdir = tmp_path / "kaggle"
+    (kdir / "_detail").mkdir(parents=True)
+    t0 = 1_790_000_000.0
+    man = {"slug": "M", "wall_s": 9000.0, "notebook_digest": "d" * 64, "created": "x", "sessions": 1}
+    json.dump(man, open(kdir / "manifest.json", "w"))
+    json.dump({"attempts": {"units": 10}}, open(kdir / "_summary.json", "w"))
+    # rubric rows stamped one by one from t0 + 600 to t0 + 3600; 2,000 prompt tokens each
+    pd.DataFrame({"t": np.linspace(t0 + 600, t0 + 3600, 50), "prompt_tokens": 2000, "gen_tokens": 10}).to_parquet(
+        kdir / "_detail" / "rubric_units.parquet", index=False)
+    # attempts: 10 texts in shards of 5, 500 s apart; the first 7 are probe texts
+    ts = [t0 + 3600 + 480] * 5 + [t0 + 3600 + 980] * 5
+    write_units(str(kdir), [{"unit": f"u{k}", "benchmark": "matharena", "item_ids": [f"i{k}"] * (1 + (k == 0)),
+                             "probe": k < 7, "t": ts[k]} for k in range(10)])
+    pd.DataFrame({"n_tokens": [4096] * 38 + [1000, 1000], "capped": [True] * 38 + [False] * 2,
+                  "closed": [False] * 38 + [True] * 2, "forced": [True] * 38 + [False] * 2}).to_parquet(
+        kdir / "_detail" / "attempt_samples.parquet", index=False)
+    raw = tmp_path / "raw"
+    root = {"script_sha256": "d" * 64, "wall_s_total": 9000.0, "version": "k1.2",
+            "sessions": [{"run": "r", "t0": t0, "wall_s": 9000.0, "status": {"attempts": "deadline"},
+                          "stats": {"rubric": {"secs": 2900.0, "prompt_tok_s": 34.0},
+                                    "attempts": {"secs": 1480.0, "gen_tok_s": 100.0}}, "files": {"at_end": 9}}],
+            "plan": {"M": {"rates_tok_s": {"prefill": 1200}, "rubric": {"hours_est": 0.4, "prompt_tokens": 100000},
+                           "attempts": {"units": 30, "probe_units": 7}}},
+            "progress": {"M": {"attempts": {"done": 10, "units": 30}}}}
+    (raw / "run-1" / "strong_probe").mkdir(parents=True)
+    json.dump(root, open(raw / "run-1" / "strong_probe" / "manifest.json", "w"))
+    path = S.find_root_manifest(man, str(raw))
+    assert path == str(raw / "run-1" / "strong_probe" / "manifest.json")
+    assert S.find_root_manifest({**man, "wall_s": 1.0}, str(raw)) is None          # another session's export
+    (raw / "run-2" / "strong_probe").mkdir(parents=True)
+    json.dump(root, open(raw / "run-2" / "strong_probe" / "manifest.json", "w"))
+    assert S.find_root_manifest(man, str(raw)) is None                              # ambiguous
+    f = S.run_facts(str(kdir), path)
+    assert f["logs"] == []                                                      # no log saved beside the copy
+    tl, der = f["timeline"], f["derived"]
+    assert tl["attempt_units"] == {"probe": 7, "rest": 3} and tl["attempt_item_ids"] == {"probe": 8, "rest": 3}
+    assert tl["attempt_shards"] == 2 and tl["units_per_shard"] == 5.0 and tl["shard_s"]["median"] == 500.0
+    assert tl["first_shard_after_rubric_s"] == 480.0 and tl["probe_done_after_rubric_h"] == round(980 / 3600, 3)
+    assert tl["rubric_prompt_tokens"] == 100000 and tl["attempt_gen_tokens"] == 38 * 4096 + 2000
+    assert tl["attempt_gen_tok_s"] == round((38 * 4096 + 2000) / 980, 1)
+    assert tl["attempt_capped_share"] == 0.95 and tl["attempt_closed_share"] == 0.05
+    assert der["rubric_hours_over_plan"] == round(2900 / 3600 / 0.4, 2)
+    assert der["before_rubric_s"] == 700.0                    # the last rubric write less its seconds, from t0
+    assert der["attempt_units_left"] == 20 and der["attempt_hours_left_at_median_shard"] == round(4 * 500 / 3600, 2)
+    assert f["sessions"][0]["t0_utc"] == S._utc(t0) and f["plan"]["attempts"]["probe_units"] == 7
+    # without the root manifest: the export's own facts only
+    g = S.run_facts(str(kdir))
+    assert g["root_manifest"] is None and g["timeline"] == tl and "derived" not in g
+    # a log saved beside the Output copy is recorded with its digest and what it shows
+    text = ("RuntimeError: ... prefix_prefill ... Unsupported conversion from f16 to f16\n"
+            "retrying with --no-prefix-caching\n")
+    (raw / "run-1" / "session.log").write_text(text)
+    lg = S.run_facts(str(kdir), path)["logs"]
+    assert len(lg) == 1 and lg[0]["path"].endswith(os.path.join("run-1", "session.log"))
+    assert lg[0]["sha256"] == hashlib.sha256(text.encode()).hexdigest() and lg[0]["bytes"] == len(text.encode())
+    assert lg[0]["mentions"] == {"prefix_prefill": True, "f16_conversion": True, "no_prefix_caching": True}

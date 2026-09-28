@@ -2,24 +2,19 @@
 computed on a free Kaggle GPU, and read them against honest difficulty and
 through the acceptance harness.
 
-TODO(numbers): nothing below has been run on real Kaggle outputs yet. When the
-user has placed them under data/features/kaggle/, run the stages in order (Run,
-at the end), then write the findings section "A stronger model on Kaggle" in
-docs/findings.md from results/strong_llm_eval.json (`--stage show` prints its
-tables). Every number there must come from that file: coverage and hash checks
-(ingest), the per-parent within-group correlations and sign counts (signs), the
-LOBO heads (signs -> heads), the harness lines and placebos (harness), the
-attempt call (attempts) and the gate (verdict). Record the model, revision,
-quantisation and prompts from the manifest (results meta.manifest), and state
-the notebook's wall time and GPU hours from it. State what the attempt
-log-probs are (ingest.attempt_semantics: the manifest's `logprobs`, the presence
-penalty, where lp_answer came from, which attempt primary the export resolved
-to, the recorder check) and compare the attempt primary with the 4B probe's D2
-lead only where attempts.reference_4b.comparable is true: vLLM's V0 engine
-returns log-probs after the presence penalty, temperature and top-k/top-p, so
-without the notebook's raw recorder its entropies are top-5 lower bounds on a
-penalised, sharpened, truncated distribution, while D2 was the full-vocabulary
-entropy of the raw one.
+Run on the first Kaggle commit (Qwen/Qwen3-14B-AWQ, the whole rubric and 270 of
+819 attempt texts); docs/findings.md, "Strong model on Kaggle: Qwen3-14B rubric
+and attempts", reports it from results/strong_llm_eval.json (`--stage show`
+prints its tables): coverage and hash checks (ingest), the per-parent
+within-group correlations and sign counts (signs), the LOBO heads (signs ->
+heads), the harness lines and placebos (harness), the attempt call on the probe
+texts and on every attempted text (attempts), the gate (verdict), and the
+session's times, rates and plan (run). The attempt primary is set beside the 4B
+probe's D2 lead only where attempts.reference_4b.comparable is true: vLLM's V0
+engine returns log-probs after the presence penalty, temperature and
+top-k/top-p, so without the notebook's raw recorder its entropies are top-5
+lower bounds on a penalised, sharpened, truncated distribution, while D2 was
+the full-vocabulary entropy of the raw one.
 
 Why. Every local language-model item signal was null: the Qwen3-4B judge
 (experiments/llm4b_close.py), its attempts (experiments/attempt_probe.py, FLOOR:
@@ -51,11 +46,15 @@ the raw full-vocabulary statistics into the standard columns and says so in
 as well (check-schema warns "attempt columns not read" on any other spelling).
 The notebook writes no correctness (no per-attempt flag, no per-item graded or
 top_correct, the canonical answer only as a hash in _detail/): ingest grades the
-answers here, against items.parquet. Its _detail/ tables and _harness.json (one
-file on Kaggle, whose output keeps at most 500 files; strong_probe.py
-split-harness writes the per-feature JSONs experiments/harness.py reads) start
-with '_' and are not read here. Run `--stage check-schema` on the real directory
-before anything else: it lists every difference from SCHEMA.
+answers here, against items.parquet. Its _detail/ tables, _summary.json and
+_harness.json (one file on Kaggle, whose output keeps at most 500 files;
+strong_probe.py split-harness writes the per-feature JSONs experiments/harness.py
+reads) start with '_', so the shard loader, check-schema and ingest skip them.
+Two stages read them: attempts reads _detail/attempt_units.parquet for the
+notebook's probe flag (UNITS_DETAIL), and run reads _detail/{rubric_units,
+attempt_units,attempt_samples}.parquet and _summary.json for the session's
+facts. _harness.json is not read here. Run `--stage check-schema` on the real
+directory before anything else: it lists every difference from SCHEMA.
 Under KAGGLE_DIR (data/features/kaggle/, gitignored under data/):
 
   manifest.json   schema_version (SCHEMA_VERSION), model (repo, revision, dtype,
@@ -114,7 +113,8 @@ Under KAGGLE_DIR (data/features/kaggle/, gitignored under data/):
                    greedy forced readout for every attempt. Without one of them,
                    an lp_answer that mixes sampled (processed) and forced (greedy,
                    raw) readouts is excluded.
-  Files or directories starting with '.' or '_' are skipped (unfinished writes).
+  Files or directories starting with '.' or '_' are not shards: the shard loader
+  skips them (unfinished writes, and the _detail/ tables read by attempts and run).
 
 Stages (results in OUT, derived tables in WORK = data/strong_llm_eval/):
 
@@ -207,7 +207,25 @@ Stages (results in OUT, derived tables in WORK = data/strong_llm_eval/):
                 The 4B probe's decision is set beside it only when comparable
                 (reference_4b), flagged for another quantity of the raw
                 distribution, withheld for processed, mixed or undeclared
-                log-probs.
+                log-probs. --attempt-units (ATTEMPT_UNITS) picks the units:
+                'all' every attempted text (attempts' own fields), 'probe' the
+                147 probe texts the rule was fixed for, flagged in the export's
+                UNITS_DETAIL (attempts.probe_only, beside them), 'both' (the
+                default) both; each keeps the other's stored result. Both
+                readings record the features' and this script's digests; the
+                probe reading also the flag table's sha256 (the export's manifest
+                does not hash _detail/) and a check that the flag is membership
+                in strong_probe.py's PROBE_IDS (a unit is a probe text iff one of
+                its item_ids is listed; a mismatch stops the stage)
+  run           the session's facts and costs from files alone: the export's
+                manifest, _summary.json and _detail write times and token counts,
+                and the notebook's root manifest (--run-manifest; by default the
+                one under KAGGLE_RAW that matches the export): the sessions'
+                measured seconds and rates, the plan's estimates, the progress,
+                the attempt shards' duration and the hours left at it; and the
+                session's log, if one was saved as *.log beside that manifest's
+                copy (run.logs: path, sha256, whether it shows the prefix_prefill
+                failure and the --no-prefix-caching retry; [] when none is)
   verdict       the harness gate (harness.gate: nested and acting in >= 3 of 4
                 folds, test-like ALC difference <= -0.002, mix/whole of the same
                 sign, no held-out parent above +0.002, neither public R1
@@ -234,12 +252,13 @@ directory over every public item, beside a running LoRA job):
   python experiments/strong_llm_eval.py --stage check-schema
   python experiments/strong_llm_eval.py --stage ingest       # seconds
   python experiments/strong_llm_eval.py --stage signs        # ~0.5 min per signed feature, ~15 s per head
-  python experiments/strong_llm_eval.py --stage attempts     # seconds
+  python experiments/strong_llm_eval.py --stage attempts     # ~20 s per reading; --attempt-units all|probe|both
   python experiments/strong_llm_eval.py --stage harness      # ~1.3 min per covariate with --placebo 1,
                                                              # ~2 with the default 3; resumable;
                                                              # --feats NAME ... for a subset
   python experiments/strong_llm_eval.py --stage reference    # ~6 min
   python experiments/strong_llm_eval.py --stage verdict
+  python experiments/strong_llm_eval.py --stage run          # seconds; reads KAGGLE_RAW's root manifest
   python experiments/strong_llm_eval.py --stage show
 Needs data/<benchmark>/, the Kaggle outputs, and the harness rows (python
 experiments/harness.py --stage collect) for harness and reference.
@@ -274,6 +293,9 @@ from paiec import itemcov as IC  # noqa: E402
 from paiec import llmfeat as F  # noqa: E402
 
 KAGGLE_DIR = os.path.join(ROOT, "data", "features", "kaggle")
+#: where the full Kaggle Output is copied (its root manifest strong_probe/manifest.json carries the
+#: sessions' times, rates and the plan; the export's manifest only their totals)
+KAGGLE_RAW = os.path.join(ROOT, "data", "features", "kaggle_raw")
 WORK = os.path.join(ROOT, "data", "strong_llm_eval")
 OUT = os.path.join(ROOT, "results", "strong_llm_eval.json")
 BENCHES = L4.BENCHES
@@ -379,8 +401,9 @@ SCHEMA = {
 MIN_ITEMS = L4.MIN_ITEMS
 BOOT = L4.BOOT
 DIAG_BOOT = 500                  # bootstrap draws for a feature without a declared sign
-#: results sections computed from the ingested features (dropped when they change)
-DOWNSTREAM = ("signs", "heads", "harness", "reference", "attempts", "verdict")
+#: results sections computed from the ingested features or the export behind them (dropped when
+#: they change)
+DOWNSTREAM = ("signs", "heads", "harness", "reference", "attempts", "verdict", "run")
 N_PLACEBO = L4.N_PLACEBO
 PLACEBO_BOOTS = L4.PLACEBO_BOOTS
 FORCED_ALL = L4.FORCED_ALL
@@ -397,6 +420,15 @@ PRONG_FIELD = {"matharena": "partial2_spearman"}
 #: a head's prong: out-of-fold Pearson over the benchmark; on matharena net of position too
 HEAD_PRONG_FIELD = {"matharena": "partial2_pearson"}
 ATT_MIN_ITEMS = 8                # attempt_report: fewest matharena items for a design
+#: the export's per-text attempt table (under KAGGLE_DIR; '_' paths are not shards): one row per unique
+#: text with its item_ids and `probe`, the notebook's flag for the 147 probe texts (strong_probe.py
+#: PROBE_IDS: the 160 attempt-probe items' texts, run first). The attempt rule was fixed for them
+UNITS_DETAIL = os.path.join("_detail", "attempt_units.parquet")
+#: --attempt-units: the units the attempt rule reads. 'all' writes attempts' all-units fields,
+#: 'probe' attempts.probe_only (the probe texts only), 'both' (default) both; each keeps the other's
+ATTEMPT_UNITS = ("all", "probe", "both")
+#: the notebook, relative to ROOT: its PROBE_IDS (read with ast, never imported) check the probe flag
+STRONG_PROBE = os.path.join("kaggle", "strong_probe", "strong_probe.py")
 GO_RHO, GO_LO, GO_2026 = 0.35, 0.15, 0.25
 KILL_RHO = 0.15
 FLOOR_ACC = 0.10
@@ -1770,6 +1802,13 @@ def attempt_report(joined, target, items, boots=AP.BOOTS, strong=None, seed=0, e
     """Per attempt design on matharena: accuracy, rates, and every label-free
     feature (oriented + = harder) against honest b within competition, by
     contest year, against strong-tier b where given, and net of log length.
+    Two statistics: features_vs_honest, by_year_honest and features_vs_strong
+    are the attempt rule's (attempt_probe.within_rho: ranks within each
+    competition); partial_on_log_length is the sign stage's
+    (llm4b_close.corr_block's partial_spearman: ranks over the benchmark,
+    demeaned within competition, net of log length), and
+    spearman_within_corr_block its unadjusted counterpart (corr_block's
+    spearman_within), so that the length adjustment is read in one statistic.
     exclude: {feature: reason} read apart (excluded, never a candidate of the
     call); primary: the resolved attempt primary (its relation to prompt length
     is reported)."""
@@ -1795,7 +1834,7 @@ def attempt_report(joined, target, items, boots=AP.BOOTS, strong=None, seed=0, e
         rng = np.random.default_rng(seed)
         v = {"n_items": int(len(sub)), "competitions": int(comp.nunique()), "k": float(np.nanmean(col("k")))
              if "k" in cols else None, "features_vs_honest": {}, "by_year_honest": {}, "features_vs_strong": {},
-             "partial_on_log_length": {}, "excluded": {}}
+             "partial_on_log_length": {}, "spearman_within_corr_block": {}, "excluded": {}}
         if "graded" in cols:
             gr = col("graded")
             v["accuracy"] = None if gr.notna().sum() == 0 else round(float(gr.mean()), 4)
@@ -1832,6 +1871,7 @@ def attempt_report(joined, target, items, boots=AP.BOOTS, strong=None, seed=0, e
                 cb = L4.corr_block(x.to_numpy()[ok], y.to_numpy()[ok], comp.to_numpy()[ok], L[ok],
                                    min(boots, 500), seed=seed + 5)
                 v["partial_on_log_length"][f] = cb.get("partial_spearman")
+                v["spearman_within_corr_block"][f] = cb.get("spearman_within")
         plen = pd.Series([len(it[i]["item_content"]) for i in ids], index=ids, dtype=float)
         v["prompt_chars_vs_honest"] = AP.within_rho(plen, y, comp, rng, boots)
         for f in dict.fromkeys(("tok_entropy", primary)):
@@ -1861,9 +1901,90 @@ def reference_4b(sem):
     return out
 
 
+def strong_probe_ids(path=None):
+    """The notebook's PROBE_IDS (the attempt probe's 160 matharena item_ids), read
+    from strong_probe.py's source with ast, never imported: a frozenset of str,
+    or None when the file or the assignment is missing."""
+    import ast
+    path = path or os.path.join(ROOT, STRONG_PROBE)
+    if not os.path.exists(path):
+        return None
+    with open(path) as fh:
+        tree = ast.parse(fh.read())
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "PROBE_IDS"
+                                                 for t in node.targets):
+            try:
+                txt = next(n.value for n in ast.walk(node.value)
+                           if isinstance(n, ast.Constant) and isinstance(n.value, str))
+            except StopIteration:
+                return None
+            return frozenset(txt.split())
+    return None
+
+
+def probe_units(kdir, probe_ids=None):
+    """The notebook's probe flag per attempt text (UNITS_DETAIL under kdir: one row
+    per unique text, its item_ids (or item_id) and `probe`): {'path', 'sha256'
+    (of the table: the export's manifest does not hash _detail/), 'probe':
+    {(benchmark, item_id)}, 'rest': {...}, 'units': {'probe': n, 'rest': n},
+    'items': {...}, 'conflicting_items': n, 'probe_ids_check'}. An item_id under
+    both a probe and a non-probe text (the notebook's units never share one) is in
+    neither set. probe_ids (strong_probe.py's PROBE_IDS, as strong_probe_ids reads
+    them): the notebook flags a text iff one of its item_ids is listed, so every
+    unit's flag is checked against that ('probe_ids_check': units, mismatches,
+    listed ids in flagged / unflagged / no attempted text, ok); None leaves it
+    unchecked. None when the table or its flag is missing."""
+    import pandas as pd
+    path = os.path.join(kdir, UNITS_DETAIL)
+    if not os.path.exists(path):
+        return None
+    import pyarrow.parquet as pq
+    have = set(pq.read_schema(path).names)
+    if "probe" not in have or "benchmark" not in have or not have & {"item_ids", "item_id"}:
+        return None
+    cols = [c for c in ("unit", "benchmark", "item_ids", "item_id", "probe") if c in have]
+    df = _norm(pd.read_parquet(path, columns=cols))
+    df = df[df["item_id"].notna() & df["benchmark"].notna()]
+    flag = df["probe"].map(_flag).to_numpy(bool)
+    keys = list(zip(df["benchmark"], df["item_id"]))
+    probe = {k for k, f in zip(keys, flag) if f}
+    rest = {k for k, f in zip(keys, flag) if not f}
+    both = probe & rest
+    units = {"probe": None, "rest": None}
+    if "unit" in df.columns:
+        u = df.drop_duplicates("unit")
+        units = {"probe": int(u["probe"].map(_flag).sum()), "rest": int((~u["probe"].map(_flag)).sum())}
+    check = None
+    if probe_ids is not None:
+        listed = pd.Series([str(i) in probe_ids for i in df["item_id"]], index=df.index)
+        grp = df["unit"] if "unit" in df.columns else pd.Series(range(len(df)), index=df.index)
+        per = pd.DataFrame({"u": grp.to_numpy(), "flag": flag, "listed": listed.to_numpy()}).groupby("u").agg(
+            flag=("flag", "max"), listed=("listed", "max"))
+        seen_p = {str(i) for i, f in zip(df["item_id"], flag) if f}
+        seen_r = {str(i) for i, f in zip(df["item_id"], flag) if not f}
+        mism = int((per["flag"] != per["listed"]).sum())
+        check = {"what": ("the notebook's flag against strong_probe.py PROBE_IDS: a text is a probe text iff one of "
+                          "its item_ids is listed" + ("" if "unit" in df.columns else " (no unit column: per row)")),
+                 "probe_ids": len(probe_ids), "units_checked": int(len(per)), "units_flag_mismatch": mism,
+                 "listed_in_flagged_units": len(probe_ids & seen_p),
+                 "listed_in_unflagged_units": len(probe_ids & seen_r),
+                 "listed_not_attempted": len(probe_ids - seen_p - seen_r), "ok": mism == 0}
+    return {"path": UNITS_DETAIL, "sha256": file_sha256(path), "probe": probe - both, "rest": rest - both,
+            "units": units, "items": {"probe": len(probe - both), "rest": len(rest - both)},
+            "conflicting_items": len(both), "probe_ids_check": check}
+
+
+def unit_rows(joined, keys):
+    """The rows of joined whose (benchmark, item_id) is in keys."""
+    m = np.fromiter(((b, i) in keys for b, i in zip(joined["benchmark"], joined["item_id"])), bool, len(joined))
+    return joined[m]
+
+
 def stage_attempts(args):
     import pandas as pd
     t0 = time.time()
+    units = getattr(args, "attempt_units", "both")
     joined = load_joined(args.work)
     if not attempt_designs(joined.columns):
         log("attempts: no attempt features in the Kaggle outputs")
@@ -1874,6 +1995,14 @@ def stage_attempts(args):
     reg = stage_registry(joined, state)
     exclude = {v["feature"]: v["excluded"] for v in reg.values() if v["kind"] == "attempt" and v.get("excluded")}
     primary = sem.get("primary_attempt")
+    pu = probe_units(args.kaggle, strong_probe_ids()) if units in ("probe", "both") else None
+    if units == "probe" and pu is None:
+        raise SystemExit(f"attempts: no probe flag ({os.path.join(args.kaggle, UNITS_DETAIL)} is missing or lacks "
+                         "benchmark, item_ids and probe); --attempt-units all reads every unit")
+    if pu is not None and pu["probe_ids_check"] is not None and not pu["probe_ids_check"]["ok"]:
+        raise SystemExit(f"attempts: the probe flag in {os.path.join(args.kaggle, UNITS_DETAIL)} is not membership "
+                         f"in {STRONG_PROBE} PROBE_IDS ({json.dumps(pu['probe_ids_check'])}); the probe reading "
+                         "would be on other texts than the rule was fixed for")
     target, _, _ = targets(args.work)
     items = {"matharena": ICE.load_items("matharena")}
     strong = None
@@ -1882,17 +2011,254 @@ def stage_attempts(args):
         t = pd.read_parquet(tp)
         if "b_strong" in t.columns:
             strong = {str(k): float(v) for k, v in t["b_strong"].items() if np.isfinite(v)}
-    rep = attempt_report(joined, target, items, args.boots, strong, exclude=exclude, primary=primary)
-    out = {"designs": rep,
-           "decision": attempt_call({d: v for d, v in rep.items() if v.get("features_vs_honest")}, primary),
-           "semantics": {k: sem.get(k) for k in ("logprobs", "logprobs_manifest", "presence_penalty", "lp_answer",
-                                                 "raw_features", "primary_attempt", "primary_order", "notes")},
-           "strong_tier_items": 0 if strong is None else len(strong),
-           "reference_4b": reference_4b(sem), "wall_s": round(time.time() - t0, 1)}
+    old = state.get("attempts") or {}
+    dig = features_digest(args.work)
+    if units == "probe":
+        out = {k: v for k, v in old.items() if k != "probe_only"}
+    else:
+        rep = attempt_report(joined, target, items, args.boots, strong, exclude=exclude, primary=primary)
+        out = {"designs": rep,
+               "decision": attempt_call({d: v for d, v in rep.items() if v.get("features_vs_honest")}, primary),
+               "semantics": {k: sem.get(k) for k in ("logprobs", "logprobs_manifest", "presence_penalty",
+                                                     "lp_answer", "raw_features", "primary_attempt", "primary_order",
+                                                     "notes")},
+               "strong_tier_items": 0 if strong is None else len(strong),
+               "reference_4b": reference_4b(sem), "features_digest": dig,
+               "script_digest": H.digest(["experiments/strong_llm_eval.py"]), "wall_s": round(time.time() - t0, 1)}
+        log(f"attempts, all units: {json.dumps(out['decision'])}")
+        log(f"attempts: primary {primary}; beside the 4B D2 lead: {out['reference_4b']['comparable']} "
+            f"({out['reference_4b']['reason']})")
+    if pu is not None:
+        t1 = time.time()
+        sub = unit_rows(joined, pu["probe"])
+        rep = attempt_report(sub, target, items, args.boots, strong, exclude=exclude, primary=primary)
+        out["probe_only"] = {
+            "units": "probe",
+            "what": ("the attempt rule on the probe texts only, the units it was fixed for before any output "
+                     "existed (the notebook's probe flag, strong_probe.py PROBE_IDS: run first); the all-units "
+                     "fields beside it read every attempted text"),
+            "source": pu["path"], "source_sha256": pu["sha256"], "probe_ids_check": pu["probe_ids_check"],
+            "flagged_units": pu["units"], "flagged_items": pu["items"],
+            "conflicting_items": pu["conflicting_items"],
+            "probe_digest": F.digest(sorted(f"{b}/{i}" for b, i in pu["probe"]))[:16],
+            "designs": rep,
+            "decision": attempt_call({d: v for d, v in rep.items() if v.get("features_vs_honest")}, primary),
+            "features_digest": dig, "script_digest": H.digest(["experiments/strong_llm_eval.py"]),
+            "wall_s": round(time.time() - t1, 1)}
+        log(f"attempts, probe texts only ({pu['units']['probe']} texts, {pu['items']['probe']} item_ids): "
+            f"{json.dumps(out['probe_only']['decision'])}")
+    else:                                                   # 'all', or 'both' without a probe flag
+        if units == "both":
+            log(f"attempts: no probe flag in {os.path.join(args.kaggle, UNITS_DETAIL)}; probe-only reading skipped")
+        prev = old.get("probe_only")
+        if prev is not None and prev.get("features_digest") == dig:
+            out["probe_only"] = prev                        # a probe reading of these features is kept
+        elif prev is not None:
+            log("attempts: the stored probe-only reading was on other features: dropped")
     _save_part(args.out, "attempts", out)
-    log(f"attempts: {json.dumps(out['decision'])}")
-    log(f"attempts: primary {primary}; beside the 4B D2 lead: {out['reference_4b']['comparable']} "
-        f"({out['reference_4b']['reason']})")
+
+
+# --- run facts ----------------------------------------------------------------------------
+
+def _utc(t):
+    return None if t is None or not math.isfinite(float(t)) else time.strftime("%Y-%m-%d %H:%M:%S",
+                                                                               time.gmtime(float(t)))
+
+
+def find_root_manifest(export_manifest, raw=KAGGLE_RAW):
+    """The notebook's root manifest (<copy>/strong_probe/manifest.json of a Kaggle
+    Output copied under raw) of the session that wrote this export: its
+    script_sha256 is the export's notebook_digest and its wall_s_total the
+    export's wall_s. None unless exactly one matches."""
+    man = export_manifest or {}
+    hits = []
+    for p in sorted(glob.glob(os.path.join(raw, "**", "strong_probe", "manifest.json"), recursive=True)):
+        try:
+            with open(p) as fh:
+                m = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        if m.get("script_sha256") == man.get("notebook_digest") and m.get("wall_s_total") == man.get("wall_s"):
+            hits.append(p)
+    return hits[0] if len(hits) == 1 else None
+
+
+#: what session_logs looks for in a saved log: the first engine start's failure and the kit's retry
+LOG_MARKERS = {"prefix_prefill": "prefix_prefill", "f16_conversion": "Unsupported conversion from f16 to f16",
+               "no_prefix_caching": "--no-prefix-caching"}
+
+
+def session_logs(root_manifest):
+    """The session's saved logs: every *.log under the Output copy that holds
+    root_manifest (<copy>/strong_probe/manifest.json; Kaggle's log is not part
+    of the Output, so it is there only if someone saved it), each as {path,
+    bytes, sha256, mentions: {marker: bool} for LOG_MARKERS}. [] when none is."""
+    base = os.path.dirname(os.path.dirname(os.path.abspath(root_manifest)))
+    out = []
+    for p in sorted(glob.glob(os.path.join(base, "**", "*.log"), recursive=True)):
+        with open(p, "rb") as fh:
+            data = fh.read()
+        txt = data.decode("utf-8", "replace")
+        out.append({"path": os.path.relpath(p, ROOT) if p.startswith(ROOT) else p, "bytes": len(data),
+                    "sha256": hashlib.sha256(data).hexdigest(),
+                    "mentions": {k: m in txt for k, m in LOG_MARKERS.items()}})
+    return out
+
+
+def run_facts(kdir, root_manifest=None):
+    """What the Kaggle session did and cost, from files only: the export's
+    manifest and _summary.json; the write times, prompt tokens and generated
+    tokens of its _detail tables (rubric rows are stamped one by one as they are
+    written, an attempt shard's rows share one stamp, so consecutive stamps
+    time a shard); and, when given, the notebook's root manifest (sessions'
+    start, wall time, status and measured rates, the plan's estimates, the
+    progress) and any session log saved beside it (session_logs). Derived: the
+    rubric's hours against the plan's, the attempt shards' duration, the
+    generated tokens a second over the attempt phase (from the last rubric
+    write to the last shard), and the hours the remaining attempt units would
+    take at the median shard duration."""
+    import pandas as pd
+    import pyarrow.parquet as pq
+    with open(os.path.join(kdir, "manifest.json")) as fh:
+        man = json.load(fh)
+    out = {"export": {k: man.get(k) for k in ("created", "wall_s", "sessions", "gpu", "notebook_digest", "slug")}}
+    sp = os.path.join(kdir, "_summary.json")
+    if os.path.exists(sp):
+        with open(sp) as fh:
+            out["export"]["summary"] = json.load(fh)
+    tl = {}
+
+    def cols(path, want):
+        have = set(pq.read_schema(path).names)
+        return pd.read_parquet(path, columns=[c for c in want if c in have])
+
+    rp = os.path.join(kdir, "_detail", "rubric_units.parquet")
+    r_last = None
+    if os.path.exists(rp):
+        r = cols(rp, ("t", "prompt_tokens", "gen_tokens", "truncated"))
+        if "t" in r.columns and len(r):
+            r_last = float(r["t"].max())
+            tl.update(rubric_units=int(len(r)), rubric_first_write_utc=_utc(r["t"].min()),
+                      rubric_last_write_utc=_utc(r_last))
+        if "prompt_tokens" in r.columns:
+            tl["rubric_prompt_tokens"] = int(r["prompt_tokens"].sum())
+        if "gen_tokens" in r.columns:
+            tl["rubric_gen_tokens"] = int(r["gen_tokens"].sum())
+    up = os.path.join(kdir, UNITS_DETAIL)
+    ts = None
+    if os.path.exists(up):
+        u = cols(up, ("unit", "t", "probe", "item_ids"))
+        if "probe" in u.columns:
+            f = u["probe"].map(_flag)
+            tl["attempt_units"] = {"probe": int(f.sum()), "rest": int((~f).sum())}
+            if "item_ids" in u.columns:
+                n = u["item_ids"].map(len)
+                tl["attempt_item_ids"] = {"probe": int(n[f].sum()), "rest": int(n[~f].sum())}
+        if "t" in u.columns and len(u):
+            ts = np.sort(u["t"].unique().astype(float))
+            d = np.diff(ts)
+            tl.update(attempt_shards=int(len(ts)), units_per_shard=round(len(u) / len(ts), 2),
+                      attempt_first_write_utc=_utc(ts[0]), attempt_last_write_utc=_utc(ts[-1]))
+            if r_last is not None:
+                tl["first_shard_after_rubric_s"] = round(float(ts[0] - r_last), 1)
+                if "probe" in u.columns and u["probe"].map(_flag).any():
+                    # the probe texts run first: the shard holding the last of them, after the rubric
+                    tl["probe_done_after_rubric_h"] = round(
+                        float(u.loc[u["probe"].map(_flag), "t"].max() - r_last) / 3600, 3)
+            if len(d):
+                tl["shard_s"] = {"median": round(float(np.median(d)), 1), "mean": round(float(d.mean()), 1),
+                                 "min": round(float(d.min()), 1), "max": round(float(d.max()), 1),
+                                 "n": int(len(d)), "what": "between consecutive shard writes"}
+    ap = os.path.join(kdir, "_detail", "attempt_samples.parquet")
+    if os.path.exists(ap):
+        s = cols(ap, ("n_tokens", "capped", "closed", "forced"))
+        if "n_tokens" in s.columns:
+            tl["attempt_samples"] = int(len(s))
+            tl["attempt_gen_tokens"] = int(s["n_tokens"].sum())
+            if ts is not None and r_last is not None and ts[-1] > r_last:
+                tl["attempt_gen_tok_s"] = round(tl["attempt_gen_tokens"] / float(ts[-1] - r_last), 1)
+        for c in ("capped", "closed", "forced"):
+            if c in s.columns:
+                tl[f"attempt_{c}_share"] = round(float(s[c].map(_flag).mean()), 4)
+    out["timeline"] = tl
+    if not root_manifest:
+        out["root_manifest"] = None
+        return out
+    with open(root_manifest) as fh:
+        root = json.load(fh)
+    slug = man.get("slug")
+    out["root_manifest"] = os.path.relpath(root_manifest, ROOT) if root_manifest.startswith(ROOT) else root_manifest
+    out["logs"] = session_logs(root_manifest)
+    out["notebook"] = {k: root.get(k) for k in ("version", "vllm_pin", "transformers_pin", "wall_s_total")}
+    eng = (root.get("models") or {}).get(slug) or {}
+    out["notebook"]["engine"] = {k: eng.get(k) for k in ("model", "revision", "engine", "torch", "tp", "gpus",
+                                                         "gpu_mem", "max_model_len", "k", "max_tokens",
+                                                         "attempt_logprobs", "raw_recorder")}
+    sess = []
+    for se in root.get("sessions") or []:
+        st = se.get("stats") or {}
+        sess.append({"run": se.get("run"), "t0_utc": _utc(se.get("t0")), "wall_s": se.get("wall_s"),
+                     "status": se.get("status"),
+                     "rubric": {k: (st.get("rubric") or {}).get(k) for k in ("secs", "prompt_tok_s",
+                                                                             "units_done_session")},
+                     "attempts": {k: (st.get("attempts") or {}).get(k) for k in (
+                         "secs", "gen_tok_s", "units_done_session", "graded_units", "recorder_check",
+                         "stats_source")},
+                     "files_at_end": (se.get("files") or {}).get("at_end")})
+    out["sessions"] = sess
+    plan = (root.get("plan") or {}).get(slug) or {}
+    pr, pa = plan.get("rubric") or {}, plan.get("attempts") or {}
+    out["plan"] = {"rates_tok_s": plan.get("rates_tok_s"), "slow_case": plan.get("slow_case"),
+                   "rubric": {k: pr.get(k) for k in ("units", "prompt_tokens", "prompt_tokens_uncached",
+                                                     "shared_prefix_tokens", "hours_est", "hours_est_slow")},
+                   "attempts": {k: pa.get(k) for k in ("units", "probe_units", "rest_units", "item_ids",
+                                                       "gen_tokens_est", "forced_cache_hit", "hours_est",
+                                                       "hours_est_slow", "probe_hours_est", "probe_hours_est_slow",
+                                                       "rest_hours_est", "rest_hours_est_slow")}}
+    prog = ((root.get("progress") or {}).get(slug) or {})
+    out["progress"] = prog
+    der = {}
+    s0 = sess[0] if len(sess) == 1 else None
+    if s0:
+        rs = s0["rubric"].get("secs")
+        der["session_hours"] = round(s0["wall_s"] / 3600, 2) if s0.get("wall_s") else None
+        if rs:
+            der["rubric_hours"] = round(rs / 3600, 3)
+            if pr.get("hours_est"):
+                der["rubric_hours_over_plan"] = round(rs / 3600 / pr["hours_est"], 2)
+            if r_last is not None and root["sessions"][0].get("t0"):
+                der["before_rubric_s"] = round(r_last - rs - float(root["sessions"][0]["t0"]), 1)
+                der["before_rubric_what"] = ("from the notebook's first cell to the rubric's start (its last write "
+                                             "less its measured seconds): installs, downloads, the plan, engine "
+                                             "starts")
+            if tl.get("rubric_prompt_tokens"):
+                der["rubric_prompt_tok_s"] = round(tl["rubric_prompt_tokens"] / rs, 1)
+        if s0["attempts"].get("secs"):
+            der["attempt_hours"] = round(s0["attempts"]["secs"] / 3600, 3)
+    pa_prog = prog.get("attempts") or {}
+    if pa_prog.get("units") is not None and pa_prog.get("done") is not None:
+        left = int(pa_prog["units"]) - int(pa_prog["done"])
+        der["attempt_units_left"] = left
+        if tl.get("shard_s") and tl.get("units_per_shard"):
+            der["attempt_hours_left_at_median_shard"] = round(
+                left / tl["units_per_shard"] * tl["shard_s"]["median"] / 3600, 2)
+    out["derived"] = der
+    return out
+
+
+def stage_run(args):
+    mp = os.path.join(args.kaggle, "manifest.json")
+    if not os.path.exists(mp):
+        raise SystemExit(f"run: no export manifest at {mp}")
+    with open(mp) as fh:
+        man = json.load(fh)
+    root = args.run_manifest or find_root_manifest(man)
+    if args.run_manifest is None and root is None:
+        log(f"run: no root manifest under {KAGGLE_RAW} matches the export (notebook_digest, wall_s); "
+            "--run-manifest PATH for the sessions and the plan")
+    out = run_facts(args.kaggle, root)
+    _save_part(args.out, "run", out)
+    print(json.dumps(out, indent=1))
 
 
 def _ref_4b():
@@ -1955,6 +2321,7 @@ def verdict(state):
     keep = sorted(n for n, v in per.items() if v["keep"])
     exploratory = sorted(n for n, v in per.items() if not v["primary"] and v["gate_pass_nested"] and v["sign_prong"])
     att = (state.get("attempts") or {}).get("decision")
+    att_probe = ((state.get("attempts") or {}).get("probe_only") or {}).get("decision")
     sem = (state.get("ingest") or {}).get("attempt_semantics") or {}
     return {"rule": (f"keep a declared primary ({PRIMARY_HEAD}; the attempt primary, the first of "
                      f"{list(PRIMARY_ATTEMPT_ORDER)} the export carries, of every attempt design) only if a nested "
@@ -1963,8 +2330,10 @@ def verdict(state):
                      f"(plan step 8; within group, and on matharena net of position: {PRONG_FIELD} for a feature, "
                      f"{HEAD_PRONG_FIELD} for a head's out-of-fold r); a covariate on one parent (the attempts) "
                      f"cannot pass the nested gate, and its forced per-pair lines and the attempt call are its "
-                     f"reading"),
+                     f"reading (attempts_probe_only: on the probe texts the call was fixed for; attempts: on "
+                     f"every attempted text)"),
             "features": per, "keep": keep, "exploratory_pass": exploratory, "attempts": att,
+            "attempts_probe_only": att_probe,
             "attempt_primary": sem.get("primary_attempt"), "attempt_logprobs": sem.get("logprobs"),
             "attempts_vs_4b": (state.get("attempts") or {}).get("reference_4b"),
             "posfree_head": {k: per[f"head {POSFREE_HEAD}"].get(k) for k in ("gate_pass_nested", "sign_prong",
@@ -1981,7 +2350,8 @@ def stage_verdict(args):
     state["verdict"]["script_digest"] = H.digest(["experiments/strong_llm_eval.py"])
     H.save_json(args.out, state)
     v = state["verdict"]
-    print(json.dumps({k: v[k] for k in ("call", "keep", "exploratory_pass", "attempts")}, indent=1))
+    print(json.dumps({k: v[k] for k in ("call", "keep", "exploratory_pass", "attempts", "attempts_probe_only")},
+                     indent=1))
 
 
 # --- show ---------------------------------------------------------------------------------
@@ -2096,22 +2466,33 @@ def stage_show(args):
         for r, t in s["reference"]["r"].items():
             print(f"  {r}: " + "  ".join(f"{n} {v['tl']:+.5f}" for n, v in t.items()))
     at = s.get("attempts")
-    if at and at.get("designs"):
-        for d, v in at["designs"].items():
-            print(f"\nattempts, design {d}: {v.get('n_items')} items, {v.get('competitions')} competitions, "
+    for label, part in (("", at), (", probe texts only", (at or {}).get("probe_only"))):
+        if not part or not part.get("designs"):
+            continue
+        if part.get("flagged_units"):
+            print(f"\nprobe texts ({part['source']}, sha256 {str(part.get('source_sha256'))[:16]}): units "
+                  f"{part['flagged_units']}, item_ids {part['flagged_items']}, conflicting {part['conflicting_items']}"
+                  f"; against PROBE_IDS: {json.dumps(part.get('probe_ids_check'))}")
+        for d, v in part["designs"].items():
+            print(f"\nattempts{label}, design {d}: {v.get('n_items')} items, {v.get('competitions')} competitions, "
                   f"graded accuracy {v.get('accuracy')} (by year {v.get('accuracy_by_year')})\n"
-                  "| feature | honest b | strong-tier b | 2025 | 2026 | partial on log length |\n|" + "---|" * 6)
+                  "| feature | honest b | strong-tier b | 2025 | 2026 | sign-stage statistic | "
+                  "the same, net of log length |\n|" + "---|" * 7)
             for f, r in v["features_vs_honest"].items():
                 by = v["by_year_honest"].get(f, {})
                 print(f"| {f} | {_rho(r)} | {_rho(v['features_vs_strong'].get(f))} | {_rho(by.get('2025'))} | "
-                      f"{_rho(by.get('2026'))} | {_c(v['partial_on_log_length'].get(f))} |")
+                      f"{_rho(by.get('2026'))} | {_c((v.get('spearman_within_corr_block') or {}).get(f))} | "
+                      f"{_c(v['partial_on_log_length'].get(f))} |")
             for f, e in (v.get("excluded") or {}).items():
                 print(f"  excluded {f}: {_rho(e['vs_honest'])} ({e['reason']})")
-        print("\nattempt decision:", json.dumps(at.get("decision")))
+        print(f"\nattempt decision{label}:", json.dumps(part.get("decision")))
+    if at and at.get("designs"):
         print("beside the 4B probe (D2):", json.dumps(at.get("reference_4b")))
+    if s.get("run"):
+        print("\nrun:", json.dumps(s["run"], indent=1))
     if s.get("verdict"):
         v = s["verdict"]
-        print("\nverdict:", json.dumps({k: v[k] for k in ("call", "keep", "exploratory_pass")}, indent=1))
+        print("\nverdict:", json.dumps({k: v.get(k) for k in ("call", "keep", "exploratory_pass")}, indent=1))
 
 
 # --- io -----------------------------------------------------------------------------------
@@ -2135,7 +2516,7 @@ def meta(args, man):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--stage", required=True, choices=("schema", "check-schema", "ingest", "signs", "harness",
-                                                        "reference", "attempts", "verdict", "show"))
+                                                        "reference", "attempts", "verdict", "run", "show"))
     ap.add_argument("--kaggle", default=KAGGLE_DIR, help="the Kaggle outputs (manifest.json + parquet shards)")
     ap.add_argument("--work", default=WORK, help="derived tables (features.parquet, targets.json, oof.json)")
     ap.add_argument("--rows", default=H.ROWS)
@@ -2146,10 +2527,16 @@ def main():
     ap.add_argument("--redo", action="store_true")
     ap.add_argument("--force", action="store_true", help="ingest despite schema errors")
     ap.add_argument("--refresh-targets", action="store_true")
+    ap.add_argument("--attempt-units", choices=ATTEMPT_UNITS, default="both",
+                    help="attempts: every attempted text ('all'), the probe texts the rule was fixed for "
+                         f"('probe', flagged in KAGGLE_DIR/{UNITS_DETAIL}), or both; each keeps the other's result")
+    ap.add_argument("--run-manifest", default=None,
+                    help="run: the notebook's root manifest (strong_probe/manifest.json of the Kaggle Output); "
+                         f"default: the one under {os.path.relpath(KAGGLE_RAW, ROOT)} that matches the export")
     args = ap.parse_args()
     {"schema": stage_schema, "check-schema": stage_check_schema, "ingest": stage_ingest, "signs": stage_signs,
      "harness": stage_harness, "reference": stage_reference, "attempts": stage_attempts, "verdict": stage_verdict,
-     "show": stage_show}[args.stage](args)
+     "run": stage_run, "show": stage_show}[args.stage](args)
 
 
 if __name__ == "__main__":

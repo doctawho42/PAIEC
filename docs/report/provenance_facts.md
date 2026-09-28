@@ -80,7 +80,7 @@ These are facts for the writer, not report prose. They were gathered on 2026-09-
   - Every code member (`model.py`, 6 `paiec_rt` modules, `requirements.txt`) is byte-identical to `b68492c`, and to `bba726c`, which did not touch them. `prior.json` is the legacy `{coef, spec}` bundle (541 bytes).
   - A variant with `labeling.py` (`verify_sub/r2/paiec_lab.zip`, `0084a247…`) also exists. The draft says the submission ships no `labeling.py`, which points to `8e28d930…`.
   - Nothing records which file was uploaded.
-- **Run 2** (2026-09-26, ALC 0.192623). The archive is `scratch/step5/wrapup/old/paiec.zip`, sha256 `2c64eaada491cbf85bd54ae190cdbb28f9d0a13870df0dc77a3a850f90cf661f`.
+- **Run 2** (2026-09-26, ALC 0.192623). The archive is `scratch/step5/wrapup/old/paiec.zip`, sha256 `2c64eaada491cbf85bd54ae190cdbb28f9d0a13870df0dc77a3a850f90cf661f`. The file the team downloaded back from the platform's submission page on 2026-09-28 has the same sha256, so this is the uploaded file (`results/formative_feedback.json`, `archives.run2`).
   - File time 2026-09-26 09:20 +0300, two minutes before commit `ee5085a` (09:22:17 +0300).
   - Every code member is byte-identical to `ee5085a`: `model.py` = `submission/model.py`, the eight `paiec_rt/*.py` = `paiec/*.py`, and `requirements.txt`.
   - `model.py` differs at `bd0be67`, which changed only its docstring.
@@ -174,7 +174,7 @@ Controls:
   - Copied to `data/inventory_sheet.csv` (gitignored) and optional for the script.
 - **80 validation labels.** `scratch/rethink2/methodology-critic/hand_labels.csv`, now `results/inventory_hand_labels.csv` with slug and title added.
   - The sample is `sheet.sample(80, random_state=11)` over the 1,261 rows (verified). Only 14 of the 80 fall among the 161.
-  - **Who labelled:** the file has no author. It was written in session scratch on 2026-09-26 by the "methodology-critic" agent lane of the Claude session. So "hand labels" means labels assigned by an AI agent reading each title, not by a person. The user should confirm, or relabel by hand.
+  - **Who labelled:** the file has no author. It was written in session scratch on 2026-09-26 by the "methodology-critic" agent lane of the Claude session. So "hand labels" means labels assigned by an AI agent reading each title, not by a person. The team confirmed on 2026-09-28 that they are disclosed as such, not relabelled.
 
 **Reproduction.** `python experiments/inventory_classes.py` takes seconds with no network. It reproduces every number of `c_inventory_meta.json`'s C1 part and of the three a6 JSON files exactly.
 - Not moved: C2 (a random-effects meta-analysis) and C3 (units needed for a CI). No documented number uses them.

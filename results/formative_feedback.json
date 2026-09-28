@@ -143,6 +143,19 @@
     "submission/model.py": "a9561290e62d3f7c",
     "paiec/hier.py": "d9a9561202b63b9d"
    }
+  },
+  {
+   "stage": "record",
+   "command": "experiments/formative_feedback.py --stage record --archive2 /Users/nikitapolomosnov/Downloads/paiec.zip --rebuild2 /private/tmp/claude-501/-Users-nikitapolomosnov-PycharmProjects-PAIEC/9df8ecfa-42c0-4508-919c-f794f1770909/scratchpad/report_p0/formative/rebuild_ee5085a_mt.zip --run2-how The file behind formative run 2, downloaded from the platform's submission page by the team on 2026-09-28; it is byte-identical to the archive kept in session scratch as step5/wrapup/old/paiec.zip. Earlier record: Every tracked member is byte-identical to ee5085a, and its prior.json is byte-identical to the current build's submission/prior.json. The rebuild: 'git archive ee5085a' exported to a scratch directory, third_party linked, PAIEC_DATA set to data/, that tree's own tools/build_submission.py with default BLAS threading (41 s, peak RSS 0.97 GB; run check bit-identical to the in-repo predictor, validator OK). The same rebuild with OPENBLAS/OMP/VECLIB threads set to 1 wrote a prior.json that differs in the last bits only (worst relative difference 2.1e-11, no structural difference) and so an archive with another hash (660020deb95eb24cf130debe5bbac868bcbd043cd5a250d353f3247b1c2cf9fe): a byte-identical rebuild needs the default thread settings.",
+   "when_utc": "2026-09-28T11:05:19+00:00",
+   "head": "00bdf04be469993d02e14363e300e33a7b4384fe",
+   "python": "3.10.8",
+   "numpy": "1.26.4",
+   "digests": {
+    "experiments/formative_feedback.py": "93cb6a84d9762894",
+    "results/formative/run1.txt": "b53101df26c20e20",
+    "results/formative/run2.txt": "929ff80c1a7b5b05"
+   }
   }
  ],
  "record": {
@@ -838,7 +851,7 @@
    "rebuild_equals_archive": true
   },
   "run2": {
-   "path": "/private/tmp/claude-501/-Users-nikitapolomosnov-PycharmProjects-PAIEC/9df8ecfa-42c0-4508-919c-f794f1770909/scratchpad/step5/wrapup/old/paiec.zip",
+   "path": "/Users/nikitapolomosnov/Downloads/paiec.zip",
    "sha256": "2c64eaada491cbf85bd54ae190cdbb28f9d0a13870df0dc77a3a850f90cf661f",
    "commit": "ee5085a",
    "members": {
@@ -899,7 +912,7 @@
    },
    "all_tracked_members_match": true,
    "prior_json_equals_submission_prior_json": true,
-   "how": "The archive kept in session scratch as step5/wrapup/old/paiec.zip, as the run-2 upload. Every tracked member is byte-identical to ee5085a, and its prior.json is byte-identical to the current build's submission/prior.json. The rebuild: 'git archive ee5085a' exported to a scratch directory, third_party linked, PAIEC_DATA set to data/, that tree's own tools/build_submission.py with default BLAS threading (41 s, peak RSS 0.97 GB; run check bit-identical to the in-repo predictor, validator OK). The same rebuild with OPENBLAS/OMP/VECLIB threads set to 1 wrote a prior.json that differs in the last bits only (worst relative difference 2.1e-11, no structural difference) and so an archive with another hash (660020deb95eb24cf130debe5bbac868bcbd043cd5a250d353f3247b1c2cf9fe): a byte-identical rebuild needs the default thread settings.",
+   "how": "The file behind formative run 2, downloaded from the platform's submission page by the team on 2026-09-28; it is byte-identical to the archive kept in session scratch as step5/wrapup/old/paiec.zip. Earlier record: Every tracked member is byte-identical to ee5085a, and its prior.json is byte-identical to the current build's submission/prior.json. The rebuild: 'git archive ee5085a' exported to a scratch directory, third_party linked, PAIEC_DATA set to data/, that tree's own tools/build_submission.py with default BLAS threading (41 s, peak RSS 0.97 GB; run check bit-identical to the in-repo predictor, validator OK). The same rebuild with OPENBLAS/OMP/VECLIB threads set to 1 wrote a prior.json that differs in the last bits only (worst relative difference 2.1e-11, no structural difference) and so an archive with another hash (660020deb95eb24cf130debe5bbac868bcbd043cd5a250d353f3247b1c2cf9fe): a byte-identical rebuild needs the default thread settings.",
    "rebuild": {
     "path": "/private/tmp/claude-501/-Users-nikitapolomosnov-PycharmProjects-PAIEC/9df8ecfa-42c0-4508-919c-f794f1770909/scratchpad/report_p0/formative/rebuild_ee5085a_mt.zip",
     "sha256": "2c64eaada491cbf85bd54ae190cdbb28f9d0a13870df0dc77a3a850f90cf661f",
