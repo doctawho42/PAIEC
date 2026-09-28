@@ -4,6 +4,7 @@ import json
 import math
 import sys
 import time
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -224,6 +225,157 @@ def test_floored_fits_converge():
         fit = model.fit_for(lab)
         assert fit.converged and fit.prob.decrement < 1e-8, seed
         assert model.unconverged == 0
+
+
+def mcq5(j, bid="benchmark_7", features=""):
+    return item(j, bid, features, text=f"Question {j}?\nA) one\nB) two\nC) three\nD) four\nE) five")
+
+
+def _no_settle(self, st, P, tol):
+    return st, P
+
+
+def test_a_floored_fit_far_below_its_successes_converges(monkeypatch):
+    """One pair's successes on four-option items (c = 0.125), its prior eta at
+    -4. At the prior mean every success sits where log(c + (1 - c) s) is
+    convex, Newton's matrix is indefinite, and _cholesky's shift just past its
+    most negative eigenvalue left a step of 1e7 or more: backtracking gave up
+    and the fit stopped at the prior mean, 0.24 whatever the labels (r1p run
+    108 was the same collapse on real Kangaroo items, docs/findings.md
+    "Floored fits"). Trust-region Newton from there reaches the exact
+    posterior predictive."""
+    s, h = subject("solo"), Hyper(mu0=-4.0, sigma_mu=2.5)
+    target = [s, mcq(999)]
+    for n, k in ((7, 7), (31, 20), (31, 25), (31, 31)):
+        labeled = [[[s, mcq(j)], int(j < k)] for j in range(n)]
+        with monkeypatch.context() as mp:
+            mp.setattr(H.Problem, "_settle", _no_settle)        # Newton alone, as before
+            old = HierPredictor(None, h, slip=False)
+            assert old.predict(target, labeled) < 0.3 and old.unconverged == 1
+        model = HierPredictor(None, h, slip=False)
+        p = model.predict(target, labeled)
+        fit = model.fit_for(labeled)
+        assert model.unconverged == 0 and fit.converged and fit.prob.start == "continued"
+        assert p == pytest.approx(one_pair_exact(h, 0.25 * h.guess, k, n), abs=2e-3), (n, k)
+
+
+def _floored_run(seed):
+    """Seven subjects on three benchmarks: five-option items with a group key,
+    four-option items, and items without options; all successes, all
+    failures and mixed records, some items labeled by two subjects."""
+    rng = np.random.default_rng(seed)
+    rates = [1.0, 0.0, 0.2, 0.5, 0.8, 0.95, 0.05]
+    lab = []
+    for k, rate in enumerate(rates):
+        s = subject(f"m{k}", provider=["openai", "anthropic"][k % 2])
+        for b, make in (("b0", lambda j: mcq5(j, "b0", f"competition=c{j % 3}")),
+                        ("b1", lambda j: mcq(j, "b1")), ("b2", lambda j: item(j, "b2"))):
+            if (k + len(b) + seed) % 3 == 0 and b != "b0":
+                continue
+            for j in rng.choice(60, 31, replace=False):
+                lab.append([[s, make(int(j))], int(rng.random() < rate)])
+    return lab
+
+
+@pytest.mark.parametrize("guess,mu0,nu", [(0.5, -1.263, 0.0), (0.5, -2.5, 0.0), (0.5, -6.0, 0.0),
+                                          (1.0, -2.5, 0.0), (1.0, 3.0, 0.0), (0.5, -4.0, 3.0)])
+def test_floored_fits_converge_on_all_one_all_zero_and_mixed_labels(monkeypatch, guess, mu0, nu):
+    """Every solve of a floored fit (with a Student-t level, every node of its
+    scale mixture too) ends converged, at a zero gradient and a positive
+    definite precision; where Newton stopped short (at these levels it often
+    did, around the all-success subject), no candidate _settle tried reached
+    a higher log posterior than the one it kept. The prediction for a new
+    item follows the pair's record."""
+    solves, tried = [], []
+    solve, trust = H.Problem.solve, H.Problem._trust
+
+    def rec_solve(self, *a, **k):
+        tried.clear()
+        st, P = solve(self, *a, **k)
+        solves.append(SimpleNamespace(nonconcave=self.nonconcave, converged=self.converged,
+                                      decrement=self.decrement, lp=st.lp, lps=list(tried),
+                                      grad=np.max(np.abs(self.grad(st))),
+                                      eig=np.linalg.eigvalsh(P)[0]))
+        return st, P
+
+    def rec_trust(self, st, tol, *a):
+        out = trust(self, st, tol, *a)
+        tried.append(out[0].lp)
+        return out
+    monkeypatch.setattr(H.Problem, "solve", rec_solve)
+    monkeypatch.setattr(H.Problem, "_trust", rec_trust)
+    h = Hyper(mu0=mu0, sigma_mu=2.5, guess=guess, nu_mu=nu)
+    for seed in range(3 if nu == 0 else 1):     # a t level refits at 16 nodes
+        lab = _floored_run(seed)
+        solves.clear()
+        model = HierPredictor(None, h)
+        fit = model.fit_for(lab)
+        assert model.unconverged == 0 and fit.converged, seed
+        assert any(r.nonconcave for r in solves)
+        for r in solves:
+            assert r.converged and r.decrement < 1e-8
+            assert r.grad < 1e-5 and r.eig > 0
+            assert all(lp <= r.lp + H.LP_TOL for lp in r.lps)
+        ps = [model.predict([subject(f"m{k}", provider=["openai", "anthropic"][k % 2]),
+                             mcq5(999, "b0", "competition=c0")], lab) for k in range(7)]
+        assert ps[0] > ps[4] > ps[3] > max(ps[2], ps[1]), (seed, ps)
+        assert model.failures == 0
+
+
+def test_a_floored_fit_newton_converges_on_is_kept_bit_for_bit(monkeypatch):
+    """Where Newton from the prior mean converges, _settle does not run and
+    every prediction is the one Newton alone gave. A labeled list without a
+    floored success never reaches _settle."""
+    for h, seed in ((Hyper(mu0=0.0), 1), (Hyper(), 5), (Hyper(guess=1.0, mu0=0.0), 5)):
+        lab = _floored_run(seed)
+        items = (mcq5(999, "b0", "competition=c1"), mcq(5, "b1"), item(7, "b2"))
+        targets = [[subject(f"m{k}", provider=["openai", "anthropic"][k % 2]), t]
+                   for k in (0, 1, 3) for t in items]
+        model = HierPredictor(None, h)
+        now = [model.predict(t, lab) for t in targets]
+        assert model.fit_for(lab).prob.start == "newton"
+        with monkeypatch.context() as mp:
+            mp.setattr(H.Problem, "_settle", _no_settle)
+            before = [HierPredictor(None, h).predict(t, lab) for t in targets]
+        assert now == before
+    plain = [x for x in _floored_run(0) if "A)" not in x[0][1]["item_content"]]
+
+    def fail(*a):
+        raise AssertionError("_settle on a concave posterior")
+    monkeypatch.setattr(H.Problem, "_settle", fail)
+    model = HierPredictor(None, Hyper())
+    model.predict([subject("m1"), item(3, "b2")], plain)
+    assert model.failures == 0 and not model.fit_for(plain).prob.nonconcave
+
+
+def test_trust_step_solves_the_trust_region_subproblem():
+    """_trust_step maximises g's - s'Ps/2 over the ball |s| <= r: Newton's
+    step when P is positive definite and the step fits, else a step on the
+    sphere no random point of the ball beats, including the hard case (g with
+    no component along the most negative direction)."""
+    rng = np.random.default_rng(3)
+    for trial in range(40):
+        n = int(rng.integers(1, 7))
+        U, _ = np.linalg.qr(rng.normal(size=(n, n)))
+        lam = np.sort(rng.normal(0.5, 1.5, n))
+        g = rng.normal(size=n)
+        if trial % 5 == 0:
+            g = g - (U[:, 0] @ g) * U[:, 0]                 # the hard case
+            lam[0] = -abs(lam[0]) - 0.1
+        P = U @ np.diag(lam) @ U.T
+        r = float(rng.uniform(0.05, 3.0))
+        s = H._trust_step(lam, U, U.T @ g, r)
+        model = lambda v: g @ v - 0.5 * v @ P @ v
+        size = np.linalg.norm(s)
+        assert size <= r * (1 + 1e-9)
+        if lam[0] > 0 and np.linalg.norm(np.linalg.solve(P, g)) <= r:
+            assert np.allclose(s, np.linalg.solve(P, g))
+        else:
+            assert size == pytest.approx(r, rel=1e-6)
+        pts = rng.normal(size=(2000, n))
+        pts *= (r * rng.random((2000, 1)) ** (1 / n)) / np.linalg.norm(pts, axis=1, keepdims=True)
+        best = max(float(g @ v - 0.5 * v @ P @ v) for v in pts)
+        assert model(s) >= best - 1e-9, trial
 
 
 def test_item_residual_is_integrated_not_maximised():

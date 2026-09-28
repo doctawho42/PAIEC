@@ -1515,14 +1515,298 @@ Hidden runs give about one pair and at most 31 labels per benchmark, so the
 within-benchmark signal cannot be learned there either. The embeddings are kept
 for analysis only.
 
+## Acceptance harness
+
+`python experiments/harness.py --stage collect --jobs 1`, then `--stage verify
+--legacy data/harness_rows_legacy`, `--stage table --resume` and `--stage show`
+(39 minutes for the collection on one process beside a language-model job, 1
+minute for verification, 44 minutes for the table, almost all of it in the
+first of three passes. Every number
+below is in `results/harness_thresholds.json`. The rows are 43 MB in
+`data/harness_rows`, gitignored. Each run is stamped with the digest of the
+library it was collected with, here 3f75a549673aae6a, which holds the corrected
+multiple-choice floor and the floored-fit fix. `tests/test_harness.py` pins the
+arithmetic on synthetic rows.)
+
+Every item-side idea is one number per item: difficulty fields, format,
+length, language-model ratings, attempt signals, an encoder. The harness scores
+any such number the same way, against the hier that ships, and holds the one
+table of thresholds they are all read against. A covariate enters as a logit
+offset on hier's prediction, capped at ±4 logits. The offset is added to
+hier's output; hier is not refitted with the covariate inside it, which is what
+lets one replay of hier serve every covariate. The offset has four forms:
+
+* **transferred**: one slope per budget, fitted on the other parents' test-like
+  and mix/whole pairs, with x centred on every label on the target's benchmark;
+* **per-pair**: a MAP slope from the pair's own labels, with prior sd s per
+  within-benchmark sd of x (s from 0.1 to 2). One own label carries no slope
+  after centring, so it acts from B3;
+* **hybrid**: the per-pair slope with its prior centred on the transferred one;
+* **B0 term** (added in the audit): an uncentred transferred offset at B0 only,
+  beta_0 (x - c0), with c0 the training parents' mean of x.
+
+The centred forms act from B1 or from B7. Nested leave-one-parent-out selection
+over the four multi-subject parents picks a configuration, or "off", for each
+held-out parent. The runs are 300 test-like, 150 mix/whole, and 100 + 100 public
+R1 (benchmark-first, pair-uniform) as the guard. Differences are paired ALC
+against the shipped hier per pair appearance, weighted 1 / run size.
+
+The gate is the plan's rule. Nested selection must be on, and must act, in at
+least 3 of the 4 folds. The test-like difference must be at most -0.002, the
+mix/whole difference of the same sign, no held-out parent above +0.002, and
+neither public weighting above +0.001.
+
+### Acceptance and the honest oracle
+
+The item oracle is each item's Rasch difficulty. The in-sample oracle is fitted
+on every subject of its parent, evaluated responses included; that is what the
+heads study scored. The honest oracle is fitted on the other four of five
+subject folds, so a target's own responses never enter its covariate.
+Differences are written "± run SE / cluster SE (selection-aware cluster SE) /
+stratified SE".
+
+| oracle, line | test-like | mix/whole | R1 benchmark-first | R1 pair-uniform | folds on |
+|---|---|---|---|---|---|
+| in-sample, transferred from B1 (forced) | -0.0439 ± 0.0012 / 0.0036 / 0.0036 | -0.0558 | -0.0609 | -0.0688 | |
+| in-sample, per-pair nested | -0.0293 ± 0.0008 / 0.0025 (0.0025) / 0.0025 | -0.0387 | -0.0413 | -0.0484 | 4/4 |
+| in-sample, B0 term nested | -0.0035 ± 0.0002 / 0.0010 (0.0010) / 0.0008 | -0.0023 | -0.0070 | -0.0082 | 4/4 |
+| honest, transferred nested | -0.0360 ± 0.0010 / 0.0030 (0.0030) / 0.0029 | -0.0484 | -0.0539 | -0.0619 | 4/4 |
+| honest, transferred from B7 (forced) | -0.0206 ± 0.0005 / 0.0016 / 0.0016 | -0.0281 | -0.0293 | -0.0338 | |
+| honest, per-pair nested | -0.0223 ± 0.0007 / 0.0020 (0.0020) / 0.0020 | -0.0316 | -0.0358 | -0.0428 | 4/4 |
+| honest, hybrid nested | -0.0359 ± 0.0010 / 0.0031 (0.0031) / 0.0030 | -0.0480 | -0.0545 | -0.0648 | 4/4 |
+| honest, B0 term nested | -0.0027 ± 0.0002 / 0.0009 (0.0009) / 0.0007 | -0.0015 | -0.0062 | -0.0073 | 4/4 |
+| honest by model name, transferred nested | -0.0362 ± 0.0010 / 0.0030 (0.0030) / 0.0029 | -0.0485 | -0.0534 | -0.0611 | 4/4 |
+| honest by model name, per-pair nested | -0.0223 ± 0.0007 / 0.0020 (0.0020) / 0.0020 | -0.0323 | -0.0354 | -0.0418 | 4/4 |
+
+* **Acceptance passes.** The in-sample oracle, transferred and forced from B1,
+  gives -0.0439 test-like and -0.0558 mix/whole, against the heads study's
+  -0.0437 and -0.0557 (tolerance 0.003). The legacy rows, with the old floor
+  and solver, gave -0.0440 and -0.0558.
+* **About 18% of the in-sample oracle is leak.** The honest oracle gives
+  -0.0360 against -0.0439 (17.9%).
+* **Near-duplicate subjects do not leak.** Folds by canonical model name put
+  one model under several harnesses or efforts into one fold (75 of
+  multi_swebench's 82 pairs belong to 13 names). They give -0.0362, against
+  -0.0360 with folds by subject_id.
+* **Per-pair keeps 62% of the honest oracle's transferred gain** (-0.0223).
+  Starting the transferred slope at B7 keeps 57% (-0.0206). The hybrid adds
+  nothing (-0.0359).
+* **The B0 term gains -0.0027 on the honest oracle, and fails the gate.** That
+  is 0.027 of Brier at B0, which carries a tenth of the weight. With
+  multi_swebench held out it loses +0.0038. The oracle's raw difficulties sit
+  higher on multi_swebench than on the parents its reference c0 came from, so
+  an uncentred term also moves a benchmark's level, here the wrong way.
+
+### The gate table
+
+The degraded oracles are x = r z + sqrt(1 - r²) e, where z is the honest
+difficulty standardised within its parent and e is standard normal per item.
+r is the correlation over a parent's items. The within-pair r in brackets is
+the mean correlation over a test-like pair's evaluated items; it is lower
+because a pseudo-benchmark spans less difficulty. Each cell averages 8 noise
+draws, and test-like differences are given with the pair-cluster SE and the sd
+over draws. "Draws passing" counts the draws that pass the gate on their own. A
+real covariate is one draw, so that count, not the averaged line, is the
+chance that a covariate at this r passes. With 8 draws it moves in steps of
+1/8, so a pass rate is indicative.
+
+| r (within pair) | transferred nested: test-like (cluster SE, draw sd) | mix/whole | worst parent | R1 b / p | on | draws passing | per-pair nested: test-like (cluster SE, draw sd) | worst parent | draws passing | B0 term nested: test-like (cluster SE) | draws passing |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 (0.00) | -0.00002 (0.00001, 0.00006) | +0.00001 | +0.00003 | -0.00001 / +0.00000 | 0.6 | 0/8 | -0.00000 (0.00000, 0.00000) | +0.00000 | 0/8 | +0.00000 (0.00000) | 0/8 |
+| 0.1 (0.08) | -0.00010 (0.00005, 0.00043) | -0.00027 | +0.00002 | -0.00034 / -0.00044 | 1.9 | 0/8 | -0.00000 (0.00000, 0.00001) | +0.00000 | 0/8 | -0.00000 (0.00001) | 0/8 |
+| 0.2 (0.16) | -0.00083 (0.00015, 0.00086) | -0.00161 | -0.00071 | -0.00191 / -0.00245 | 3.5 | 1/8 | -0.00010 (0.00002, 0.00007) | -0.00005 | 0/8 | -0.00006 (0.00004) | 0/8 |
+| 0.3 (0.25) | -0.00255 (0.00032, 0.00068) | -0.00457 | -0.00211 | -0.00517 / -0.00639 | 4 | 6/8 | -0.00032 (0.00007, 0.00009) | -0.00010 | 0/8 | -0.00020 (0.00010) | 0/8 |
+| 0.4 (0.33) | -0.00462 (0.00052, 0.00081) | -0.00805 | -0.00390 | -0.00906 / -0.01109 | 4 | 7/8 | -0.00136 (0.00017, 0.00015) | -0.00104 | 0/8 | -0.00037 (0.00017) | 0/8 |
+| 0.5 (0.42) | -0.00738 (0.00077, 0.00090) | -0.01246 | -0.00637 | -0.01399 / -0.01699 | 4 | 8/8 | -0.00255 (0.00026, 0.00011) | -0.00227 | 8/8 | -0.00056 (0.00026) | 0/8 |
+| 0.7 (0.61) | -0.01528 (0.00143, 0.00091) | -0.02392 | -0.01402 | -0.02693 / -0.03213 | 4 | 8/8 | -0.00768 (0.00077, 0.00036) | -0.00672 | 8/8 | -0.00101 (0.00050) | 0/8 |
+
+Fixed configurations with no selection, test-like, with the draws that would
+pass if the term were switched on:
+
+| r | transferred from B1 | transferred from B7 | per-pair s=0.5 from B1 | per-pair s=0.5 from B7 | hybrid s=0.5 from B1 | B0 term |
+|---|---|---|---|---|---|---|
+| 0 | +0.00009 (0/8) | +0.00004 (0/8) | +0.00091 (0/8) | +0.00073 (0/8) | +0.00097 (0/8) | +0.00001 (0/8) |
+| 0.1 | -0.00023 (0/8) | -0.00014 (0/8) | +0.00074 (0/8) | +0.00059 (0/8) | +0.00062 (0/8) | -0.00002 (0/8) |
+| 0.2 | -0.00110 (1/8) | -0.00064 (0/8) | +0.00031 (0/8) | +0.00022 (0/8) | -0.00032 (0/8) | -0.00010 (0/8) |
+| 0.3 | -0.00255 (6/8) | -0.00148 (1/8) | -0.00039 (0/8) | -0.00038 (0/8) | -0.00187 (2/8) | -0.00022 (0/8) |
+| 0.4 | -0.00462 (7/8) | -0.00269 (8/8) | -0.00136 (0/8) | -0.00121 (0/8) | -0.00405 (7/8) | -0.00037 (0/8) |
+| 0.5 | -0.00738 (8/8) | -0.00431 (8/8) | -0.00259 (8/8) | -0.00227 (8/8) | -0.00692 (8/8) | -0.00056 (0/8) |
+| 0.7 | -0.01528 (8/8) | -0.00898 (8/8) | -0.00583 (8/8) | -0.00506 (8/8) | -0.01496 (8/8) | -0.00101 (0/8) |
+
+* **Transferred slope: r ≈ 0.3-0.4 against honest difficulty** (within-pair
+  0.25-0.33). It passes on 1 of 8 draws at r = 0.2, 6 of 8 at r = 0.3, 7 of 8
+  at r = 0.4 and every draw from r = 0.5. At r = 0.3 the draw sd (0.0007) is
+  twice the cluster SE (0.0003), so a single covariate near the line reads as
+  much noise from its draw as from its runs.
+* **Per-pair slope: r ≈ 0.5** (within-pair 0.42). It passes on no draw at
+  r = 0.4 and on every draw at r = 0.5. It keeps 13% of the transferred gain at
+  r = 0.3, 29% at 0.4, 35% at 0.5 and 50% at 0.7. The plan assumed 25-30%.
+* **The B0 term never passes.** It gives -0.0002 at r = 0.3 and -0.0010 at
+  r = 0.7. Spreading items within a pair at B0 is worth little: B0 carries a
+  tenth of the weight.
+* **An uninformative covariate stays off.** At r = 0 the nested lines are
+  within ±0.00002, with the term on in 0.4 to 0.6 of 4 folds on average. Forced
+  on, the per-pair slope with s = 0.5 costs +0.0009 from B1 and +0.0007 from
+  B7. That is above the plan's cap of +0.0005 for an uninformative covariate,
+  so s = 0.5 must not be switched on blind.
+* **Starting at B7 keeps about 58% of the transferred gain** (-0.0015 against
+  -0.0026 at r = 0.3), because the term already acts at B1 and B3. At r = 0.3
+  the transferred slope gains 0.0026 to 0.0030 of Brier at every budget from B1
+  to B31; the per-pair slope grows from B3 to 0.0012 at B31.
+* **The public guard never binds for difficulty-like covariates.** Public R1
+  gains are 1.8 to 2.5 times the test-like ones.
+* **The hybrid adds nothing.** Its nested line is within 0.0002 of the
+  transferred one at every r, and never better.
+
+The in-sample table (5 draws per cell; the heads study's curve) sits 16 to 21%
+above the honest one. Its transferred line gives -0.0030 at r = 0.3 (5 of 5
+draws pass) and -0.0089 at r = 0.5; the heads study's single forced draws gave
+-0.0024 and -0.0080. Its per-pair line passes from r = 0.5, as on the honest
+base.
+
+### What changed in the audit
+
+* **Input convention.** `--stage eval` now standardises x within each public
+  benchmark by default, over the items that carry it, with
+  `experiments/itemcov_eval.py`'s rule. x is 0 (the benchmark's mean) where an
+  item lacks it, or where fewer than 10 items of the benchmark are off x's most
+  common value, and it is clipped at ±3 sd. Benchmark-level offsets in x
+  therefore cannot act. `--raw` reads x as given. The B0 term reads raw x in
+  both cases, because at B0 a run-time predictor sees one item and has no
+  benchmark to standardise over.
+* **The per-pair unit.** `Engine.sd`, the unit of s, is now the pooled
+  within-benchmark sd of x, taken over the training parents on which x varies.
+  Before, it was the sd pooled across parents. That gave format_score (absent
+  on three parents) a unit of 0.047, so s = 0.5 meant a prior sd of 10.7 per
+  within-benchmark sd, and gave log_length (with benchmark offsets) a unit of
+  2.36. A test pins that a covariate with benchmark offsets, absent on one
+  parent, gets the same per-pair prior and the same per-pair lines whatever the
+  offsets. On the degraded oracles, which are standardised within parent, the
+  two units agree to within 3%. `HARNESS_SCALE=pooled` restores the old unit.
+* **Selection.** A configuration is switched on only if its inner mean is below
+  minus one inner SE, the linearised pair-cluster SE of the three inner
+  parents' means. A fold counts as on only if its choice moves some prediction
+  on the held-out parent. A covariate that is constant there used to count.
+* **Standard errors.** The run, cluster and stratified SEs hold the selection
+  fixed, so for a nested line they are lower bounds. The eval and oracle lines
+  now also carry a cluster bootstrap that redoes the inner selection in every
+  resample, holding the fitted slopes fixed (`sel_cluster_se`). Where no
+  resample changes a choice, as on the oracles, it equals the fixed SE. Where
+  choices move, it is wider. It covers the test-like regime only, so the
+  mix/whole and public-guard SEs of a nested line remain lower bounds. The
+  table's draws are scored without it; draw 0 of four honest rows is scored
+  with it (`selection_se` in the results file):
+
+  | r | transferred nested: test-like | cluster SE | selection-aware | per-pair nested: test-like | cluster SE | selection-aware |
+  |---|---|---|---|---|---|---|
+  | 0 | 0 (0 folds on) | 0 | 0.00005 | 0 (0 folds on) | 0 | 0.00001 |
+  | 0.2 | -0.00025 (3 folds on) | 0.00017 | 0.00042 | +0.00001 | 0.00004 | 0.00007 |
+  | 0.3 | -0.00178 | 0.00047 | 0.00066 | -0.00019 | 0.00017 | 0.00015 |
+  | 0.4 | -0.00362 | 0.00069 | 0.00075 | -0.00126 | 0.00025 | 0.00038 |
+
+  Draw 0 at r = 0.3 is one of the two draws that fail the gate.
+* **Pass rates.** Each cell of the table reports how many noise draws pass
+  (above). `thresholds` in the results file also gives, per line, the smallest
+  r at which most draws pass and the smallest at which every draw does.
+* **The cap for an uninformative covariate** in the harness docstring is now
+  the plan's +0.0005, not +0.001.
+
+### Caveats
+
+* **The centred forms are blind at B0 by construction.** A centred offset is 0
+  when nothing is labeled. The B0 term is the one path that acts there. On the
+  degraded oracles, which are standardised within parent, every parent has
+  mean 0, so the term reads only differences within a parent. That includes a
+  pseudo-benchmark's level within its parent: the honest oracle's B0 term gains
+  -0.0042 per appearance on difficulty strata against -0.0010 on item_features
+  groups. A real covariate on an absolute scale would also carry levels between
+  benchmarks. Those can help or hurt (multi_swebench above), and nothing public
+  calibrates them. A scratch check on the real rows shows both sides
+  (indicative: no script in `experiments/` reproduces it yet). Log
+  length with 5 added on multi_swebench gives the same centred lines, bit for
+  bit, as log length itself, so benchmark offsets cannot act there. Its B0
+  term, which reads raw x, costs +0.0032 test-like. Nested selection switched
+  it on with real_webagents held out; its slope, fitted where multi_swebench's
+  offset dominates x, then shifts real_webagents' level (+0.0168 there). The
+  gate fails it. On log length itself the B0 term gives +0.00001.
+* **The offset is not refitted inside hier.** A covariate cannot move hier's
+  posterior for the pair's level or for other items.
+* **x is standardised over the whole public benchmark.** A run-time predictor
+  sees only the benchmark's visible items.
+* **u_j leaves label j in.** The per-pair slope's base u_j is hier's prediction
+  for item j as if unlabeled, with the pair's level fitted on every label,
+  j's included. The audit recomputed u_j with j removed from `labeled` on 80
+  test-like runs of the legacy rows. Leaving j out did not raise the per-pair
+  gain: the honest oracle nested gave -0.02100 leave-in against -0.02036
+  leave-out; r = 0.5, s = 0.5 gave -0.00230 against -0.00235; r = 0.3, s = 0.5
+  from B1 gave -0.00025 against -0.00004. On that evidence the low per-pair
+  retention at r ≤ 0.3 is not an artefact of leaving y_j in. **This check is
+  not reproducible from the repository**: its scripts were session scratch,
+  never moved to `experiments/`, and they read the legacy rows through the
+  harness's interface as it was before its audit. It was not re-run on the new
+  rows, and no results file holds its numbers. Read them as indicative.
+* **Four parents.** The SE across the four parents' means is the only one that
+  sees variation between benchmarks.
+
+### Provenance
+
+* **Re-collection.** The rows were re-collected with the current library
+  (3f75a549673aae6a, the working tree on f7e7d87): 650 runs, 0 hier failures
+  and 0 unconverged fits. `--stage verify` re-collects five runs (test-like 0
+  and 17, mix/whole 3, benchmark-first 0, pair-uniform 5) and matches the
+  stored rows exactly, with BLAS pinned to one thread.
+* **Against the legacy rows.** The legacy rows (library 0c05d35ecc363e5b, from
+  bd0be67, before the floor and solver fixes) are kept in
+  `data/harness_rows_legacy`. The new rows differ on 157 of 300 test-like runs,
+  74 of 150 mix/whole, 81 of 100 benchmark-first and 97 of 100 pair-uniform
+  runs, by up to 0.25. Every run that differs holds a matharena pair; the change
+  reaches that run's other pairs through hier's joint fit.
+* **Against the heads study.** Its scratch rows were computed with the old
+  library. The new rows differ from them on the same 157 test-like and 74
+  mix/whole runs, by up to 0.15. The unlabeled-item probe still matches hier
+  exactly on 784 items nobody labeled.
+* **The table** ran in three passes. The first (script digest 4a5526b8f6a7b4c1)
+  wrote the acceptance and both tables; the second (9b45355fb2edd4df, with
+  `--resume`) kept them and added `selection_se`. The code the first pass ran
+  is unchanged in the second. A last `--resume` with the final script
+  (77fd651cc5e2a00f, which differs only in docstrings) kept every part and
+  recomputed nothing; `meta.script_digests` lists all three.
+* **Other consumers of the rows.** `experiments/itemcov_eval.py` and
+  `experiments/mcq_floor.py` read `data/harness_rows` by default. Their stored
+  results (`results/itemcov_eval.json`, `results/mcq_floor.json`) were computed
+  on the legacy rows. `mcq_floor.py`'s check against the stored rows replays the
+  old floor, so it needs `--harness-rows data/harness_rows_legacy`.
+  `itemcov_eval.py --scale train` reproduces its `harness_train_scale` numbers
+  only on the legacy rows with `HARNESS_SCALE=pooled`. The commands in "Item
+  covariates with a known sign" and "The multiple-choice floor, corrected" now
+  carry these flags.
+
 ## Item covariates with a known sign
 
-`python experiments/itemcov_eval.py --stage signs`, then `--stage harness`,
-`--stage harness --scale train`, `--stage inventory` and `--stage show` (11
-minutes on one process, under 0.9 GB, beside other jobs. Every number below
-is in `results/itemcov_eval.json`. The harness stage reads the stored rows of
-`experiments/harness.py` (`data/harness_rows`, 650 runs) and never recomputes
-hier; the rows' provenance is copied from `results/harness_thresholds.json`)
+`python experiments/itemcov_eval.py --stage signs`, then `--stage harness
+--rows data/harness_rows_legacy`, `HARNESS_SCALE=pooled python
+experiments/itemcov_eval.py --stage harness --scale train --rows
+data/harness_rows_legacy`, `--stage inventory` and `--stage show` (11 minutes
+on one process, under 0.9 GB, beside other jobs. Every number below is in
+`results/itemcov_eval.json`. The harness stage reads the stored rows of
+`experiments/harness.py` and never recomputes hier. This section's numbers
+were computed on the rows as they stood at bd0be67 (library 0c05d35ecc363e5b,
+with the old multiple-choice floor and the solver before the floored-fit fix),
+which are now kept in `data/harness_rows_legacy`, 650 runs. `data/harness_rows`
+holds the re-collected rows, on which this section was not re-run ("Acceptance
+harness", Provenance). `HARNESS_SCALE=pooled` restores the per-pair unit the
+harness had before its audit, which is what `--scale train` measures. The
+rows' provenance in the results file was copied from
+`results/harness_thresholds.json` when that file still described the legacy
+rows; a re-run now would copy the re-collected rows' provenance. Both harness
+commands were re-run this way into a scratch copy of the results file: every
+number this section quotes reproduces exactly. Only the harness's own nested
+lines on its grid, kept in the results file for reference and not quoted here,
+differ: image_ref's per-pair and hybrid lines on the within-benchmark scale,
+and format_score's, log_length's and image_ref's on the train scale. The
+harness's nested selection now needs a margin of one inner SE ("Acceptance
+harness", What changed in the audit); this section's own nested selection
+does not use it.)
 
 `paiec/itemcov.py` reads covariates off the item dict that predict() receives.
 It uses no labels and no model, and each covariate's sign is declared in
@@ -1560,7 +1844,8 @@ This is the Spearman correlation with item difficulty on each unit:
   directional sixth unit and is not counted.
 
 The ± is a bootstrap SE over item_features groups (over items on swe_rebench
-and mmdocrag). The number in brackets is the correlation within groups, which
+and mmdocrag). multi_swebench's resamples its 8 languages and is indicative.
+The number in brackets is the correlation within groups, which
 is what a covariate can add to hier's group effects. A unit counts when at
 least 20 items carry the cue and at least 10 of them differ from its most
 common value.
@@ -1674,9 +1959,13 @@ within the competition loses more than its placebo.
 
 ### What this could do on the hidden test
 
-Nothing here acts at B0: a centred offset is 0 without labels, and an absolute
-offset is a level shift, which is the level prior's job. The per-pair slope acts
-only from B7. hier's formative run scored 0.237 and 0.195 at B0 and B1,
+Nothing tested here acts at B0: a centred offset is 0 without labels. This
+section assumed an uncentred offset would only shift a benchmark's level,
+which is the level prior's job. The harness's later B0 term shows it also
+spreads items within a pair, but it is worth little ("Acceptance harness"):
+-0.0027 on the honest oracle, which still fails the gate, and at most -0.0010
+at r = 0.7 on the degraded oracles, where it never passes. The per-pair slope
+acts only from B7. hier's formative run scored 0.237 and 0.195 at B0 and B1,
 against 0.196, 0.184, 0.178 and 0.183 at B3 to B31. So B0 and B1, which carry
 0.3 of the weight and most of the headroom, are out of this section's reach.
 
@@ -1710,10 +1999,12 @@ with 80 hand labels) gives text QA 39%, images 30%, agents 15%, code 6.5%, video
   levels into item_features is unknown. A guess is 0 to 1 of 7 hidden
   benchmarks.
 
-  Nothing public could calibrate a slope for one. The harness table puts an
-  honest-r 0.3 covariate at -0.0024 with a transferred slope, but a transferred
-  slope needs the cue on public parents. The per-pair slope needs r of about
-  0.5.
+  Nothing public could calibrate a slope for one. The harness's gate table
+  ("Acceptance harness", re-collected rows) puts an honest-r 0.3 covariate at
+  -0.00255 with a transferred slope (6 of 8 draws pass; the table before the
+  audit, on the legacy rows, gave -0.0024), but a transferred slope needs the
+  cue on public parents. The
+  per-pair slope needs r of about 0.5.
 * **Position.** Contest-style math only (2.8%).
 * **Format.** It varies within a benchmark only in mixed sets like matharena. A
   QA or multiple-choice benchmark usually has a single format, which centring
@@ -1725,13 +2016,14 @@ with 80 hand labels) gives text QA 39%, images 30%, agents 15%, code 6.5%, video
 
 ### Side findings
 
-* **The shipped multiple-choice floor misfires on matharena.**
-  `paiec/mcq.py`'s floor, which hier applies, misses all 336 Kangaroo items.
+* **The shipped multiple-choice floor misfired on matharena.**
+  `paiec/mcq.py`'s floor, which hier applies, missed all 336 Kangaroo items.
   Those are five-option multiple choice with the options in the image; the
-  text says "(A, B, C, D, or E)". The floor also fires on 20 AIME and HMMT
+  text says "(A, B, C, D, or E)". The floor also fired on 20 AIME and HMMT
   integer-answer items whose TikZ drawings label points "(A)" to "(E)".
-  `itemcov.n_options` cuts drawings out and reads such a list. The shipped
-  floor is not changed here.
+  `itemcov.n_options` cuts drawings out and reads such a list. The floor was
+  not changed in this section; it was corrected since, in f7e7d87 ("The
+  multiple-choice floor, corrected").
 * **The harness's per-pair scale is wrong for some covariates.** The harness's
   per-pair prior sd is s over the sd of x pooled across the training parents'
   evaluated items. That is right for its degraded oracles, which are
@@ -1742,9 +2034,11 @@ with 80 hand labels) gives text QA 39%, images 30%, agents 15%, code 6.5%, video
     matharena costs +0.0023 instead of +0.0002.
   * log_length's pooled sd of 2.36 shrinks s = 0.5 to 0.21 per unit.
 
-  `--scale train` reproduces these numbers (`harness_train_scale`). A
-  covariate should be standardised within benchmark before
-  `harness.py --stage eval` reads it.
+  `--scale train` reproduces these numbers (`harness_train_scale`) on the
+  legacy rows with `HARNESS_SCALE=pooled` (header above). Both fixes are now
+  the harness's defaults ("Acceptance harness", "What changed in the audit"):
+  `harness.py --stage eval` standardises x within benchmark, and its per-pair
+  unit is the pooled within-benchmark sd of x.
 
 ### Verdict: ship none of them
 
@@ -2101,9 +2395,22 @@ The test-like regime alone cannot decide this.
 
 ## The multiple-choice floor, corrected
 
-`python experiments/mcq_floor.py --stage items`, then `--stage run` (sharded,
-about 50 minutes on two processes), `--stage summary`; every number below is in
-`results/mcq_floor.json`. `tests/test_mcq.py` pins the adopted floor.
+`python experiments/mcq_floor.py --stage items`, then `--stage run
+--harness-rows data/harness_rows_legacy` (sharded, about 50 minutes on two
+processes), `--stage summary`; every number below is in
+`results/mcq_floor.json`. `tests/test_mcq.py` pins the adopted floor. The run
+stage checks its replay of the shipped floor, prediction for prediction,
+against `experiments/harness.py`'s stored rows; the rows it was checked
+against (old floor, solver before the floored-fit fix) are now
+`data/harness_rows_legacy` ("Acceptance harness", Provenance). The results
+were computed with hier's solver before the floored-fit fix ("Floored fits"
+below). A re-run now replays the fixed solver, which moves the corrected-floor
+arm by that fix's ALC difference: -0.000008 on public R1 pair-uniform (its
+-0.0004514 becomes -0.000460, which prints as -0.00046, assuming the old-floor
+arm is unchanged, as it is on the runs 0 to 99 the replay covered; runs 100 to
+199 of that arm were not replayed), -0.0000002 on
+benchmark-first and 0 on test-like; the hard-floor arm moves by -0.000058 and
+-0.000019 on the two R1 weightings (`results/hier_floor.json`).
 
 hier floors a target at c = Hyper.guess × `mcq.floor_of(mcq_text(content))`, in
 the likelihood of a floored item's labels as well as in its prediction; the
@@ -2143,10 +2450,1551 @@ and is not adopted.
 
 One fit went wrong under the fix: r1p run 108, a matharena pair made only of
 Kangaroo items, where hier's floored Newton fit stopped unconverged at B31 in a
-collapsed mode (0.22 predicted against 0.79 observed). It is counted in the r1p
-number above. The runs did not record how many other fits stopped unconverged
-without collapsing; the floored fit's robustness is an open issue in
-paiec/hier.py, and the fix makes more pairs floored.
+collapsed mode. It predicted 0.22 at B31 against 0.67 observed, the success
+rate over the pair's 148 evaluation responses, which is what its Brier scores.
+(This section used to say 0.79. That is the success rate of the pair's
+acquisition pool, 34 of its 43 candidate items; its first 31 labels hold 25
+successes, 0.81.) It is counted in the r1p number above. These runs did not
+record how many other fits stopped unconverged without collapsing; the replay
+in "Floored fits" below counts them. The floored fit is fixed since, which
+matters more now that the fix makes more pairs floored.
 
-Verdict: adopted in `paiec/mcq.py`. `dist/paiec.zip` still ships the old floor
-until the archive is rebuilt.
+Verdict: adopted in `paiec/mcq.py`. `dist/paiec.zip` was rebuilt with it on
+2026-09-27 (sha256 4a882cc7d410e6a9…; validator OK, archive bit-identical to
+the in-repo predictor, `submission/prior.json` byte-identical to the previous
+build).
+
+### Floored fits
+
+`python experiments/hier_floor_replay.py --stage compare --both` on two
+shards (34 minutes; between runs each process stayed under the 1.3 GB of the
+restart loop in the script's docstring, which never had to restart one),
+`--stage timing` for r1p and r1b side by side (about 13 minutes, beside an
+unrelated job), `--stage synthetic` (1 minute), `--stage modes` (45 seconds),
+`--stage hidden` (10 minutes beside another job), then `--stage summary` and
+`--stage show`. Every number below is in
+`results/hier_floor.json`; the per-run replays are in `data/hier_floor/`
+(gitignored). The solver before the fix is `paiec/hier.py` at f7e7d87, read
+with `git show` into a temporary module; its relative imports resolve to the
+working tree's `paiec`, which the fix did not touch. The fixed solver is the
+working tree's. The replays use this section's checkpoints: the shipped hier,
+fresh instances per checkpoint, runs 0 to 199 of each regime. The synthetic
+cases are also pinned in `tests/test_hier.py`
+(`test_a_floored_fit_far_below_its_successes_converges` and the three tests
+after it). The numbers first came from a scratch replay; the script replays
+every run that one did and reproduces its counts exactly. Where it differs,
+it says so below.
+
+A success on a floored item has likelihood c + (1 - c) s, and its log is
+convex where s is small against c. From a prior mean well below a pair's
+successes, Newton meets an indefinite matrix. `_cholesky` shifted it just past
+its most negative eigenvalue (by 1e-8 of its largest diagonal element), which
+left it nearly singular. The Newton step ran to 1e7 or more, twenty halvings
+found no ascent, and the fit stopped where it stood, with every floored success
+read as a guess. When the first step failed, that was the prior mean. The fit
+was counted in `HierPredictor.unconverged` and predicted from there. Run 108
+above was this case, and so were these synthetic ones (`--stage synthetic`):
+
+* one pair on four-option items with its prior eta at -4 stayed at the prior
+  mean for every record tried, 7/7, 15/15, 20/31, 25/31 and 31/31. It
+  predicted 0.24 each time, against an exact posterior predictive of 0.61 to
+  0.95. At -6 it stayed at 0.17 for those records and for 10/31 too;
+* at the shipped level (-2.5) the one-pair case collapsed only under the hard
+  floor, at 15/15 and 31/31 (0.43 against 0.92 and 0.96);
+* seven subjects on three benchmarks, one of them all successes on
+  five-option items, stopped short in 4 of 8 draws at the default level
+  (-1.263) and in 7 of 8 at -2.5 (guess 0.5), and in 8 of 8 at both under the
+  hard floor. Stopping short is not always a collapse. At -2.5, six of the
+  seven put the all-success subject at 0.29, against 0.94 to 0.96 at the mode;
+  at -1.263 the four stopped within 0.07 of the mode's prediction, one of them
+  above it.
+
+The fix is `Problem._settle`. It runs only where Newton on a posterior that
+holds a floored success stops unconverged, and it starts from three points:
+
+* where Newton stopped;
+* the mode with every floor removed (each success is knowledge);
+* the mode with every floored success dropped (each is a guess).
+
+The last two problems are log-concave, so each has one mode. From each start,
+`_settle` runs trust-region Newton on the floored posterior. Its multiplier
+makes the matrix definite by as much as the radius needs, not by 1e-8. It keeps
+the converged candidate with the highest log posterior. Where Newton
+converges, nothing runs, so those fits are what they were bit for bit. The
+one-pair cases above now match the exact posterior predictive to 1e-4, and
+none of the seven-subject fits is left unconverged.
+
+Shipped hier, corrected floor, 200 runs per row. The hard-floor rows (guess 1)
+show where the collapse is more frequent. "Floored fits" counts the fits that
+hold a floored success. The ALC difference is fixed minus pre-fix, with its
+run SE. Both solvers ran on every run that holds a floored label. (The scratch
+replay ran these rows with a multi-start variant of the fix and checked the
+adopted code on the affected runs and a sample; the script replays the adopted
+code throughout, with the same numbers.)
+
+| regime | guess | runs with a floored label | floored fits | unconverged before | after | runs changed | predictions changed | max abs change | ALC difference |
+|---|---|---|---|---|---|---|---|---|---|
+| public R1, pair-uniform | 0.5 | 121 | 1,693 | 6 | 0 | 4 | 1,484 of 921,330 | 0.617 | -0.000008 (0.000008) |
+| public R1, benchmark-first | 0.5 | 75 | 1,337 | 5 | 0 | 3 | 1,619 of 1,011,846 | 0.018 | -0.0000002 (0.0000001) |
+| test-like (seed 2) | 0.5 | 94 | 1,471 | 0 | 0 | 0 | 0 of 559,272 | 0 | 0 |
+| public R1, pair-uniform | 1 | 121 | 1,693 | 25 | 0 | 10 | 5,353 of 921,330 | 0.536 | -0.000058 (0.000032) |
+| public R1, benchmark-first | 1 | 75 | 1,337 | 16 | 0 | 5 | 7,298 of 1,011,846 | 0.461 | -0.000019 (0.000013) |
+
+Predictions changed only on the 22 run-rows where the pre-fix solver had an
+unconverged fit. On the other 619 replays (the table's, and the old-floor
+ones next), all 5,773,398 predictions are identical bit for bit. Under the old
+floor (runs 0 to 99 of each regime), both solvers reproduce
+`data/harness_rows_legacy` exactly on the 155 runs of r1p, r1b and test-like
+that hold a floored label (81, 63 and 11); no fit there stopped short. Under
+the corrected floor, the fixed solver reproduces the re-collected
+`data/harness_rows` exactly on the 199 stored runs that hold one (66, 39 and
+94).
+
+The 52 rescued fits had stopped 1.6 to 5.9 logits from the mode, 4.5 to 103
+nats of log posterior below it. Every one was rescued by continuing from where
+Newton stopped, and its whole solve took 0.03 to 0.17 s. The largest changes
+are the collapsed pairs (mean prediction; observed is the success rate over
+the pair's evaluation responses):
+
+* run 108's pair goes from 0.217 to 0.770 at B31 (0.669 observed over its 148
+  evaluation responses), and its B31 Brier from 0.422 to 0.224;
+* under the hard floor, r1p run 5 goes from 0.26 to 0.74 (0.75 observed) and
+  r1b run 51 from 0.30 to 0.64 (0.79 observed). Like run 108's, these are
+  matharena subject 8ae58e36 on Kangaroo items, and it also collapses at B15
+  in r1p runs 37 and 108 (0.23 and 0.27, against 0.70 and 0.69 after the fix)
+  and at B31 in r1b run 151 (0.37 to 0.76, 0.71 observed);
+* in r1p run 187, under the hard floor, two researchcodebench pairs go from
+  0.24 and 0.21 to 0.45 and 0.47 (0.42 and 0.47 observed).
+
+Averaged over a regime this is invisible, because few public fits collapse.
+
+**How often it would bite on the hidden test.** The synthetic cases above use
+toy hyperparameters. `--stage hidden` runs hidden-test-like synthetic runs
+through the shipped bundle (`submission/prior.json`: the level moved down, the
+real attribute prior): seven benchmarks per scenario, four of them five-option
+multiple choice and one four-option, 2025-26 subjects, records near 31/31,
+each scenario fitted at B1, B3, B7, B15 and B31. A fit set collapses when the
+solver before the fix leaves a fit unconverged:
+
+| scenario | fit sets | collapsed before the fix | after |
+|---|---|---|---|
+| about one pair per benchmark (1.3 on average), real subject attributes | 300 | 0 | 0 |
+| the same, attributes blanked | 200 | 1 (a 29/31 pair at B31: 0.26, 0.89 after) | 0 |
+| four pairs per benchmark (records at rates 1, 0.2, 0.05, 0.5), real attributes | 125 | 10 | 0 |
+| the same, attributes blanked | 125 | 35 | 0 |
+
+In the crowded scenarios every collapse is an all-success pair at B7 to B31,
+predicted 0.15 to 0.39 before the fix and 0.75 to 0.97 after. A collapse needs
+several pairs on one floored benchmark: formative R1-like runs, or a hidden
+benchmark drawn with more than one pair. With about one pair per benchmark and
+real 2025-26 attributes it is rare, so the scratch replay's toy settings
+overstated the risk for the hidden test's usual shape. The fix is still worth
+shipping: it changes nothing where Newton converges and removes the failure
+where it does not. Its time cost there is small: in the four scenarios in
+turn the fixed solver took 5% less, 3% less, 2.5% more and 11% more time than
+the solver before it, the most where the most fits are rescued (this stage ran
+beside another job, so these are rough).
+
+Converged fits keep Newton's mode because no other mode turned up. The
+replay ran both other starts to convergence on every converged floored fit
+(8,686; 7,479 on the five corrected-floor rows, the scratch replay's count)
+and kept Newton's result regardless. Their log posteriors were within 2e-10
+of Newton's, none above `LP_TOL` = 1e-6, and their modes within 3e-7.
+`--stage modes` ran the same probe on 2,520 synthetic one-pair problems: levels
+-6 to 6, sd 1 to 5, guess 0.5 and 1, 0 to 12 successes of 15 or 31 on three-
+and five-option items, with and without two other subjects. It found no second
+mode either: 2,057 converged floored fits, their 4,114 other starts within
+4e-10 in log posterior and 3e-7 in the mode; the other 103 floored fits
+stopped short and were settled, all converged. This is evidence, not proof,
+that a floored posterior has one mode. The scratch replay measured that trying
+both other starts on every converged floored fit costs 6 to 7% of prediction
+time on runs with a floored label; that variant is not in the script and the
+figure is not reproduced. The fix pays for the other starts only when Newton
+stops short.
+
+**Latency.** `--stage timing` ran runs 0 to 39 of r1p and r1b with fresh
+instances per checkpoint, the offline bundles built before the clock starts,
+the two solvers alternating within each checkpoint, and two passes. The fixed
+solver took 1.422 ms a call against 1.426 before the fix on r1p (-0.2%), and
+1.224 against 1.221 on r1b (+0.2%). The per-run ratio has a median of 0.99 on
+both, with quartiles 0.93 to 1.05 and 0.96 to 1.04. An unrelated job used
+about five cores throughout, so the absolute times are inflated (the scratch
+timing, on an idler machine, gave about 0.9 ms a call) and the per-run ratios
+are noisy; the comparison stays paired. The r1p runs include the two with a
+rescued fit, 21 and 37, which the fix made 2% and 4% slower. (The scratch
+timing gave 0.912 against 0.905 ms on r1p and 0.854 against 0.857 on r1b, over
+runs 1 to 39: it charged the offline bundles to whichever solver met a parent
+first, and dropped run 0 for that.)
+
+Verdict: adopted in `paiec/hier.py`. `dist/paiec.zip` was rebuilt with it on
+2026-09-27 together with the corrected floor (sha256 4a882cc7d410e6a9…;
+validator OK, bit-identical run check). An official-protocol smoke of the
+unzipped archive (3 test-like and 3 public R1 runs, 16 workers) had 0 failures
+and 0 unconverged fits; it never reached `_settle`, whose evidence is the
+replay above and `tests/test_hier.py`.
+
+## The 4B judge, closed out
+
+`python experiments/llm4b_close.py --stage signs`, then `--stage harness`,
+`--stage reference`, `--stage verdict` and `--stage show` (2, 6 and 2.5
+minutes and a second, on one process, at most 0.8 GB; no language model is
+loaded). Every number below is in `results/llm4b_close.json`. The harness
+stage reads the stored rows of `experiments/harness.py` (library
+3f75a549673aae6a) and never recomputes hier.
+
+`experiments/llm_features.py` showed Qwen3-4B-Instruct-2507 each public item
+once and asked what share of strong 2025-26 systems would solve it, as one
+digit (`paiec/llmfeat.py`). It read one forward pass and generated nothing. The
+features are these, with the sign declared before this section looked at them
+(+ = harder):
+
+* **rating**: the expected digit (declared -).
+* **digit**: the most likely digit, the rating a sampled answer would give
+  (declared -).
+* **entropy**: the entropy of the ten-digit distribution. Declared +: the
+  judge's uncertainty should track difficulty (Zotos et al., arXiv:2412.11831).
+* **nll**: the mean negative log-likelihood of the task text under the 4B. No
+  sign declared.
+
+**Coverage.** The extraction died of MPS out-of-memory on multi_swebench's 19th
+of 22 rating shards. What exists:
+
+* matharena: complete, 1,555 unique items standing for 1,755.
+* multi_swebench: 1,941 of 2,078 unique items. Shards are planned by length, so
+  the 137 missing are the longest prompts (1,439 tokens and more). They are a
+  little easier (mean honest difficulty 0.10 against 0.19), and length does not
+  order multi_swebench's difficulty (Spearman -0.02).
+* real_webagents, researchcodebench, swe_rebench: nothing.
+
+The manifest's progress field still says 10 of 22 shards; 18 are on disk.
+
+**The extraction was not resumed.** 0.67 M prompt tokens remain for the four
+parents, plus 3.8 M for swe_rebench. They need the fp16 model (8 GB) resident
+while other language-model jobs of the same workflow wait for the one slot.
+That is 2.3 hours at the extraction's contended rate (79 tokens a second), or
+about 45 minutes uncontended, and the run died on exactly these long shards.
+Why more coverage would not change the verdict is at the end.
+
+### Against honest difficulty
+
+The target is the fold-averaged (≈ in-sample) difficulty: Rasch b fitted
+without each of the harness's five subject folds, averaged over the folds.
+This section and the four after it ("Attempting instead of judging", "Entropy
+profiles and hidden-state probes", the pairwise part of "Few-shot prompting",
+"Fine-tuning an encoder") correlate against it, and the hidden-state heads and
+the encoder train on it. No label enters any label-free feature. But the
+average of five fits, each on four fifths of the subjects, is essentially the
+in-sample b: they correlate 0.999 [0.997, 1.0] on the attempt probe's items
+(`results/attempt_probe.json`, references). The gate table's r ("Acceptance
+harness") is instead against each fold's own honest difficulty, which is
+noisier. An r against this target is therefore slightly optimistic when read
+on the gate table: the bias favours the feature. No verdict below changes
+with it; every feature failed anyway. (In-context learning's r_diff is
+against the fold-specific honest difficulty and is not affected.)
+Correlations are within item_features groups (competition, language): ranks
+over the benchmark, demeaned within group. That is what an item covariate can
+add to hier. Two partial forms are also computed:
+
+* **partial**: within group and net of log length. Length ordered the attempt
+  probe's items as well as any attempt feature.
+* **partial with position**: net of the problem's index too (matharena only).
+
+Intervals are 95% bootstrap over groups: 27 competitions, 8 languages. The
+item bootstrap's are similar or narrower. A bootstrap over 8 or fewer clusters
+gives intervals that are too narrow and unstable, so multi_swebench's are
+indicative only; the same holds wherever this document resamples its 8
+languages or 5 contests. Text-bearing matharena items exclude
+Kangaroo's 336 image-only problems and 202 items whose content is only a system
+prompt or a date and an id. That leaves 1,095 of the 1,633 items with a
+difficulty.
+
+| feature | matharena, within competition (1,633) | matharena text-bearing, within (1,095) | text-bearing, partial | text-bearing, partial with position | multi_swebench, within language (1,980) | multi_swebench, partial |
+|---|---|---|---|---|---|---|
+| rating | +0.18 [+0.12, +0.25] | +0.24 [+0.13, +0.33] | +0.22 [+0.12, +0.30] | +0.17 [+0.09, +0.25] | -0.11 [-0.21, -0.06] | -0.12 [-0.19, -0.07] |
+| digit | +0.17 [+0.10, +0.24] | +0.17 [+0.08, +0.23] | +0.16 [+0.09, +0.22] | +0.14 [+0.08, +0.20] | -0.09 [-0.16, -0.04] | -0.09 [-0.15, -0.05] |
+| entropy | -0.09 [-0.18, -0.02] | -0.19 [-0.27, -0.09] | -0.16 [-0.25, -0.07] | -0.14 [-0.21, -0.05] | +0.11 [+0.04, +0.21] | +0.11 [+0.05, +0.19] |
+| nll | -0.01 [-0.08, +0.08] | -0.20 [-0.29, -0.07] | -0.11 [-0.18, +0.00] | -0.09 [-0.16, +0.01] | +0.05 [-0.04, +0.16] | +0.06 [+0.01, +0.14] |
+
+(Spearman. Pearson tells the same story, smaller: the rating's partial Pearson
+on text-bearing items is +0.12.)
+
+* **Every feature changes sign between the two benchmarks.** On
+  multi_swebench each goes the declared way, weakly (|rho| ≤ 0.12; nll, with
+  no declared sign, rises with difficulty). On matharena each goes the other
+  way within competition (nll on the text-bearing items only): the judge gives
+  the harder problems of a competition higher ratings and more confident
+  digits.
+* **Part of that is the problem's position.** Within competition the rating
+  rises with problem_idx (+0.23 on text-bearing items), and so does
+  difficulty (+0.25). Net of position, the rating is still +0.17, wrong-signed.
+* **Across competitions the rating orders nothing.** Over all of matharena it
+  gives +0.05 [-0.11, +0.20].
+* **It reproduces the attempt probe's reference.** On the probe's 160 items the
+  script gives -0.31 for the negated rating, as `results/attempt_probe.json`
+  does.
+* **The 2026 contests show the same pattern.** They post-date the 4B, and the
+  rating gives +0.27 within competition on their 150 text-bearing items. There
+  are only five competitions, too few for an interval.
+* **The sign rule cannot be met.** It needs the declared sign, and agreement
+  with the other units' mean, on 4 of 5 units. Two units are rated, and they
+  disagree for every feature within groups (0 of 2 leave-one-out agreements).
+
+### Through the harness
+
+Each feature was scored as an offset on the shipped hier, with x standardised
+within benchmark and the B0 term reading raw x (`harness.eval_covariate`). It
+covers 61% of the test-like evaluated items. Differences are benchmark-equal
+test-like ALC: the mean of the four parents' means, the rule's measure.
+real_webagents and researchcodebench contribute exactly 0 to it.
+
+With two of the four parents rated, the transferred slope cannot be switched on
+leave-one-parent-out. With a rated parent held out, its inner folds fit the
+slope on the parents where x is constant. So its forced lines, fitted on the
+other rated parent, are its reading. The placebo permutes x within each
+benchmark (three draws).
+
+| feature | transferred nested | per-pair nested | transferred from B1, forced (matharena / multi_swebench ± cluster SE) | per-pair s = 0.5 from B7, forced | B0 term, forced | placebo: transferred B1 / per-pair B7 |
+|---|---|---|---|---|---|---|
+| rating | 0 (0/4 on) | 0 (0/4) | +0.00008 (+0.00041 ± 0.00053 / -0.00011 ± 0.00007) | +0.00022 | -0.00013 | +0.00003 / +0.00031 |
+| digit | 0 (0/4) | 0 (0/4) | +0.00013 (+0.00047 ± 0.00045 / +0.00005 ± 0.00003) | +0.00022 | -0.00002 | +0.00002 / +0.00032 |
+| entropy | 0 (0/4) | +0.00003 (1/4) | +0.00049 (+0.00146 ± 0.00039 / +0.00051 ± 0.00011) | +0.00023 | -0.00017 | +0.00001 / +0.00037 |
+| nll | 0 (0/4) | +0.00004 (1/4) | +0.00031 (+0.00047 ± 0.00022 / +0.00079 ± 0.00020) | +0.00025 | +0.00085 | +0.00002 / +0.00045 |
+
+* **Nothing gains.** No line of any feature reaches -0.001. The best of all are
+  the B0 terms of entropy and the rating, forced, at -0.00017 and -0.00013.
+* **A slope carried between the two benchmarks costs.** Fitted on one and
+  applied to the other, it costs up to +0.0015 on matharena (entropy) and
+  +0.0008 on multi_swebench (nll): the sign flip at work. The hybrid prior
+  shows the same: nested selection switched it on for entropy with matharena
+  held out (s = 0.25 from B7, centred on multi_swebench's slope), and it cost
+  +0.0010 ± 0.0003 there.
+* **The per-pair slope pays the noise cost.** Forced at s = 0.5 from B7 it
+  costs +0.0002, against +0.0003 to +0.0005 for the permuted feature. Nested
+  selection has it act only for entropy and nll with matharena held out, at
+  s = 0.25, where it loses +0.00014 and +0.00015.
+* **The raw rating and entropy carry a sliver of level at B0.** Their
+  uncentred B0 terms, forced, give -0.00018 and -0.00021 (± 0.00004)
+  test-like, about -0.002 of Brier at B0, against a placebo of 0. That is a
+  sixth of the bar, and nested selection leaves them off. nll's B0 term costs
+  +0.0035 on multi_swebench.
+* **Within test-like pairs the features barely order difficulty.** The mean
+  correlation with honest difficulty over a pair's evaluated items is -0.09
+  (rating), -0.06 (digit), +0.05 (entropy) and +0.04 (nll). The two benchmarks
+  cancel. The harness table's r = 0.3 row is 0.25 within pair.
+
+**The bar is reachable at this coverage.** The reference stage degrades the
+honest difficulty to r on exactly the rated items, with 0 elsewhere (4 draws):
+
+| r | transferred from B1, forced | per-pair nested | hybrid nested |
+|---|---|---|---|
+| 0.3 | -0.0012 | -0.0002 | -0.0008 |
+| 0.5 | -0.0035 | -0.0012 | -0.0028 |
+
+A covariate of honest r ≈ 0.3 with a consistent sign would have cleared -0.001
+with a transferred slope, and one of r ≈ 0.5 with a per-pair slope. The judge's
+features fail on quality, not on coverage.
+
+### Verdict: KILL
+
+The plan's rule has two prongs, and both hold:
+
+* **ALC.** No benchmark-equal test-like difference is ≤ -0.001, under the
+  nested transferred and per-pair lines or the transferred slope's forced lines.
+  None is reached even with the per-pair slope forced.
+* **Partial r.** On text-bearing matharena items, with the declared sign, every
+  feature's partial r is below 0.2 (rating -0.22 Spearman and -0.12 Pearson;
+  nll is oriented by multi_swebench's sign). In absolute value the rating's
+  partial Spearman is 0.22 [0.12, 0.30], but wrong-signed. Only a per-pair
+  slope could use a wrong-signed feature, and that needs r ≈ 0.5.
+
+The 4B zero-shot judge features (rating, digit, entropy, nll) are closed.
+`paiec/llmfeat.py` stays research-only. Its embeddings were closed in "Neural
+embeddings do not carry difficulty to an unseen benchmark".
+
+**Why finishing the extraction would not change this.**
+
+* **Transferred slope.** It needs 4 of 5 units with the declared sign.
+  matharena already fails for every feature, so all four other units would
+  have to agree.
+* **Per-pair slope.** It needs r ≈ 0.5 within a benchmark. The best |rho| here
+  is 0.24. The blind ratings of a far stronger reader ("Language-model
+  difficulty judgement") reached 0.21 on real_webagents and -0.13 on
+  swe_rebench.
+* **Cost.** It would take 2.3 hours of the one language-model slot for the four
+  parents, and about 13 more for swe_rebench.
+
+**Against the literature** (numbers as the step-2 review summarised them; not
+re-read here):
+
+* **ENEM** (arXiv:2602.06631). Small open judges land between -0.21 and +0.10
+  against official item difficulty whatever the prompt (Llama-3.2-3B). The 4B's
+  within-group correlations here, oriented, span -0.24 to +0.11: the same band,
+  with a documented prompt search behind it (`experiments/llm_features.py`,
+  "Prompt").
+* **Ballon et al.** (arXiv:2512.14220). Language-model difficulty judgements
+  track human difficulty at r ≈ 0.80 but model performance only at ≈ 0.23. The
+  target here is model performance, and a 4B stays well below that.
+* **Krsteski & Meyer** (arXiv:2608.05797). On 17 agentic benchmarks including
+  MathArena, leave-one-benchmark-out Spearman is 0.225 for all features, 0.295
+  ± 0.230 for a linear head, 0.017 for embeddings and 0.137 for a token-entropy
+  profile, against 0.40-0.48 within benchmark. The ± 0.230 across held-out
+  benchmarks is what a sign flip looks like, and here both rated benchmarks
+  flip. Their pooled correlations also carry level differences between
+  benchmarks, which hier learns from labels; per-pair ALC rewards only order
+  within a benchmark.
+* **Li et al.** (arXiv:2512.18880). A model's rating of its own chance predicts
+  its errors at AUROC ≈ 0.55.
+
+A small zero-shot judge is a dead end for this target. What remains open on the
+language-model side is the attempt route ("Attempting instead of judging"),
+which needs a model that can solve the items.
+
+## Attempting instead of judging
+
+`python experiments/attempt_probe.py --stage target`, then `--stage gen --design
+D1 --ipb 2` (8 minutes), `--stage gen --design D2 --per-comp 2` (about 1.7
+hours on the shared M1), then `--stage analyse`. Every number below is in
+`results/attempt_probe.json`. The attempts are in `data/attempt_probe/`
+(gitignored).
+
+The 4B judge reads a problem and says how likely it is to be solved. In this
+probe the same model, Qwen3-4B-Instruct-2507, is a subject: it attempts each
+problem k times, and the item is described by what the attempts look like. No
+feature uses a label or the reference answer. Each is oriented so that + means
+harder:
+
+* **Agreement.** The share of the k answers equal to the modal one
+  (`top_share`, declared the primary feature before the run), and the entropy
+  of the answers.
+* **Confidence.**
+  * The mean token log-prob of the answer inside `\boxed{}`, over all attempts
+    or over the modal answer's attempts only.
+  * The mean log-prob and the mean next-token entropy over everything
+    generated.
+  * The entropy of the first generated token.
+* **Failure.** No parseable answer or a refusal phrase, the token cap reached,
+  and the attempt's length.
+
+Graded accuracy against matharena's reference answer is computed only to
+diagnose FLOOR. The platform input carries no reference answer.
+
+There are two designs. Both sample with the model card's settings: temperature
+0.7, top-p 0.8, top-k 20.
+
+* **D1, answer only.** k = 8. The assistant turn is prefilled with "The final
+  answer is $\boxed{", and generation stops at the closing brace (at most 48
+  tokens).
+* **D2, short chain of thought.** k = 4. The model is asked to keep its reasoning
+  under about 350 words and is capped at 512 new tokens. An attempt that ends
+  without `\boxed{}` gets one forced continuation, "**Final Answer** $\boxed{",
+  of at most 32 tokens.
+
+The items are the 160 matharena probe items of the attempt-signal design (the
+selection is re-derived in the script and matches the design's list exactly):
+
+* text only, with a short checkable answer;
+* at least 10 subjects each;
+* 10 per competition over 16 competitions, spread over difficulty.
+
+Kangaroo's multiple choice is not attempted, because its options are in the
+image. The planned option-logit readout for multiple choice therefore has no
+text items on matharena and was not run.
+
+The target is the fold-averaged (≈ in-sample) difficulty: Rasch b fitted
+without each of the five subject folds of `experiments/harness.py`, then
+averaged over the folds. It is labelled "honest b" in this section's tables;
+"The 4B judge, closed out" explains why it is essentially the in-sample b and
+why that slightly favours a feature. b over the strong tier (subjects at or
+above the median ability) is reported beside it. The statistic is the within-competition Spearman
+correlation (ranks within competition, demeaned, pooled), with a 95% bootstrap
+interval over competitions. The 2026 contests (AIME 2026 and 2026 I, HMMT
+February 2026, arXiv-math January and February 2026) came after the 4B's
+release.
+
+### Running a 4B generator on the 16 GB M1
+
+Beside the desktop and the other jobs about 8 GB of memory is free. The fp16
+model (8.05 GB) plus its cache therefore did not stay resident: it decoded at
+about 13 tokens a second and pushed the machine into swap. The model runs in
+weight-only int8 instead: every linear layer and the tied embedding, rounded to
+nearest with one absmax scale per row, through torch's MPS int8 matmul, 4.0 GB
+in all. On 16 D1 items run both ways, int8 against fp16:
+
+| feature | agreement, int8 against fp16 |
+|---|---|
+| first-token entropy | correlation 0.99, mean absolute difference 0.05 nats |
+| mean answer log-prob | correlation 0.98 |
+| top_share | correlation 0.95 |
+| modal answer | the same on 15 of 16 items |
+
+Three more changes were needed:
+
+* **Padded rows.** torch 2.6's MPS attention returns NaN on the fully masked
+  query of a left-padded row, and the NaN reaches every other row. Those rows
+  are now unmasked (`_unmask_padded_rows`).
+* **Shared prefill.** Each prompt is prefilled once and its cache is repeated k
+  times. This matches the unshared path to 0.01 in entropy and log-prob, and
+  cut D1 from about 23 minutes to 8.
+* **Static cache for D2.** D2 uses a static cache: a growing one fragments the
+  capped MPS pool until it runs out.
+
+Decoding is bound by kernel launches. On an idle machine it takes 0.4-0.5 s a
+step at 8-16 rows; during this run it took 0.8-1.6 s a step at 8-16 rows.
+
+**What was cut.** At that speed the planned D2 (160 items, k = 4, up to 1,024
+tokens) would take about 8 hours. D2 ran instead on 32 items with a 512-token
+cap: the easiest and the hardest probe item of each competition, run
+competition by competition. On these two-item groups a within-competition
+correlation is the share of competitions ordered correctly, rescaled to
+[-1, 1]. It measures the extremes, so it overstates what the full range would
+give.
+
+### D1: answering at once carries nothing
+
+160 items × 8 attempts:
+
+| feature | honest b | strong-tier b | 2025 contests (110) | 2026 contests (50) |
+|---|---|---|---|---|
+| top_share (primary) | -0.01 [-0.13, +0.12] | +0.02 [-0.10, +0.14] | +0.08 [-0.07, +0.23] | -0.23 |
+| answer entropy | -0.03 [-0.15, +0.10] | +0.02 [-0.09, +0.13] | +0.06 [-0.09, +0.22] | -0.26 |
+| answer log-prob | +0.01 [-0.10, +0.14] | +0.07 [-0.04, +0.18] | +0.05 [-0.12, +0.22] | -0.06 |
+| modal answer's log-prob | -0.03 [-0.16, +0.11] | +0.03 [-0.10, +0.17] | +0.00 [-0.18, +0.19] | -0.09 |
+| token log-prob | +0.07 [-0.09, +0.22] | +0.15 [+0.03, +0.28] | +0.13 [-0.08, +0.33] | -0.07 |
+| token entropy | +0.04 [-0.11, +0.20] | +0.12 [-0.00, +0.24] | +0.15 [-0.03, +0.33] | -0.22 |
+| first-token entropy | -0.01 [-0.14, +0.12] | +0.04 [-0.10, +0.19] | -0.02 [-0.16, +0.13] | +0.01 |
+| answer length | -0.06 [-0.20, +0.09] | -0.12 [-0.29, +0.05] | -0.01 [-0.21, +0.17] | -0.15 |
+
+The 2026 intervals come from a bootstrap over five competitions and are too
+narrow to quote.
+
+Graded accuracy is 2.3% (2.4% on the 2025 contests, 2.0% on the 2026 ones). The
+answers are guesses:
+
+* on 45% of the items the modal answer is a default: 0, 1, 2, 3, 2024 or 2025;
+* the mean agreement is still 0.82;
+* top_share is stable: 15 problems appear under two competition names (AIME
+  2025 and its I/II halves), and top_share correlates 0.83 between the two
+  copies.
+
+What repeats is the guess, not anything about the item.
+
+On the same 160 items, the prompt's length in characters reaches +0.27 [+0.13,
++0.38], more than any attempt feature. Over all matharena items, within their
+item_features groups, log length was +0.06 ("Item covariates with a known
+sign"): the text-only, short-answer probe items are a kinder subset.
+
+References on the same items:
+
+| reference (+ = harder) | rho | note |
+|---|---|---|
+| the 4B judge's digit rating, negated | -0.31 [-0.49, -0.13] | wrong sign: the judge rates the harder problems as likelier to be solved |
+| weak tier's mean success, negated | +0.89 [+0.76, +0.97] | those responses are in the target: a ceiling, not an honest number |
+| Qwen3-4B-2507-Think's success, negated (70 items) | +0.74 [+0.65, +0.82] | the same 4B family with full thinking, as a matharena subject; also in the target; the interval resamples 8 competitions and is indicative |
+| strong-tier b | +0.89 [+0.81, +0.95] | the two targets agree |
+
+### D2: a short chain of thought is at the floor
+
+32 items × 4 attempts:
+
+* **Truncation.** Every attempt hit the 512-token cap, even on the easiest AIME
+  problems, whatever the prompt asked. 99% of the answers are forced ones.
+* **Accuracy.** Graded accuracy is 7.8%: 16% on the easier item of each
+  competition and 0 on the harder one. It is 11.4% on the 2025 contests and 0 on
+  the 2026 ones.
+
+| feature | honest b (= strong-tier b) | 2025 contests (11) | 2026 contests (5) |
+|---|---|---|---|
+| top_share (primary) | -0.40 [-0.80, +0.07] | -0.50 | -0.20 |
+| answer entropy | -0.40 [-0.80, +0.07] | -0.50 | -0.20 |
+| answer log-prob | +0.00 [-0.50, +0.50] | +0.09 | -0.20 |
+| modal answer's log-prob | +0.00 [-0.50, +0.50] | +0.09 | -0.20 |
+| token log-prob | +0.62 [+0.25, +1.00] | +0.46 | +1.00 |
+| token entropy | +0.62 [+0.25, +1.00] | +0.46 | +1.00 |
+| graded success (diagnostic, not label-free) | +0.50 [+0.25, +0.71] | +0.60 | n/a |
+
+The first token's entropy is not a feature here: a chain of thought always
+starts the same way ("We are given …"), and the entropy is below 1e-4 on 24 of
+the 32 items and at most 0.025 on the rest.
+
+The primary feature has the wrong sign. On the harder items the forced answers
+collapse onto a default (27 of 64 are 0 and 9 are 1), so the attempts agree
+most where the model is most lost.
+
+What orders the pairs is the reasoning's own uncertainty. Mean token entropy
+and log-prob put the harder item above the easier one in 13 of the 16
+competitions, including all 5 of the 2026 ones.
+
+* **One attempt suffices.** A single attempt gives the same ordering: +0.62,
+  +0.62, +0.62 and +0.75 for the four attempts taken alone.
+* **Answering at once shows none of it.** D1's token entropy on the same 32
+  items is -0.25.
+* **Prompt length explains part of it.** The prompt's length orders 11 of the 16
+  pairs (+0.38 [-0.12, +0.75]), and the token entropy follows the prompt's
+  length within competition (+0.50 [+0.12, +0.88]).
+* **It was found, not declared.** It is the best of six features after
+  agreement, the declared one, failed. 13 of 16 has a one-sided sign-test p of
+  0.011 uncorrected, and it is measured on extremes.
+
+The judge's digit rating on the same 32 items is -0.62: wrong-signed again.
+
+### Verdict: FLOOR
+
+By the plan's rule the call is FLOOR:
+
+* graded accuracy is 2.3% for D1 and 7.8% for D2, both under 10%;
+* the hard half of D2 is at 0%.
+
+The designs that fit on this machine cannot show whether the 4B's attempts
+carry difficulty. Answering at once is a clean null (160 items, every |rho| ≤
+0.07 against honest b). A 512-token chain of thought never reaches an answer by
+itself.
+
+**The GO numbers were met, by a post hoc feature, and do not count.** The
+plan's GO clause reads "the best label-free feature": rho ≥ 0.35 with the
+right sign, a lower bound above 0.15, and rho ≥ 0.25 on the 2026 contests. D2's
+token log-prob and token entropy give +0.625 [+0.25, +1.00], and +1.00 on the
+2026 contests (`results/attempt_probe.json`, decision), so on paper they meet
+all three. They are discounted for four reasons:
+
+* **Extreme groups.** The 32 items are the easiest and the hardest of each
+  competition. On two-item groups the statistic is a 13-of-16 sign test,
+  rescaled, and an extreme-group design inflates rho over what the full range
+  would give.
+* **Prompt length.** The token entropy follows the prompt's length within
+  competition at +0.50 [+0.12, +0.88], and length alone orders 11 of the 16
+  pairs.
+* **Selection.** It is the best of six features, picked after the declared one
+  (agreement) failed. With a Bonferroni correction for six, the sign test's
+  one-sided p of 0.011 becomes 0.064.
+* **The floor.** At 7.8% graded accuracy (0% on the hard half) the design is
+  below the plan's 10%, where the attempts are mostly forced guesses.
+
+FLOOR takes precedence over GO because it says the design cannot measure what
+GO asks: under 10% accuracy a feature of the attempts reads the model's
+confusion, not the item. The plan does not state that precedence; it is
+stated here. Both calls route to the plan's step 8, so nothing changes in
+practice.
+
+Nothing goes to the harness and no covariate file is written. The
+`--stage covariate` export exists for a later GO.
+
+For the next step:
+
+* **Solving is where the signal is.** The Think variant of the same 4B, solving
+  with full reasoning as a matharena subject, reaches +0.74 against the
+  difficulty its responses help fit.
+* **The lead is the token entropy of a truncated attempt.** It is label-free,
+  needs k = 1, and does not depend on parsing an answer, so it would apply to
+  any text task. That is the "token-entropy profile" of the plan's step 7.
+* **What a cheap test needs.** One attempt per item on all 528 pool items, with
+  the per-token entropies stored so that the shortest useful prefix can be
+  found. Prompt length has to be controlled for, and it should be scored
+  against the other benchmarks' honest difficulty before it enters the harness.
+  With the per-step speed above, that is about 5-6 hours on this machine.
+
+The FLOOR escalation to a stronger proxy on a GPU is reported here, not taken.
+
+**Deployment cost, had it passed.** A hidden run holds about 1,000
+subject-item pairs over 7 benchmarks. Only short-answer mathematics would be
+attempted: about 140 items a run, or about 280 if two such benchmarks are
+drawn.
+
+* **D1** costs, for 1,000 items, one prefill of about 300 tokens each (0.3 M in
+  all) and about 0.03 M generated tokens. That is about a minute on one
+  data-centre GPU with transformers.
+* **A truncated attempt** (k = 1, 512 tokens) is about 0.5 M generated tokens
+  per 1,000 items, several minutes batched. D2 as run is about 2 M.
+* **The multiplier.** Workers are recreated at every checkpoint and keep no
+  state, so all of it repeats 6 times unless a disk cache survives, and every
+  worker loads the model.
+
+Here, D1 took 2.9 s an item and D2 about 3 minutes an item.
+
+## Entropy profiles and hidden-state probes
+
+`python experiments/hidden_state_probe.py --stage sample`, then `--stage
+extract --resume` (36 minutes for 608,366 prompt tokens at 283 tokens a second,
+the only language-model job on the machine, at most 3.2 GB of MPS memory),
+`--stage heads` (3 minutes), `--stage harness` and `--stage reference` side by
+side (15 and 5 minutes, one process each, about 0.5 GB), then `--stage
+verdict` and `--stage show`. Every number below is in `results/hidden_state_probe.json`. The
+features are in `data/features/probe/` (42 MB, gitignored). The harness stage
+reads the stored rows of `experiments/harness.py` (library 3f75a549673aae6a) and
+never recomputes hier.
+
+The 4B judge's digit and its attempts carried nothing that transfers ("The 4B
+judge, closed out", "Attempting instead of judging"). This probe reads the same
+model's internal state instead: Qwen3-4B-Instruct-2507, one forward pass per
+item, nothing generated.
+
+* **The prompt** is Agent Psychometrics' instructed form (Ge et al.,
+  arXiv:2604.00594): one user turn holding the task text and then "How
+  difficult is the above task for an AI agent?", with the assistant header
+  appended. The task text is item_content, cut to 1,536 tokens by
+  `llmfeat.head_tail` (head, marker, tail), then a newline and item_features.
+* **(a) The token-entropy profile** of item_content, the family that
+  transferred best for Krsteski & Meyer (arXiv:2608.05797). At every content
+  token the model's full next-token distribution gives an entropy and a
+  surprisal. The profile statistics are:
+  * the mean and sd;
+  * the nine deciles;
+  * the slope over relative position;
+  * the mean absolute step between neighbouring tokens.
+
+  The surprisal gets seven of these statistics.
+* **(b) Hidden states.** At the last prompt token (where the answer would
+  start) the state is read after layers 9, 18 and 27 and after the final norm
+  (36). The mean over the content span is read after layer 18 and after the
+  final norm.
+
+**Items.** The sample is stratified: quotas per item_features group, and a
+systematic sample over honest difficulty within each group.
+
+| parent | unique items sampled | of | item rows | groups | median content tokens |
+|---|---|---|---|---|---|
+| matharena, text-bearing | 400 | 974 | 439 | 19 competitions | 134 |
+| multi_swebench | 400 | 2,078 | 403 | 8 languages | 314 (17 truncated) |
+| real_webagents | 233 | 233 | 233 | 12 websites | 23 |
+| researchcodebench | 212 | 212 | 212 | 20 papers | 1,526 (206 truncated) |
+
+The 1,287 item rows carry x on 51% of the test-like evaluated items (47%
+mix/whole, 42% and 39% on public R1).
+
+**Checks.**
+
+* **Against the rating extraction.** The mean surprisal of item_content
+  correlates 0.87 with the rating extraction's nll on matharena (400 items) and
+  0.99 on multi_swebench (374 items). That is the same 4B under another prompt,
+  over the whole task text.
+* **Against a single-item forward pass.** Six items were run through the
+  streamed model one at a time, against the batched shard. Entropy agrees
+  within 0.015 nats and surprisal within 0.12 nats at the worst token. The last
+  state agrees within 0.17 on values up to 54. That is fp16 batching noise.
+
+**Heads.** The target is the fold-averaged (≈ in-sample) difficulty: Rasch b
+fitted without each of the five subject folds, averaged over the folds, then
+standardised within benchmark. The heads train on it and are scored against
+it. It is essentially the in-sample b, so the r below is slightly optimistic
+against the gate table's fold-specific r ("The 4B judge, closed out", Against
+honest difficulty); the bias favours the heads. Heads are linear and fitted leave one benchmark
+out over the four parents:
+
+* every benchmark weighs the same;
+* features are standardised within benchmark (a benchmark's items are visible
+  at run time, and no label is used).
+
+Hyperparameters are nested. For held-out parent q, each configuration is fitted
+on two of the other three parents and scored on the third. The inner mean
+within-benchmark Pearson picks the configuration, which is then refitted on all
+three.
+
+Two heads were declared primary before any result was seen:
+
+* **entropy**: ridge on the 13 entropy statistics;
+* **hidden**: the last-token state standardised per dimension, PCA to k ≤ 32 on
+  the training parents, then ridge. The layer is part of the nested choice.
+
+The secondary heads are surprisal, profile (both profiles), hidden_mean (the
+span means), and the hidden head at each layer fixed.
+
+### Leave one benchmark out
+
+Pearson over the held-out benchmark, with 95% intervals from a bootstrap over
+item_features groups (multi_swebench's resample 8 languages and are
+indicative). The last column is a DerSimonian-Laird random-effects mean over
+the four parents (Fisher z), with its 95% prediction interval for a new
+benchmark; with four units that interval is itself indicative.
+
+| head | matharena | multi_swebench | real_webagents | researchcodebench | mean | positive | random effects [PI] |
+|---|---|---|---|---|---|---|---|
+| entropy (primary) | -0.05 [-0.16, +0.05] | +0.05 [-0.06, +0.11] | -0.35 [-0.52, -0.14] | +0.15 [-0.12, +0.38] | -0.05 | 2/4 | -0.05 [-0.75, +0.70] |
+| hidden (primary) | +0.19 [-0.02, +0.37] | -0.04 [-0.14, +0.13] | +0.19 [+0.07, +0.31] | +0.14 [-0.15, +0.35] | +0.12 | 3/4 | +0.12 [-0.40, +0.58] |
+| surprisal | -0.15 [-0.40, +0.09] | -0.13 [-0.25, -0.03] | -0.37 [-0.49, -0.18] | -0.07 [-0.30, +0.21] | -0.18 | 0/4 | -0.18 [-0.60, +0.32] |
+| profile | -0.14 [-0.27, -0.03] | -0.01 [-0.13, +0.07] | -0.37 [-0.53, -0.16] | -0.07 [-0.30, +0.20] | -0.15 | 0/4 | -0.15 [-0.69, +0.50] |
+| hidden_mean | -0.21 [-0.43, -0.04] | -0.10 [-0.20, -0.02] | -0.05 [-0.33, +0.23] | +0.11 [-0.18, +0.38] | -0.06 | 1/4 | -0.07 [-0.57, +0.47] |
+| layer 9 | +0.37 [+0.15, +0.52] | -0.04 [-0.14, +0.13] | +0.00 [-0.17, +0.18] | +0.14 [-0.15, +0.35] | +0.12 | 3/4 | +0.12 [-0.71, +0.81] |
+| layer 18 | +0.12 [-0.12, +0.31] | -0.07 [-0.17, +0.01] | +0.19 [+0.07, +0.31] | +0.04 [-0.19, +0.28] | +0.07 | 3/4 | +0.07 [-0.42, +0.53] |
+| layer 27 | +0.19 [-0.02, +0.37] | -0.01 [-0.12, +0.09] | +0.07 [-0.11, +0.27] | +0.33 [+0.17, +0.55] | +0.14 | 3/4 | +0.14 [-0.48, +0.67] |
+| layer 36 | -0.05 [-0.25, +0.16] | -0.05 [-0.17, +0.04] | -0.08 [-0.24, +0.06] | +0.08 [-0.12, +0.34] | -0.03 | 1/4 | -0.03 [-0.17, +0.11] |
+
+The same predictions within item_features groups (Pearson, demeaned within
+group). This is what a covariate can add to hier, which learns the groups'
+levels from labels:
+
+| head | matharena | multi_swebench | real_webagents | researchcodebench | mean |
+|---|---|---|---|---|---|
+| entropy | +0.06 | +0.05 | -0.26 | +0.01 | -0.03 |
+| hidden | +0.28 | -0.05 | +0.17 | -0.02 | +0.10 |
+| surprisal | +0.02 | -0.13 | -0.23 | +0.16 | -0.04 |
+| hidden_mean | -0.07 | -0.09 | +0.04 | +0.18 | +0.01 |
+| layer 27 | +0.28 | +0.01 | +0.04 | +0.46 | +0.20 |
+
+* **Neither primary head reaches the bar.**
+  * The entropy head averages -0.05 and is positive on 2 of 4 parents; its
+    Spearman mean is -0.07.
+  * The hidden head averages +0.12 and is positive on 3 of 4, but no parent
+    reaches 0.2. multi_swebench is -0.04.
+* **The nested layer choice does not settle.** It picked layer 27, 9, 18 and 9
+  for the four held-out parents. The inner criteria were 0.14-0.27, from
+  training on two benchmarks at a time.
+* **The best secondary head is post hoc and still short.** Layer 27 fixed gives
+  +0.14 over the benchmark and +0.20 within group. That rests on
+  researchcodebench (+0.46) and matharena (+0.28); multi_swebench gives +0.01
+  and real_webagents +0.04. It is one of nine heads, picked after the fact.
+* **The surprisal heads transfer backwards.** The surprisal and profile heads
+  are negative on all four parents (random-effects mean -0.18 [-0.29, -0.07] for
+  surprisal). Fitted on three benchmarks, they order the fourth the wrong way:
+  the heterogeneity between units that sank the 4B judge.
+* **Inside a benchmark the states carry what the embeddings carried.** A 5-fold
+  fit within each benchmark (items at random) reaches:
+  * over the benchmark: 0.69, 0.19, 0.40 and 0.60 for layer 27, and 0.59, 0.14,
+    0.43 and 0.31 for the hidden head's usual configuration;
+  * within group: 0.39, 0.17, 0.26 and 0.25 for layer 27.
+
+  Much of that is group identity. As with the embeddings ("Neural embeddings do
+  not carry difficulty to an unseen benchmark"), a hidden run holds about one
+  pair per benchmark, so this signal cannot be learned there.
+* **One statistic keeps its sign, too weakly to matter.** The entropy profile's
+  slope (entropy rising towards the end of the task) has the same sign within
+  group on all four parents: +0.11, +0.09, +0.08, +0.14 Spearman. It is the only
+  one of the 20 statistics that does, it was found rather than declared, and a
+  transferred slope needs r ≈ 0.3.
+  * The location statistics (mean, deciles) mostly go negative on matharena,
+    real_webagents and researchcodebench and positive on multi_swebench.
+  * Within group and net of log length, the entropy head's partial Spearman is
+    -0.03, +0.04, -0.10 and +0.10, and the hidden head's +0.25, -0.04, +0.10
+    and +0.17.
+
+### Through the harness
+
+Each head's out-of-fold predictions go through the harness as a covariate. On
+parent q, x is the head fitted without q. The recipe is `llm4b_close.py`'s:
+
+* x standardised within benchmark (the B0 term reads raw x);
+* the nested lines and the forced ones;
+* a placebo: x permuted within benchmark, three draws.
+
+Test-like ALC differences against the shipped hier, ± pair-cluster SE, with the
+folds nested selection switched on:
+
+| head | transferred nested | per-pair nested | transferred from B1, forced | per-pair s = 0.5 from B7, forced | B0 term, forced | within-pair r |
+|---|---|---|---|---|---|---|
+| entropy | +0.00098 ± 0.00029 (1/4) | +0.00003 (1/4) | +0.00111 ± 0.00028 | +0.00062 | +0.00004 | -0.02 |
+| hidden | 0 (0/4) | -0.00000 (3/4) | +0.00008 ± 0.00015 | +0.00050 | -0.00003 | +0.01 |
+| surprisal | 0 (0/4) | +0.00001 (3/4) | +0.00022 ± 0.00031 | +0.00050 | -0.00003 | -0.10 |
+| profile | +0.00051 ± 0.00020 (1/4) | -0.00000 (3/4) | +0.00021 ± 0.00027 | +0.00035 | +0.00002 | -0.07 |
+| hidden_mean | 0 (0/4) | 0 (0/4) | +0.00019 ± 0.00006 | +0.00105 | +0.00124 | -0.06 |
+| layer 9 | 0 (0/4) | +0.00000 (3/4) | -0.00003 ± 0.00009 | +0.00048 | +0.00005 | -0.01 |
+| layer 18 | -0.00021 ± 0.00019 (3/4) | -0.00001 (3/4) | -0.00044 ± 0.00022 | +0.00052 | -0.00001 | +0.02 |
+| layer 27 | 0 (0/4) | +0.00011 ± 0.00010 (3/4) | +0.00124 ± 0.00053 | +0.00024 | -0.00003 | +0.07 |
+| layer 36 | +0.00029 ± 0.00008 (1/4) | -0.00004 (4/4) | +0.00088 ± 0.00022 | +0.00028 | +0.00003 | +0.01 |
+
+The placebo's per-pair s = 0.5 from B7 costs +0.0007 to +0.0011 for every head.
+Its nested lines stay within ±0.0001.
+
+For comparison, the reference stage degrades the honest difficulty to r on
+exactly these items, with 0 elsewhere (four draws):
+
+| r | transferred nested | per-pair nested | transferred from B1, forced |
+|---|---|---|---|
+| 0.2 | -0.00018 | 0 | -0.00049 |
+| 0.3 | -0.00116 | -0.00009 | -0.00126 |
+| 0.5 | -0.00381 | -0.00085 | -0.00381 |
+
+* **Nothing gains.** No line of any head reaches -0.001. The best is layer 18's
+  transferred slope, forced, at -0.00044 ± 0.00022, and its nested line gives
+  -0.00021 ± 0.00019 (selection-aware SE 0.00032). Layer 18 is a secondary head
+  whose LOBO mean is +0.07.
+* **Within a test-like pair the heads order nothing.** The mean correlation
+  with honest difficulty over a pair's evaluated items is between -0.10 and
+  +0.07. The reference just clears -0.001 at this coverage with r = 0.3 over
+  the whole parent, which the harness table puts at about 0.25 within a pair.
+* **A slope carried between parents costs.** Layer 27's forced transferred
+  slope costs +0.0012 test-like and +0.0050 on real_webagents: it is fitted
+  where researchcodebench's and matharena's relation dominates and applied
+  where there is none. The entropy head's costs +0.0046 on researchcodebench.
+  Where nested selection switches the transferred slope on in a single fold,
+  it loses there: +0.0046 (entropy), +0.0024 (profile) and +0.0014 (layer 36),
+  all on researchcodebench. Layer 18's, on in 3 of 4 folds, gains -0.0002
+  (-0.0018 on real_webagents, +0.0003 on multi_swebench).
+* **The per-pair slope pays its noise cost.** Forced at s = 0.5 from B7, every
+  head costs +0.0002 to +0.0011. That is a little less than its placebo,
+  except hidden_mean's (+0.00105 against +0.00089).
+
+### Verdict: replicated null
+
+The keep rule has two prongs, and each primary head must pass both:
+
+* **r prong:** a mean leave-one-benchmark-out within-benchmark Pearson r of at
+  least 0.2, positive on at least 3 of the 4 parents;
+* **ALC prong:** a nested harness test-like difference of at most -0.001, from
+  the transferred or the per-pair slope.
+
+Both prongs fail for both primary heads:
+
+* **entropy:** r = -0.05 with 2 of 4 positive; the nested lines give +0.00098
+  and +0.00003.
+* **hidden:** r = +0.12 with 3 of 4 positive, none at 0.2; the nested lines
+  give 0 and -0.000001.
+
+No secondary head passes either. The token-entropy profile and the instructed
+last-token state of Qwen3-4B-Instruct-2507 are closed as item covariates, and
+nothing ships. `experiments/hidden_state_probe.py` stays research-only.
+
+**Against the literature** (numbers as the step-2 review summarised them; not
+re-read here):
+
+* **Krsteski & Meyer's entropy profile** reached 0.137 leave-one-benchmark-out
+  Spearman on 17 agentic benchmarks, against 0.40-0.48 within benchmark. Here
+  the entropy head gives -0.07 over four held-out benchmarks. Their pooled
+  number also carries level differences between benchmarks, which hier learns
+  from labels.
+* **Agent Psychometrics' instructed embedding** reached a new-benchmark AUC of
+  0.70-0.74. That AUC pools responses, subject ability included, so the plan
+  forbids comparing it with a within-benchmark r (its rule 5).
+* **Probes find difficulty inside a dataset** (Lugoloobi & Russell,
+  arXiv:2510.18147). The within-benchmark fits here (0.59-0.69 on matharena)
+  agree. They are largely group identity, and they do not carry to an unseen
+  benchmark.
+
+**What this does not test:**
+
+* the entropy of a generated attempt, the attempt probe's lead (a reasoning
+  trace, not the reading of the task);
+* a larger reader;
+* a fine-tuned head (LoRA);
+* swe_rebench as a fifth unit;
+* the two large parents beyond their 400-item samples.
+
+**Caveats.**
+
+* **Few units.** Four units cannot tell a transferable r of 0.2 from 0. The
+  random-effects prediction intervals span about ±0.5.
+* **Two training benchmarks per inner fold** make the nested choice noisy (the
+  layer above).
+* **Standardisation over the sample.** x is standardised within benchmark over
+  the sampled items; a run-time predictor sees only the run's items.
+* **A second-order leak.** The transferred slope for held-out q is fitted on
+  the other parents' out-of-fold x, whose heads saw q's items. That favours the
+  covariate, and the result is null anyway.
+* **researchcodebench's truncation.** The head of its content is the paper's
+  LaTeX preamble, so its entropy profile mostly reads LaTeX.
+* **fp16.** The states and profiles carry fp16 batching noise (Checks, above).
+
+## Few-shot prompting
+
+`python experiments/icl_probe.py --stage select` (seconds), then `--stage run
+--passes core` (41 minutes), `--stage run --passes perm,half` (51 minutes)
+and `--stage analyse`; `python experiments/pairwise_probe.py --stage plan`, then
+`--stage run` (13 minutes) and `--stage analyse`. The runs used the one
+language-model slot in turn, as the only such job on the machine; the analyses
+take seconds on one process. Every number below is in `results/icl_probe.json`
+and `results/pairwise_probe.json`. The raw scores are in `data/icl_probe/` and
+`data/pairwise_probe/` (gitignored).
+
+Both probes read Qwen3-4B-Instruct-2507 in the attempt probe's weight-only int8
+(4.0 GB; "Running a 4B generator on the 16 GB M1"): one forward pass per prompt,
+nothing generated. The in-context probe reads the stored rows of
+`experiments/harness.py` (library 3f75a549673aae6a) and never recomputes hier.
+
+The protocol allows few-shot evidence only through the pair's own revealed
+labels, at most 31. Two probes test what a small model makes of them. They are
+the plan's step 10, and both kill rules were declared before the runs.
+
+* **In-context learning.** Shown the items this subject solved and failed so
+  far, does the 4B order the subject's remaining items better than without
+  them?
+* **Pairwise comparisons.** Asked which of two items of one benchmark is
+  harder, how often is the 4B right, and do its errors stick to items?
+
+### In-context learning over the pair's labels
+
+**Appearances.** Test-like pair appearances from the harness rows (runs 0 to
+299), at budget 15: the pair's first 15 acquired labels in the platform's
+order, and its evaluated items. An appearance is eligible when:
+
+* 2 to 13 of its 15 labels are successes (a prompt with one class teaches
+  nothing about items);
+* it has at least 20 evaluated items, subsampled to 45 in a hash order, with at
+  least 4 solved and 4 failed among them (a within-pair correlation with the
+  outcome needs both);
+* at least 80% of its items carry text (no image placeholder; on matharena also
+  at least 70 characters, the rule of "The 4B judge, closed out").
+
+1,236 of the 2,425 appearances are eligible. Four per parent were drawn in a
+seeded hash order, with distinct subjects: 16 appearances, 714 evaluated items.
+The rule keeps pairs whose rate is away from 0 and 1, where the order of items
+matters most, so it is kind to the method. Label rates run from 0.13 to 0.87,
+and evaluated rates from 0.11 to 0.83.
+
+**Prompts.** One user turn, under the system line "You are an expert at
+predicting which tasks a particular AI system can and cannot solve":
+
+* **icl**: "One AI system attempted each of them once", then the 15 labeled
+  items as examples in acquisition order, each cut to 192 tokens and marked
+  SOLVED or FAILED, then "judge a new task from the same benchmark", the
+  target, and "Did this system solve this task? Answer Yes or No."
+* **zs**: the zero-shot control on the same template, with the target alone.
+* **perm**: the 15 examples with their outcomes permuted (seeded). The base
+  rate is kept and the link between item and outcome is broken. This separates
+  learning from the labels from seeing the benchmark's items and its rate.
+* **half**: each half of the examples (7 or 8) on its own, the two scores
+  averaged: a dose between 0 and 15 examples.
+
+The target is cut to 384 tokens. The score is log p(Yes) - log p(No) of the
+first assistant token; the two tokens hold all of the next-token probability
+(mass 1.000 in every variant). The prompt's prefix is run once and its cache
+reused for each target. For a per-pair slope, the 15 labeled items are also
+scored cross-fitted: each half by the prompt whose examples are the other half.
+
+**Measures.** Per appearance, over its evaluated items:
+
+* **r_diff**: Pearson with honest easiness. Easiness is minus the Rasch b fitted
+  on the parent's subjects outside the pair's subject fold (the harness's
+  honest oracle), so the subject's own responses never enter it. This is the
+  harness value map's index, and the kill rule reads it.
+* **Outcome**: Spearman with the pair's outcome K/N (matharena has four
+  responses per item), and the AUC of solved against failed items.
+* **Net of hier**: r_diff net of a linear fit on hier's B15 logit for the same
+  items. That is what the score adds to the model that ships.
+
+Means over the 16 appearances, ± the SE over appearances. With 4 per parent,
+the mean is also benchmark-equal.
+
+| score | r_diff | r_diff net of hier | Spearman with outcome | AUC | r_diff: matharena / multi_swebench / real_webagents / researchcodebench |
+|---|---|---|---|---|---|
+| icl, 15 examples | +0.206 ± 0.040 | +0.127 ± 0.050 | +0.209 ± 0.032 | 0.607 | +0.26 / +0.18 / +0.21 / +0.17 |
+| half, 7 or 8 examples (two prompts averaged) | +0.204 ± 0.029 | +0.130 ± 0.033 | +0.192 ± 0.033 | 0.594 | +0.24 / +0.16 / +0.21 / +0.21 |
+| perm, 15 examples, outcomes permuted | +0.110 ± 0.040 | +0.071 ± 0.042 | +0.123 ± 0.032 | 0.560 | +0.15 / +0.11 / +0.08 / +0.10 |
+| zs, no examples | +0.048 ± 0.043 | +0.058 ± 0.041 | +0.041 ± 0.043 | 0.528 | +0.12 / +0.16 / -0.02 / -0.07 |
+| hier's B15 prediction | +0.150 ± 0.042 | | +0.198 ± 0.038 | 0.597 | +0.11 / +0.08 / +0.19 / +0.21 |
+| honest easiness itself | 1 | | +0.617 ± 0.039 | 0.904 | |
+
+Paired differences on the same items:
+
+| difference | r_diff | r_diff net of hier | Spearman with outcome |
+|---|---|---|---|
+| icl - zs | +0.158 ± 0.059 | +0.069 ± 0.057 | +0.169 ± 0.052 |
+| icl - perm | +0.096 ± 0.035 | +0.056 ± 0.046 | +0.086 ± 0.032 |
+| perm - zs | +0.062 ± 0.059 | +0.013 ± 0.063 | +0.083 ± 0.044 |
+| icl - half | +0.002 ± 0.028 | -0.003 ± 0.032 | +0.017 ± 0.027 |
+| half - zs | +0.156 ± 0.052 | +0.072 ± 0.044 | +0.152 ± 0.052 |
+
+* **The labels help.** icl - zs is +0.158 ± 0.059 in r_diff. By parent it is
+  +0.15, +0.02, +0.23 and +0.24, and it is positive on every parent in the
+  outcome correlation. Zero-shot, the 4B orders nothing: +0.05 ± 0.04, negative
+  on real_webagents and researchcodebench, as the zero-shot judge was ("The 4B
+  judge, closed out").
+* **Most of the gain is the mapping, not the context.** With the outcomes
+  permuted, r_diff is +0.110. icl - perm is +0.096 ± 0.035, positive on every
+  parent (+0.12, +0.07, +0.13, +0.07). So about 60% of the gain over zero-shot
+  comes from which items were solved. The rest comes from seeing the
+  benchmark's items (perm - zs +0.062 ± 0.059).
+* **Seven examples already give all of it.** With half the examples (7 or 8
+  per prompt) r_diff is +0.204 ± 0.029; icl - half is +0.002 ± 0.028. The
+  score's order saturates by about 7 examples.
+* **It stays below 0.3.** r_diff is below 0.3 on every parent, and above it on
+  4 of the 16 appearances (the best +0.52, on a real_webagents stratum).
+* **Much of it is what hier already reads from the same labels.** Net of hier's
+  B15 logit, r_diff falls from +0.206 to +0.127. hier's own within-pair order
+  gives +0.150 on these items, from item_features groups and floors. Net of
+  hier, the mapping's part (icl - perm) is +0.056 ± 0.046 in r_diff and +0.016
+  ± 0.033 in the Pearson correlation with the outcome. On researchcodebench,
+  where three of the four pairs are wholes over many papers, the net r_diff is
+  +0.01: the prompt learns which papers the subject solves, as hier's group
+  effects do.
+* **It does not read the subject's level.** Under icl the mean P(Yes) is 0.61
+  to 1.00 while the evaluated rates run from 0.11 to 0.83. Across the 16
+  appearances that mean correlates +0.57 with the evaluated rate (+0.48 with
+  the outcomes permuted). The share of solved labels itself correlates +0.84,
+  and hier's mean B15 prediction +0.83. Zero-shot, the 4B says No to every
+  researchcodebench task (mean P(Yes) at most 0.002), and its mean correlates
+  +0.14 with the rate.
+
+### What in-context scores would be worth
+
+**Through the value map.** The harness's honest gate table maps a covariate's
+mean within-pair r to test-like ALC ("The gate table"). Read by linear
+interpolation at each score's r_diff (`implied_alc` in the results file), and,
+in the rows marked "net", at its r_diff net of hier: the in-context scores read
+the same 15 labels hier reads, so what they can add to hier is the net r, not
+the raw one. (The net rows are the same interpolation in
+`results/harness_thresholds.json`'s honest table, at the net r_diff of
+`results/icl_probe.json`; they are not stored.)
+
+| score | r_diff | transferred nested | per-pair nested | transferred from B1, forced | transferred from B7, forced | per-pair s = 0.5 from B7, forced |
+|---|---|---|---|---|---|---|
+| icl | 0.206 | -0.0017 | -0.0002 | -0.0018 | -0.0011 | -0.0001 |
+| icl, net of hier | 0.127 | -0.0005 | -0.0001 | -0.0007 | -0.0004 | +0.0004 |
+| half | 0.204 | -0.0017 | -0.0002 | -0.0018 | -0.0010 | -0.0001 |
+| half, net of hier | 0.130 | -0.0005 | -0.0001 | -0.0007 | -0.0004 | +0.0004 |
+| perm | 0.110 | -0.0004 | 0 | -0.0005 | -0.0003 | +0.0005 |
+| zs | 0.048 | -0.0001 | 0 | -0.0001 | -0.0001 | +0.0007 |
+
+Both nested lines are short of the gate's -0.002. At the net r the
+transferred line is -0.0005, a third of the raw reading, and the direct B15
+check below agrees with the lower one. The table's draws pass the
+gate on 1 of 8 at within-pair r 0.16 and on 6 of 8 at 0.25, so a single
+covariate at 0.21 would pass roughly half the time with a transferred slope.
+With a per-pair slope no draw passes up to within-pair r 0.33. The reading is an
+upper bound twice over:
+
+* The table's covariates act at every budget from B1. In-context scores at B1
+  and B3 see 1 and 3 examples. From 7 examples on they reach their full r
+  (the half row), so the transferred slope switched on at B7, -0.0011, is the
+  safer reading.
+* The selection keeps the mid-rate pairs with text.
+
+One thing points the other way. r_diff counts only what the score shares with
+difficulty, and an in-context score could also carry the subject's own pattern.
+The next check counts that too.
+
+**A direct check at B15.** The score enters as a logit offset on hier's B15
+prediction for the same evaluated items, centred over them and capped as in the
+harness. The slope is either transferred (fitted on the other parents'
+appearances, on their B15 Brier) or per pair (the harness's MAP from the 15
+cross-fitted labels, prior sd 0.5 per within-pair sd of the score). Brier
+differences at B15 against hier, over the 16 appearances (± SE):
+
+| x | transferred slope | per-pair slope |
+|---|---|---|
+| icl | -0.0020 ± 0.0015 | +0.0034 ± 0.0039 |
+| half | -0.0033 ± 0.0021 | (no cross-fitted scores) |
+| perm | -0.0013 ± 0.0014 | (no cross-fitted scores) |
+| zs | +0.0007 ± 0.0006 | +0.0014 ± 0.0019 |
+| honest easiness | -0.0765 ± 0.0125 | -0.0502 ± 0.0081 |
+
+* **A transferred slope** gains -0.0020 ± 0.0015 at B15, not distinguishable
+  from 0. It gains on multi_swebench (-0.0064) and researchcodebench (-0.0033)
+  and loses on real_webagents (+0.0014). At B15's weight of 0.2 that is -0.0004
+  of ALC. The half-prompt score gives -0.0033 ± 0.0021, and loses on matharena
+  (+0.0038).
+* **A per-pair slope** costs +0.0034 ± 0.0039: 15 labels do not fit a slope.
+* **For scale**, honest easiness through the same path gains -0.077
+  (transferred) and -0.050 (per pair). The in-context score takes 3% of that.
+
+**Cost.** The core pass read 568,168 prompt tokens in 41 minutes (231 a
+second), 2.6 minutes per appearance; the two controls read 624,729 tokens in 51
+minutes. A formative run evaluates about 1,000 subject-item pairs at each of
+five labeled checkpoints: about 1.5 M prompt tokens, or about 1.8 hours here.
+On a data-centre GPU that is minutes. Workers are recreated at every
+checkpoint, so each would load the model again.
+
+### Verdict: KILL
+
+The rule: kill in-context learning if r_diff(icl) - r_diff(zs) < 0.1 or
+r_diff(icl) < 0.3.
+
+* **The gain prong passes.** icl - zs = +0.158 ± 0.059.
+* **The level prong fails.** r_diff(icl) = +0.206 ± 0.040, and it is below 0.3
+  on every parent.
+
+In-context learning over the pair's own labels with a 4B reader is closed. It
+does learn from the labels, which the zero-shot judge could not, and most of
+what it learns is the mapping itself. But what it learns mostly duplicates what
+hier learns from the same labels, and 7 examples already give all of it. The
+value map puts it at about -0.0017 with the nested transferred slope and
+-0.0011 from B7 at its raw r, and at -0.0005 and -0.0004 at its r net of hier,
+which is what it could add; the direct B15 check (about -0.0004 of ALC) does
+not separate it from 0.
+
+### Pairwise comparisons
+
+**Pairs.** For each parent, a pool of 20 items from the hidden-state probe's
+stratified sample, taken systematically over honest difficulty (the average over
+the five folds). The pool is put in a seeded order and compared along a
+circulant graph: 50 comparisons per parent, every item in exactly 5, 200 in all.
+25 of them fall inside an item_features group.
+
+**Prompt.** The anchored-comparisons study's prompt: the two tasks, each cut to
+512 tokens, then "Which task do FEWER of them solve correctly, that is, which
+task is harder? Answer with one letter, A or B." Both presentation orders are
+run (400 prompts). The score h is the logit difference between the two letters,
+averaged over the orders and oriented so that h > 0 says the first item of the
+pair is harder. q is the share of comparisons where the sign of h matches the
+sign of the honest difficulty gap; "honest" here is the fold-averaged (≈
+in-sample) difficulty of "The 4B judge, closed out", which slightly favours
+the comparator. The Wilson intervals below treat the comparisons as
+independent, but every item sits in five of them, so they are too narrow; the
+item-block bootstrap (pooled [0.429, 0.659]) is the interval to quote, and the
+per-parent Wilson intervals are indicative. The equivalent r is sin(pi (q - 1/2)): the
+correlation with difficulty that an absolute score of the same q would have
+(Greiner's relation, bivariate normal).
+
+| slice | n | q [95% Wilson] | equivalent r | share answered "A" | same item from both orders |
+|---|---|---|---|---|---|
+| pooled | 200 | 0.540 [0.471, 0.608] | +0.13 | 0.83 | 0.29 |
+| matharena | 50 | 0.560 [0.423, 0.688] | +0.19 | 0.87 | 0.26 |
+| multi_swebench | 50 | 0.450 [0.321, 0.587] | -0.16 | 0.90 | 0.20 |
+| real_webagents | 50 | 0.560 [0.423, 0.688] | +0.19 | 0.55 | 0.70 |
+| researchcodebench | 50 | 0.590 [0.452, 0.715] | +0.28 | 1.00 | 0.00 |
+
+The absolute signals on the same comparisons, oriented by their declared sign:
+
+| signal (one call per item) | comparisons | q | the comparator's q on them |
+|---|---|---|---|
+| hidden-state probe, layer-9 head (best on all 200) | 200 | 0.542 | 0.540 |
+| hidden-state probe, entropy head | 200 | 0.532 | 0.540 |
+| hidden-state probe, hidden head | 200 | 0.527 | 0.540 |
+| log length | 200 | 0.480 | 0.540 |
+| 4B judge, digit rating | 90 | 0.600 | 0.511 |
+| 4B judge, digit entropy | 90 | 0.556 | 0.511 |
+
+The heads are the probe's out-of-fold predictions, fitted on the other three
+parents. The judge rated only matharena and multi_swebench.
+
+* **The 4B does not order items by difficulty.** Pooled q is 0.540 (item-block
+  bootstrap [0.429, 0.659]), and 0.45 on multi_swebench. By |gap| tercile q is
+  0.50, 0.49 and 0.63: only gaps above 3.5 logits come out at all. Within an
+  item_features group q is 0.42 (25 comparisons).
+* **It answers by position.** 83% of the prompts are answered with the first
+  task, and all of them on researchcodebench. Only 29% of pairs get the same
+  item from both orders (none on researchcodebench, 70% on real_webagents).
+  Either order alone gives 0.51 or 0.53. Averaging the orders keeps only the
+  logit's magnitude.
+* **An absolute signal does as well on the same pairs, at a fraction of the
+  calls.** The best on all 200 comparisons, the layer-9 head, gives 0.542. The
+  4B judge's own digit rating, one call per item, gives 0.600 on its 90 rated
+  comparisons, where the comparator gives 0.511.
+* **Its errors stick to items.** The residual of h on the gap correlates +0.42
+  between comparisons that share an item. Under h = a gap + e_i - e_j + noise,
+  that makes 84% of the comparator's error variance a per-item term. The 4B
+  compares its own impression of each item, and that impression is not
+  difficulty: Bradley-Terry scores fitted from its five comparisons per item
+  correlate +0.36, -0.07, +0.23 and +0.17 with honest b over each pool. More
+  comparisons per item would not wash that out. The binary errors show the same
+  more weakly: the variance of the wrong-answer count per item is 1.17 times
+  its permutation null (p = 0.12).
+
+### Verdict: DROP
+
+The rule: drop comparisons if pooled q < 0.60, or if q < the best absolute
+signal on the same pairs + 0.03. Both prongs hold: q = 0.540, against 0.60 and
+against 0.542 + 0.03. Anchored comparisons with the 4B are dropped. Its errors
+are mostly per item, so more comparisons per item would not rescue them.
+
+**Against the literature** (numbers as the step-2 review summarised them; Min
+et al. and Wei et al. are cited from memory and not re-read):
+
+* **Small models and demonstration labels.** Min et al. 2022 ("Rethinking the
+  Role of Demonstrations", arXiv:2202.12837) and Wei et al. 2023 ("Larger
+  language models do in-context learning differently", arXiv:2303.03846)
+  report that small models lean on the format and label space of the
+  demonstrations more than on the mapping. The permuted control here shows the 4B does read
+  the mapping (icl - perm +0.10). What it reads mostly duplicates hier.
+* **Generalized Correctness Models** (Xiao et al., arXiv:2509.24988). In-context
+  learning with 5 retrieved correctness examples helped Qwen3-32B (+4.6%
+  accuracy) but not Qwen3-8B. The 4B here gains +0.16 in r over zero-shot, and
+  stays below what would ship.
+* **Kolesnikova et al.** (arXiv:2605.18562). With GPT-4o, DeepSeek-V3.2 and
+  Qwen3-235B, pairwise judgements beat absolute ones by 0.12-0.15 Spearman
+  against human difficulty. The 4B's comparisons are at the absolute signals'
+  level here and collapse into a position bias.
+* **Ballon et al.** (arXiv:2512.14220). o3 and Gemini 2.5 Pro comparisons track
+  human difficulty labels at 0.80-0.82, but the performance of language models
+  only at 0.22-0.24. The target here is model performance.
+* **Krsteski & Meyer** (arXiv:2608.05797) report a within-benchmark pairwise
+  accuracy of about 0.60 leave-one-benchmark-out for their best linear head.
+  The 4B comparator's 0.54 is below it.
+
+**What this does not test:**
+
+* a larger reader (the plan's step 8, on a GPU);
+* in-context learning at other budgets, or with retrieved rather than
+  acquisition-order examples;
+* comparisons against labeled anchors from the pair's own items;
+* a correction for the comparator's position bias beyond averaging the orders.
+
+**Caveats.**
+
+* **Sixteen appearances and 200 comparisons.** The SEs are over appearances or
+  comparisons. Four parents cannot show variation between benchmarks.
+* **The selection favours in-context learning** (mid-rate pairs with text), so
+  the value-map reading is an upper bound.
+* **int8.** The attempt probe measured int8 against fp16 at 0.98-0.99
+  correlation on log-probabilities. The scores here were not re-run in fp16.
+* **Pools of 20 items.** Bradley-Terry correlations over 20 items have wide
+  intervals.
+
+## Fine-tuning an encoder
+
+`python experiments/finetune_encoder.py --stage data` (25 seconds), then
+`--stage lora-cache --resume` (12 minutes: 1.45M tokens at 2,023 tokens a
+second), `--stage lora --resume` (2 h 58 min for the 12 runs on the M1's MPS,
+one process), `--stage eval` (4 minutes, 1 GB), `--stage harness` (4 minutes,
+0.7 GB), `--stage verdict` and `--stage show`. The two model stages were the
+only language-model job on the machine. Every number below is in
+`results/finetune_encoder.json`. The cached states (2.8 GB) and the runs are in
+`data/finetune/` (gitignored). The harness stage reads the stored rows of
+`experiments/harness.py` (library 3f75a549673aae6a) and never recomputes hier.
+
+The frozen embedding carried nothing to an unseen benchmark ("Neural embeddings
+do not carry difficulty to an unseen benchmark"). Every frozen-feature head
+since was switched off by nested selection. What was left untested is training
+the encoder itself, with a loss that asks only for the order of items inside a
+benchmark. This is that test, run once. The plan's gate was declared before any
+result: GO only if held-out r >= 0.3 on at least 3 of the 4 parents AND a
+nested test-like ΔALC <= -0.002. The literature prior was 10-15%: ADeLe's
+LoRA-tuned 8B scored 0.692 AUROC out of distribution against a rubric's 0.747.
+
+**The model.** Qwen3-Embedding-0.6B in float32. It reads llmfeat's item text
+(item_content, a newline, item_features), cut to 512 tokens with the
+end-of-text token: head and tail around the marker, where the frozen features
+used 2,048. The pooled embedding is the end-of-text token's final state,
+normalised, as in llmfeat.
+
+* **Frozen lower layers.** Layers 0-21 stay frozen. The residual stream
+  entering layer 22 is computed once per item and cached in float16.
+* **Adapters on the top six layers.** Low-rank adapters, written in plain torch
+  (no peft), sit on every linear map of attention and MLP (q, k, v, o, gate, up,
+  down): rank 16, alpha 32, B starting at zero. That is 2.2M trained
+  parameters, plus a linear head on the pooled embedding. A step runs the six
+  layers only, with gradient checkpointing per layer.
+* **No adapter dropout.** On MPS, checkpointing does not replay dropout masks.
+  With dropout 0.05, gradients with and without checkpointing differed by 0.55,
+  against a largest gradient of 0.44. With no dropout they agreed exactly.
+
+**The loss**, per batch of 16 items of one benchmark:
+
+* RankNet over every pair in the batch, each pair weighted by its target gap
+  (clipped at 2);
+* plus 0.1 × the MSE between the batch-centred scores and the batch-centred
+  standardised targets.
+
+A benchmark's level never enters, since the harness standardises x within
+benchmark.
+
+**Targets.**
+
+* **Parents:** the fold-averaged (≈ in-sample) difficulty (Rasch b fitted
+  without each of five subject folds, then averaged), standardised within
+  benchmark. It is essentially the in-sample b, so the held-out r below is
+  slightly optimistic against the gate table's fold-specific r ("The 4B judge,
+  closed out", Against honest difficulty); the bias favours the encoder.
+* **swe_rebench, training only:** minus the logit of the item's smoothed
+  success rate over the one subject's roughly 10 trials, on 1,500 items drawn
+  at random.
+* **Strong-tier difficulty** is reported but never trained on. It is Rasch b
+  over the pairs at or above the parent's median ability.
+* **In-distribution check (idv):** 15% of each benchmark's items (at most 200)
+  are held out of every training run. They show whether training learns
+  anything at all.
+
+**Protocol.** Four leave-one-benchmark-out folds over the four parents. For
+held-out parent q, each of the other three parents v in turn is the inner
+early-stopping benchmark, and the remaining two plus swe_rebench are trained on.
+That makes 12 runs, 49-72 steps an epoch.
+
+* **Epoch 0** is the frozen embedding with a ridge head, its alpha chosen on v.
+  The ridge also initialises the head: linear probe, then fine-tune.
+* **Epochs 1-3** each draw up to 384 items per training benchmark, in
+  single-benchmark batches in random order. The optimiser is AdamW: adapters at
+  2e-4, the head at 1e-3, weight decay 0.01, 20 warm-up steps then linear
+  decay, gradients clipped at 1.
+* **Early stopping** keeps the epoch (0-3) with the best Pearson on v. It never
+  sees q.
+* **The primary ("finetuned")** is q's prediction: the mean of the three inner
+  models' predictions, each standardised within q.
+
+**Baselines**, on the same items and targets:
+
+* **frozen_nested:** epoch 0 of the same 12 runs. It uses the same data, the
+  same nested choice and the same ensembling, and differs only in the
+  training.
+* **frozen_lobo512:** a ridge on the 512-token frozen embedding, fitted on all
+  three other parents plus swe_rebench, with alpha chosen by inner
+  leave-one-benchmark-out.
+* **frozen_lobo2048:** the same on the stored 2,048-token embeddings, without
+  swe_rebench, which has none stored.
+* The published `results/emb_transfer.json` line (in-sample target, 2,048
+  tokens) is quoted as it stands.
+
+**The configuration was picked on the in-distribution check only.** Three
+settings were piloted for one epoch on one run (held-out researchcodebench,
+inner real_webagents), reading only the idv items. The mean change in idv r
+over the three training benchmarks was:
+
+| setting | mean change in idv r |
+|---|---|
+| ridge head, adapters at 2e-4 (the declared setting) | +0.004 |
+| zero head | -0.055 |
+| ridge head, adapters at 1e-3 | -0.027 |
+
+The declared setting was kept. q's predictions from the pilots were not read.
+
+**Checks.**
+
+* **The frozen pass reproduces the stored embeddings.** Cosine against
+  data/features on items short enough that both read the same tokens: minimum
+  0.99999 (1,505 matharena, 1,454 multi_swebench, 233 real_webagents items).
+* **The adapted model at step 0 is the frozen one.** Through the cached float16
+  states, scores correlate 0.99999995 with the frozen embedding's (64 items,
+  largest difference 0.0004 on an sd of 0.58).
+* **Two MPS out-of-memory crashes** stopped the runs, both in evaluating
+  multi_swebench as the inner benchmark: in the eighth run, then in epoch 2 of
+  the eleventh. The first lost that run's first epoch and it was redone. The
+  second resumed from its epoch-1 checkpoint and redid epoch 2 with the same
+  batches. The script now frees memory between runs and before each
+  evaluation. The last pass ran with the MPS cap at 0.7 of the recommended
+  working set instead of 0.6. Nothing else changed.
+
+### Held-out r
+
+Pearson against honest difficulty over the held-out parent's item_ids, with 95%
+intervals from a bootstrap over item_features groups (multi_swebench's
+resample 8 languages and are indicative). The last column is a
+DerSimonian-Laird random-effects mean over the four parents, with its
+prediction interval for a new benchmark; with four units it is indicative.
+
+| predictor | matharena | multi_swebench | real_webagents | researchcodebench | >= 0.3 | random effects [PI] |
+|---|---|---|---|---|---|---|
+| finetuned (primary) | -0.08 [-0.22, +0.06] | +0.05 [-0.01, +0.10] | -0.09 [-0.32, +0.15] | -0.11 [-0.41, +0.10] | 0/4 | -0.05 [-0.43, +0.35] |
+| frozen_nested | -0.07 [-0.20, +0.06] | +0.05 [-0.02, +0.10] | -0.12 [-0.33, +0.14] | -0.09 [-0.38, +0.14] | 0/4 | -0.05 [-0.40, +0.32] |
+| finetuned, epoch 3 forced | -0.07 [-0.22, +0.08] | +0.06 [+0.01, +0.11] | -0.09 [-0.30, +0.16] | -0.13 [-0.42, +0.09] | 0/4 | -0.05 [-0.44, +0.36] |
+| frozen_lobo512 | -0.03 [-0.15, +0.07] | +0.04 [-0.02, +0.08] | -0.21 [-0.35, -0.01] | -0.01 [-0.30, +0.17] | 0/4 | -0.04 [-0.37, +0.30] |
+| frozen_lobo2048 | -0.13 [-0.25, -0.01] | -0.03 [-0.11, +0.01] | -0.13 [-0.32, +0.07] | +0.06 [-0.29, +0.34] | 0/4 | -0.07 [-0.36, +0.24] |
+| emb_transfer, published (in-sample target) | -0.16 [-0.29, -0.04] | -0.03 [-0.16, +0.04] | -0.23 [-0.44, -0.01] | -0.02 [-0.32, +0.26] | 0/4 | |
+
+Fine-tuned minus frozen_nested, paired over the same items (group bootstrap):
+-0.01 [-0.02, +0.01], +0.00 [-0.01, +0.02], +0.03 [-0.01, +0.06] and -0.02
+[-0.11, +0.04]. Against strong-tier difficulty the primary gives -0.11, +0.02,
+-0.11 and -0.11 (frozen_nested -0.10, +0.02, -0.13, -0.09). Within
+item_features group, Spearman is -0.04, +0.05, +0.01 and -0.03. On
+text-bearing matharena items it is -0.07 [-0.19, +0.07].
+
+* **The r prong fails outright.** No parent comes near 0.3. The primary is
+  positive only on multi_swebench (+0.05), and its random-effects mean is -0.05.
+* **Training changes nothing out of distribution.** The paired difference from
+  the frozen control is within ±0.03 on every parent, and every interval spans
+  0. The fixed epochs agree: forced to epoch 1, 2 or 3, the mean over parents
+  is -0.052, -0.058 and -0.058, against -0.056 for the frozen control.
+* **The frozen baselines replicate the old null** on the honest target and on
+  both input lengths. Truncating to 512 tokens loses nothing that transferred.
+
+### What the training did learn
+
+The inner and in-distribution curves, over the 12 runs:
+
+| epoch | 0 (frozen ridge) | 1 | 2 | 3 |
+|---|---|---|---|---|
+| mean r on the inner benchmark v | (baseline) | +0.012 | +0.002 | +0.003 |
+| runs whose v improved | | 10/12 | 6/12 | 6/12 |
+| runs whose early stopping picked this epoch | 2 | 6 | 2 | 2 |
+| idv r, multi_swebench | 0.118 | 0.144 | 0.164 | 0.176 |
+| idv r, swe_rebench | 0.125 | 0.127 | 0.149 | 0.161 |
+| idv r, matharena | 0.595 | 0.578 | 0.609 | 0.621 |
+| idv r, researchcodebench | 0.620 | 0.577 | 0.623 | 0.627 |
+| idv r, real_webagents | 0.259 | 0.256 | 0.236 | 0.233 |
+
+The inner row gives the change from epoch 0. Each idv row averages the runs
+that trained on that benchmark.
+
+* **It learns inside the benchmarks it trains on.** By epoch 3, idv r rises
+  +0.058 on multi_swebench, +0.037 on swe_rebench and +0.026 on matharena: the
+  three training sets that fill a whole epoch. It falls 0.026 on real_webagents
+  (233 items).
+* **None of that reaches a benchmark it did not train on.** The inner benchmark
+  gains +0.012 after the first epoch and about nothing after that. The held-out
+  parent's paired difference is 0.
+* **Early stopping mostly stopped early.** It kept epoch 0 or 1 in 8 of 12
+  runs. The training batches' pairwise accuracy stayed between 0.57 and 0.78,
+  and rose by at most 0.04 from epoch 1 to epoch 3 in any run. The adapters
+  fit their training benchmarks only a little more tightly as training went
+  on.
+
+### Through the harness
+
+The out-of-fold predictions as covariates on the stored rows, by
+hidden_state_probe's recipe. The primary's placebo (x permuted within
+benchmark, three draws) is in the last column. Test-like differences ± the
+pair-cluster SE, with the folds where nested selection switched the term on:
+
+| covariate, line | test-like | multi_swebench held out | mix/whole | folds on | gate | placebo |
+|---|---|---|---|---|---|---|
+| finetuned, transferred nested | +0.00048 ± 0.00010 | +0.00119 | +0.00042 | 1/4 | fail | +0.00002 |
+| finetuned, per-pair nested | 0 | 0 | 0 | 0/4 | fail | -0.00000 |
+| finetuned, B0 term nested | +0.00020 ± 0.00004 | +0.00049 | +0.00024 | 1/4 | fail | +0.00000 |
+| finetuned, transferred from B1 (forced) | +0.00026 ± 0.00013 | +0.00119 | +0.00023 | | | +0.00007 |
+| finetuned, per-pair s = 0.5 from B7 (forced) | +0.00061 ± 0.00011 | +0.00035 | +0.00043 | | | +0.00056 |
+| frozen_nested, transferred nested | +0.00047 ± 0.00009 | +0.00116 | +0.00041 | 1/4 | fail | |
+| finetuned epoch 3, transferred nested | +0.00048 ± 0.00010 | +0.00118 | +0.00041 | 1/4 | fail | |
+| frozen_lobo512, transferred nested | +0.00042 ± 0.00008 | +0.00104 | +0.00043 | 1/4 | fail | |
+
+The mean correlation with honest difficulty over a test-like pair's evaluated
+items is -0.045 for the primary (-0.055 frozen_nested, -0.060 frozen_lobo512).
+
+* **Nothing gains.** Every nested line is 0 or a loss. The one fold where the
+  transferred slope switches on is multi_swebench held out, and there it costs
+  +0.0012. On the other three parents x orders items the wrong way (r -0.08 to
+  -0.11). Fitted on each of them alone, the transferred slope is +0.08 to +0.19
+  logits per unit of x from B1 to B31. Fitted on multi_swebench alone it is
+  -0.08 to -0.12. The slope carried to multi_swebench therefore points the
+  wrong way there. The frozen control's slopes are the same to within 0.01.
+* **The per-pair slope stays off** in every fold. Forced at s = 0.5 from B7 it
+  costs +0.0006, the same as its placebo (+0.00056): the noise cost of a slope
+  learned from 31 labels on an uninformative x.
+* **The fine-tuned lines match the frozen ones** to within 0.00001.
+
+### Verdict: KILL
+
+The gate: held-out r >= 0.3 on at least 3 of 4 parents AND a nested test-like
+ΔALC <= -0.002 on the transferred or per-pair line.
+
+* **r prong:** 0 of 4 parents reach 0.3. The best is multi_swebench's +0.05.
+* **ALC prong:** the transferred line is +0.00048 and the per-pair line 0. The
+  harness gate also fails on every nested line.
+
+Fine-tuning Qwen3-Embedding-0.6B to rank items by difficulty does not transfer
+to an unseen benchmark. It moves held-out r by nothing measurable from the
+frozen embedding it started from (paired difference -0.02 to +0.03, every
+interval across 0). It does learn a little inside the benchmarks it trains on.
+The encoder is closed as an item covariate, nothing ships, and
+`experiments/finetune_encoder.py` stays research-only. Per the plan, this does
+not escalate to a 4B GCM-style LoRA classifier.
+
+**Against the literature** (numbers as the step-2 review summarised them):
+
+* **ADeLe** (Zhou et al., arXiv:2503.06378). A LoRA-tuned LLaMA-8B scored 0.692
+  AUROC out of distribution, below a rubric's 0.747. That comparison pools
+  subject ability, so it cannot be set against a within-benchmark r (the plan's
+  rule 5). The direction agrees: fine-tuning a text model on success labels is
+  weak out of distribution.
+* **Krsteski & Meyer** (arXiv:2608.05797). Extra capacity helped within
+  benchmark (K-fold), not leave-one-benchmark-out, and embeddings gave 0.02
+  LOBO Spearman. Here fine-tuning raised in-distribution r by up to 0.06 and
+  LOBO r by 0.
+* **Kumar et al. 2022**, fine-tuning distorts pretrained features (cited from
+  memory, not re-read). Linear-probe-then-fine-tune is their remedy for
+  out-of-distribution loss, and it is the recipe here. With frozen features
+  that already transfer at 0, there was nothing to keep.
+
+**What this does not test:**
+
+* adapters on all 28 layers, or full fine-tuning (six layers were what fit the
+  time on the M1);
+* more than 3 epochs, or more than about 1,100 items an epoch;
+* other losses (pointwise regression alone, listwise), or other targets for
+  training (strong-tier, recent subjects);
+* a larger encoder, or a decoder LLM (the plan rules out a 4B classifier);
+* more training benchmarks: two parents plus swe_rebench per run is all the
+  nested design leaves.
+
+**Caveats.**
+
+* **Four units.** The random-effects prediction interval for a new benchmark
+  spans about ±0.4. That cannot tell a transferable r of 0.2 from 0, and it can
+  tell neither from 0.3 on any single parent.
+* **Two training parents per run.** Early stopping on a third parent leaves two
+  parents and swe_rebench to train on, which favours the null. The frozen
+  baseline fitted on all three parents (frozen_lobo512) is no better.
+* **Standardisation over the whole benchmark.** x is standardised within
+  benchmark over all its items, where a run-time predictor sees only the run's
+  items.
+* **A second-order leak.** The harness's transferred slope for held-out q is
+  fitted on the other parents' out-of-fold x, and the encoders that produced
+  it were trained on q's items. Like the fold-averaged target, that favours
+  the covariate, and the result is null anyway.
+* **The pilot** used one run's idv items to choose between three settings. It
+  never read an outer fold, and the chosen setting was the one declared first.
+* **MPS nondeterminism.** A resumed epoch reuses the same batches but not
+  bit-identical arithmetic.

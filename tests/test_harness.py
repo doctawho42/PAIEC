@@ -118,6 +118,29 @@ def test_select_turns_off_unless_below_zero():
     assert H.select({}) is None
 
 
+def test_select_with_a_margin_of_inner_ses():
+    crit = {"a": -0.001, "b": -0.003}
+    se = {"a": 0.0005, "b": 0.004}
+    assert H.select(crit, se, 0.0) == "b"
+    assert H.select(crit, se, 1.0) == "a"            # b is within one SE of 0, a is two SEs below
+    assert H.select(crit, se, 3.0) is None
+    assert H.select({"a": -0.001}, {"a": 0.0}, 1.0) == "a"   # a zero SE is no margin
+
+
+def test_linearised_cluster_se_matches_the_bootstrap():
+    rng = np.random.default_rng(6)
+    n = 3000
+    cl = rng.integers(0, 150, n)
+    eff = rng.normal(0, 1, 150)
+    d = eff[cl] + rng.normal(0, 1, n)
+    w = rng.uniform(0.2, 1.0, n)
+    lin = H.lin_se(d, w, cl.astype(str))
+    boot = H.boot_se(d, w, cl.astype(str), None, 4000)
+    assert lin == pytest.approx(boot, rel=0.06)
+    assert H.lin_se(np.full(n, 0.2), w, cl) == pytest.approx(0.0, abs=1e-12)
+    assert H.lin_se(d, w, np.zeros(n)) == 0.0          # one cluster: nothing to estimate
+
+
 def test_gate():
     def line(tl, mix, worst, guard, on):
         reg = {"tl": {"est": tl, "worst_parent": worst}, "mix": {"est": mix},
@@ -232,9 +255,13 @@ def test_the_oracle_gains_and_selection_switches_it_on(world):
     assert beta[0] == 0.0 and np.all(beta[1:] < 0)       # harder items, lower predictions
     for v in H.VARIANTS:
         dB, ch = H.nested(eng, v)
-        assert sum(ch[q]["choice"] is not None for q in H.PARENTS) >= 3
+        assert H.folds_on(ch) >= 3
         d = dB["tl"] @ H.W6
         assert H.weighted_mean(d, rows["tl"].w) < -0.005
+        if v == "b0":
+            assert np.all(dB["tl"][:, 1:] == 0.0)        # the uncentred term acts at B0 only
+            assert H.weighted_mean(dB["tl"][:, 0], rows["tl"].w) < 0
+            continue
         assert np.all(dB["tl"][:, 0] == 0.0)             # nothing labeled at B0
         if v == "per-pair":
             assert np.all(dB["tl"][:, 1] == 0.0)         # one own label carries no slope
@@ -290,3 +317,159 @@ def test_base_matrix_standardises_within_parent_and_skips_other_items():
     assert list(has[0]) == [True] * 5 + [False] and list(has[1]) == [True, False, True, True, True, False]
     assert Z[0, :3] == pytest.approx([-1.2247449, 0, 1.2247449], abs=1e-6)
     assert Z[0, 3:5] == pytest.approx([-1, 1]) and Z[1, [0, 2]] == pytest.approx([-1, 1])
+
+
+# --- the audit's fixes: scale, standardisation, folds on, B0, selection-aware SE -------
+
+def parent_of_key(k):
+    return k.split(":")[0]
+
+
+def test_within_scale_ignores_benchmark_offsets_and_absent_parents(world):
+    """A covariate with a benchmark-level offset and absent on one parent: the
+    per-pair prior (Engine.sd, 'within') and so every per-pair line are the
+    same whatever the offsets; the legacy pooled sd is not."""
+    rows, keys, truth = world
+    absent = H.PARENTS[2]
+    base = {k: v for k, v in truth.items() if parent_of_key(k) != absent}
+    shift = {H.PARENTS[0]: 5.0, H.PARENTS[1]: -3.0, H.PARENTS[3]: 0.7}
+    moved = {k: v + shift[parent_of_key(k)] for k, v in base.items()}
+    e1 = H.Engine(rows, H.Covariate.from_dict(base, keys))
+    e2 = H.Engine(rows, H.Covariate.from_dict(moved, keys))
+    for train in (H.PARENTS, H.PARENTS[:3], H.PARENTS[1:], (H.PARENTS[0], H.PARENTS[2])):
+        assert e1.sd(train) == pytest.approx(e2.sd(train), rel=1e-12)
+    # the absent parent (x constant, 0) does not shrink the unit
+    assert e1.sd(H.PARENTS) == pytest.approx(e1.sd(tuple(p for p in H.PARENTS if p != absent)), rel=1e-12)
+    for c in [c for c in H.configs_of("per-pair") if c[2] == 1][:3]:
+        for reg in rows:
+            assert np.allclose(e1.delta(reg, c, H.PARENTS[:3]), e2.delta(reg, c, H.PARENTS[:3]), atol=1e-12)
+    p1 = H.Engine(rows, H.Covariate.from_dict(base, keys), scale="pooled")
+    p2 = H.Engine(rows, H.Covariate.from_dict(moved, keys), scale="pooled")
+    assert p2.sd(H.PARENTS) > 1.5 * p1.sd(H.PARENTS)    # the offsets inflate the legacy unit
+    with pytest.raises(ValueError):
+        H.Engine(rows, H.Covariate.from_dict(base, keys), scale="other")
+
+
+def test_standardised_follows_itemcov_eval_rule():
+    rng = np.random.default_rng(8)
+    items = {"a": [f"a{i}" for i in range(50)], "b": [f"b{i}" for i in range(40)],
+             "c": [f"c{i}" for i in range(30)]}
+    x = {f"a{i}": 10 + 3 * rng.normal() for i in range(50)}
+    x["a0"] = 1e6                                          # an outlier: clipped
+    x.update({f"b{i}": float(i < 5) for i in range(40)})   # 5 items off the mode: no x on b
+    x.update({f"c{i}": float(i) for i in range(20)})       # c: 20 of its 30 items carry x
+    x["zz"] = 4.0                                          # on no benchmark
+    z = H.standardised(x, items)
+    assert not any(k.startswith("b") for k in z) and "zz" not in z
+    assert set(k for k in z if k.startswith("c")) == {f"c{i}" for i in range(20)}
+    za = np.array([z[f"a{i}"] for i in range(50)])
+    assert za.max() == H.CLIP and np.all(np.abs(za) <= H.CLIP)
+    zc = np.array([z[f"c{i}"] for i in range(20)])
+    assert zc.mean() == pytest.approx(0, abs=1e-12) and zc.std() == pytest.approx(1)
+    # an affine map within a benchmark changes nothing
+    y = {k: (-2 * v + 7 if k.startswith("c") else v) for k, v in x.items()}
+    zy = H.standardised(y, items)
+    assert all(zy[f"c{i}"] == pytest.approx(-z[f"c{i}"]) for i in range(20))
+
+
+def test_eval_covariate_standardises_and_keeps_raw_x_for_b0(world):
+    rows, keys, truth = world
+    items_bench = H.keys_by_parent(rows, keys)
+    assert set(items_bench) == set(H.PARENTS)
+    assert all(parent_of_key(k) == q for q, ks in items_bench.items() for k in ks)
+    shift = {q: 10.0 * i for i, q in enumerate(H.PARENTS)}
+    raw = {k: 3 * v + shift[parent_of_key(k)] for k, v in truth.items() if k in set(keys)}
+    cov, info = H.eval_covariate(raw, items_bench, keys, "t")
+    cov2, _ = H.eval_covariate({k: v - shift[parent_of_key(k)] for k, v in raw.items()}, items_bench, keys, "t")
+    assert np.allclose(cov.X, cov2.X)                       # benchmark offsets cannot act
+    assert info["input"].startswith("standardised")
+    assert np.allclose(cov.X0[0], [raw.get(k, np.nan) for k in keys], equal_nan=True)
+    craw, info_raw = H.eval_covariate(raw, items_bench, keys, "t", standardise=False)
+    assert info_raw["input"] == "raw" and np.allclose(craw.X[0], [raw.get(k, 0.0) for k in keys])
+
+
+def test_folds_on_counts_only_folds_that_act(world):
+    """A covariate that varies on one parent only: folds whose choice lands on
+    a parent where x is constant do not count, and nothing moves there."""
+    rows, keys, truth = world
+    only = H.PARENTS[0]
+    cov = H.Covariate.from_dict({k: v for k, v in truth.items() if parent_of_key(k) == only}, keys)
+    eng = H.Engine(rows, cov)
+    for v in ("transferred", "per-pair"):
+        dB, ch = H.nested(eng, v, k=0.0)
+        assert H.folds_on(ch) <= 1
+        if v == "per-pair":                                  # chosen on the inner folds, acting nowhere
+            assert sum(ch[q]["choice"] is not None for q in H.PARENTS if q != only) >= 2
+        for q in H.PARENTS:
+            if q != only:
+                assert not ch[q]["acts"]
+                assert not dB["tl"][rows["tl"].parent == q].any()
+    lines, _ = H.score_covariate(rows, cov, variants=("transferred",), forced=(), boots=20, per=False)
+    ln = lines["transferred nested"]
+    assert ln["folds_on"] <= 1 and ln["folds_chosen"] >= ln["folds_on"]
+    assert ln["gate"]["selection_on"] is False
+
+
+def test_b0_term_reads_x0_and_nothing_where_x0_is_missing(world):
+    rows, keys, truth = world
+    ks = set(keys)
+    half = {k: v for i, (k, v) in enumerate(sorted(truth.items())) if k in ks and i % 2 == 0}
+    cov = H.Covariate.from_dict(truth, keys, x0=half)
+    eng = H.Engine(rows, cov)
+    R, P = rows["tl"], eng.prep["tl"]
+    assert np.isnan(P.x0_ev).any() and np.isfinite(P.x0_ev).any()
+    b0 = eng.beta0(H.PARENTS[:3])
+    assert b0 < 0                                            # harder items, lower predictions at B0
+    d = eng.delta("tl", ("b0", None, 0), H.PARENTS[:3])
+    assert np.all(d[:, 1:] == 0.0) and d[:, 0].any()
+    # appearances none of whose items carry x0 are untouched
+    has = np.bincount(R.ev_a, np.isfinite(P.x0_ev), R.A) > 0
+    assert np.all(d[~has, 0] == 0.0)
+    c0, _ = eng.x0_ref(H.PARENTS[:3])
+    assert c0 == pytest.approx(np.mean([half[k] for k in np.array(keys, object)[R.ev_k][np.isfinite(P.x0_ev)
+                                        & np.isin(R.parent[R.ev_a], H.PARENTS[:3])]] +
+                                       [half[k] for k in np.array(keys, object)[rows["mix"].ev_k][
+                                           np.isfinite(eng.prep["mix"].x0_ev)
+                                           & np.isin(rows["mix"].parent[rows["mix"].ev_a], H.PARENTS[:3])]]))
+
+
+def test_selection_aware_se_is_the_fixed_one_when_no_resample_changes_the_choice(world):
+    rows, keys, truth = world
+    eng = H.Engine(rows, H.Covariate.from_dict(truth, keys))
+    dB, ch = H.nested(eng, "b0")                             # one configuration, far below 0
+    R = rows["tl"]
+    fixed = H.boot_se(dB["tl"] @ H.W6, R.w, R.cluster, None, 300, 0)
+    assert H.selection_boot_se(eng, "b0", 300, 0) == pytest.approx(fixed, rel=1e-9)
+    # a noise covariate: choices flip between resamples, and the SE stays finite
+    rng = np.random.default_rng(9)
+    noise = H.Engine(rows, H.Covariate.from_dict({k: rng.normal() for k in keys}, keys))
+    se = H.selection_boot_se(noise, "per-pair", 300, 0)
+    assert np.isfinite(se) and se >= 0
+
+
+def test_score_covariate_reports_the_selection_aware_se(world):
+    rows, keys, truth = world
+    lines, _ = H.score_covariate(rows, H.Covariate.from_dict(truth, keys), variants=("transferred", "b0"),
+                                 forced=(("b0", None, 0),), boots=40)
+    for v in ("transferred", "b0"):
+        tl = lines[f"{v} nested"]["regimes"]["tl"]
+        assert tl["sel_cluster_se"] >= 0
+        assert lines[f"{v} nested"]["folds_on_no_margin"] >= lines[f"{v} nested"]["folds_chosen"]
+    assert "sel_cluster_se" not in lines["b0 from B0 (forced)"]["regimes"]["tl"]
+    assert lines["b0 from B0 (forced)"]["regimes"]["tl"]["by_budget"][0] < 0
+
+
+def test_thresholds_report_the_pass_rate_over_draws():
+    def cell(est, passes, r):
+        reg = {"tl": {"est": est, "cluster_se": 0.0004, "worst_parent": est / 2}, "mix": {"est": 2 * est}}
+        return {"meta": {"r": r, "r_within_pair_tl": r * 0.8},
+                "lines": {"transferred nested": {"regimes": reg, "folds_on": 4.0, "pass_reps": passes,
+                                                 "draw_sd": {"tl": 0.0005},
+                                                 "gate": {"pass": est <= -0.002, "pass_if_on": est <= -0.002}}}}
+    table = {"r=0.2": cell(-0.001, [False] * 5, 0.2), "r=0.3": cell(-0.0024, [True] * 4 + [False], 0.3),
+             "r=0.4": cell(-0.004, [True] * 5, 0.4)}
+    thr = H.thresholds(table)["transferred nested"]
+    assert thr["r=0.3"]["pass_draws"] == "4/5" and thr["r=0.2"]["pass_draws"] == "0/5"
+    assert thr["smallest_r_passing"] == 0.3 and thr["smallest_r_majority_of_draws"] == 0.3
+    assert thr["smallest_r_every_draw"] == 0.4
+    assert thr["r=0.3"]["r_within_pair_tl"] == pytest.approx(0.24)

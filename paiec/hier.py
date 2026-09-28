@@ -129,12 +129,18 @@ Without floors the log posterior of x is concave (a marginal of a log-concave
 density) and its mode unique. The floor's success term log(c + (1 - c) s) is
 not concave, so away from the mode Newton's matrix may be indefinite; it is
 then shifted to positive definite, and the line search keeps every step an
-ascent. Putting the floor in the likelihood is what keeps guessing from being
-counted twice: fitted with a plain logistic, labels on a four-option benchmark
-already hold the guesses, and adding the floor again at prediction put one
-pair 0.06 to 0.15 above the exact posterior predictive (tests/test_hier.py).
-A fit whose Newton decrement is still above 1e-8 when it stops (after at most
-CLOSE_MAX steps near the mode) is counted in HierPredictor.unconverged.
+ascent. That shift is minimal, so the step can be absurdly long, and Newton
+from a prior mean far below a pair's successes used to stop there, reading
+every floored success as a guess; where Newton stops short on a floored
+posterior, Problem._settle goes on by trust-region Newton and from two more
+starts (the modes with every floor removed and with every floored success
+dropped) and keeps the best mode. Putting the floor in the likelihood is what
+keeps guessing from being counted twice: fitted with a plain logistic, labels
+on a four-option benchmark already hold the guesses, and adding the floor
+again at prediction put one pair 0.06 to 0.15 above the exact posterior
+predictive (tests/test_hier.py). A fit whose Newton decrement is still above
+1e-8 when it stops (after at most CLOSE_MAX steps near the mode, and after
+_settle) is counted in HierPredictor.unconverged.
 
 Linking a subject across the benchmarks of a run goes through theta alone, so
 its weight is Hyper.link_weight = sigma_theta^2 / (sigma_theta^2 + sigma_delta^2):
@@ -228,6 +234,8 @@ TN = 64                      # quadrature nodes over an untouched Student-t leve
 LAM = 16                     # scale-mixture nodes over a touched Student-t level
 NEAR = 1e-5                  # Newton decrement below which steps skip the line search
 CLOSE_MAX = 50               # most such steps in one solve
+TRUST0, TRUST_MAX = 1.0, 1e3 # _settle's trust radius (2-norm of x): first, largest
+LP_TOL = 1e-6                # log posterior by which a later _settle candidate must win
 LINE_H = 0.75                # grid step along a target's a'x, in its Laplace sds
 LINE_MAX = 600               # most labels a line integrates at every grid point
 LINE_FRAC = 0.02             # items whose labels move by this share of the most moved
@@ -866,7 +874,9 @@ class Problem:
         self.pval = (self.vals[:, :, None] * self.vals[:, None, :]).reshape(n, S * S)
         self.parts = _parts(self.item, self.n_items, c, self.y)
         self.plans = [self.plan(part, cnt) for part in self.parts]
-        self.converged, self.decrement = None, math.inf
+        #: a floored success (its item on the grid) makes the log posterior not concave
+        self.nonconcave = any(part.grid for part in self.parts)
+        self.converged, self.decrement, self.start = None, math.inf, None
 
     def plan(self, part, cnt, dense=None):
         """How precision() subtracts the within-item score covariance of this
@@ -988,6 +998,19 @@ class Problem:
         return out.reshape(self.p, self.p)
 
     def solve(self, x0=None, e0=None, max_iter=100, tol=1e-14):
+        """The posterior mode: (state, precision).
+
+        Newton with backtracking (_newton); on a posterior that holds a
+        floored success, which is not concave, a Newton that stops short of
+        convergence is followed by _settle. `start` records where the mode
+        came from: 'newton', or the _settle candidate that won."""
+        st, P = self._newton(x0, e0, max_iter, tol)
+        self.start = "newton"
+        if self.nonconcave and not self.converged:
+            st, P = self._settle(st, P, tol)
+        return st, P
+
+    def _newton(self, x0=None, e0=None, max_iter=100, tol=1e-14):
         """Newton with backtracking to the posterior mode: (state, precision).
 
         Close to the mode (Newton decrement below NEAR = 1e-5, a step shorter
@@ -1031,6 +1054,110 @@ class Problem:
         self.converged = False
         return st, self.precision(st)
 
+    def _settle(self, st, P, tol):
+        """The mode of a floored posterior where Newton stopped short of it.
+
+        log(c + (1 - c) s) is convex where s is small against c, so away from
+        the mode Newton's matrix can be indefinite. _cholesky shifts it just
+        past its most negative eigenvalue, which leaves it nearly singular:
+        the step runs to 1e7 or more, 20 halvings reach no ascent, and the fit
+        stops where it stood, often at the prior mean. On public runs that
+        was a pair of 25 successes in 31 Kangaroo items stopped with every
+        success read as a guess, its log posterior 27 below the mode's,
+        predicted 0.22 against 0.67 observed (docs/findings.md, "Floored
+        fits").
+
+        Candidates, each refined on the floored posterior by trust-region
+        Newton (_trust): the point where Newton stopped, and the modes of the
+        two log-concave problems on either side of the floored one, with
+        every floor removed (each success is knowledge) and with every floored
+        success dropped (each is a guess, likelihood c whatever eta is). The
+        best wins: a converged one over one that is not, and among those the
+        highest log posterior, a later candidate only by more than LP_TOL.
+        Where Newton converges nothing here runs, so its (state, precision)
+        stand bit for bit: on public runs the other two starts, tried on every
+        converged floored fit, never found a higher mode (docs/findings.md)."""
+        best = (st, P, False, self.decrement, self.start)
+        for x, name in [(st, "continued")] + self._other_starts():
+            try:
+                got = self._trust(x if isinstance(x, _State) else self.state(*x), tol)
+            except Exception:           # a failed start is no candidate
+                continue
+            s, Q, conv, dec = got
+            if (conv and not best[2]) or (conv == best[2] and s.lp > best[0].lp + LP_TOL):
+                best = (s, Q, conv, dec, name)
+        st, P, self.converged, self.decrement, self.start = best
+        return st, P
+
+    def _other_starts(self):
+        """[((x, item modes), name)]: the modes of the problem with every floor
+        removed and of the problem without its floored successes (the prior
+        mean when nothing else is labeled). Both are log-concave, so Newton
+        finds their one mode."""
+        out = []
+        yes = (self.c > 0) & (self.y > 0.5)
+        for name, keep, floor in (("unfloored", np.ones(len(self.y), bool), None),
+                                  ("guessed", ~yes, self.c)):
+            try:
+                if not keep.any():
+                    out.append(((self.m.copy(), None), name))
+                    continue
+                sub = Problem(self.cols[keep], self.vals[keep], self.y[keep], self.item[keep],
+                              self.s2e, self.m, self.V, self.nu,
+                              None if floor is None else floor[keep], self.off[keep])
+                s, _ = sub.solve()
+                if np.all(np.isfinite(s.x)):
+                    out.append(((s.x, s.it.mode), name))
+            except Exception:
+                pass
+        return out
+
+    def _trust(self, st, tol, max_iter=200):
+        """Trust-region Newton from st: (state, precision, converged,
+        decrement), as _newton reports them.
+
+        Where the matrix is positive definite and the Newton step fits in the
+        radius, the step is Newton's; otherwise it maximises the quadratic
+        model within the radius (_trust_step), whose multiplier makes an
+        indefinite matrix definite by as much as the radius needs, not by
+        1e-8. A step is taken when the log posterior rises by a tenth of what
+        the model predicts; the radius doubles after a good full step and
+        shrinks fourfold after a rejected one. Close to the mode (decrement
+        below NEAR) steps are Newton's without a test, as in _newton."""
+        radius, close, dec = TRUST0, 0, math.inf
+        g, P = self.grad(st), self.precision(st)
+        for _ in range(max_iter):
+            step, dec = _newton_step(P, g)
+            if not math.isfinite(dec) and step is not None:
+                raise FloatingPointError("non-finite Newton step")
+            conv = dec < 1e-8
+            if step is not None:
+                if dec < tol or (close >= 6 and conv) or close >= CLOSE_MAX:
+                    return st, P, conv, dec
+                if dec < NEAR:
+                    st, close = self.state(st.x + step, st.it.mode), close + 1
+                    g, P = self.grad(st), self.precision(st)
+                    continue
+            if step is not None and math.sqrt(float(step @ step)) <= radius:
+                s = step
+            else:
+                lam, U = np.linalg.eigh(P)
+                s = _trust_step(lam, U, U.T @ g, radius)
+            size = math.sqrt(float(s @ s))
+            pred = float(g @ s) - 0.5 * float(s @ (P @ s))
+            new = self.state(st.x + s, st.it.mode)
+            if pred > 0 and math.isfinite(new.lp) and new.lp - st.lp > 0.1 * pred:
+                if new.lp - st.lp > 0.75 * pred and size > 0.9 * radius:
+                    radius = min(2 * radius, TRUST_MAX)
+                st = new
+                g, P = self.grad(st), self.precision(st)
+            else:
+                radius = 0.25 * min(radius, size)
+                if radius < 1e-9:
+                    break
+        step, dec = _newton_step(P, g)
+        return st, P, step is not None and dec < 1e-8, dec
+
 
 def _cholesky(P):
     """Cholesky factor of P, shifted up to positive definite when it is not:
@@ -1054,6 +1181,53 @@ def _cholesky(P):
 def _spd_solve(P, g):
     _, Ps = _cholesky(P)
     return np.linalg.solve(Ps, g)
+
+
+def _newton_step(P, g):
+    """(P^-1 g, g'P^-1 g) where P is positive definite, else (None, inf)."""
+    try:
+        np.linalg.cholesky(P)
+    except np.linalg.LinAlgError:
+        return None, math.inf
+    step = np.linalg.solve(P, g)
+    return step, float(g @ step)
+
+
+def _trust_step(lam, U, gt, radius):
+    """The s that maximises g's - s'Ps/2 subject to |s| <= radius, for
+    P = U diag(lam) U' (lam ascending) and gt = U'g: Newton's step when P is
+    positive definite and the step fits, else s = U gt / (lam + nu) with nu
+    above max(0, -lam_min) such that |s| = radius (by bisection; |s| falls as
+    nu grows). When g has no component along the most negative direction and
+    even nu = -lam_min leaves the step short (the 'hard case'), the step is
+    the rest of it at nu = -lam_min plus what is left of the radius along
+    that direction, where the model rises either way."""
+    if lam[0] > 0:
+        s = gt / lam
+        if math.sqrt(float(s @ s)) <= radius:
+            return U @ s
+    scale = max(1.0, float(np.max(np.abs(lam))))
+    base = max(0.0, -float(lam[0])) + 1e-12 * scale
+
+    def norm(nu):
+        s = gt / (lam + nu)
+        return math.sqrt(float(s @ s))
+    if norm(base) <= radius:
+        s = gt / (lam + base)
+        s[lam - lam[0] <= 1e-9 * scale] = 0.0       # the most negative eigenspace
+        tau = math.sqrt(max(radius ** 2 - float(s @ s), 0.0))
+        s[0] = tau if gt[0] >= 0 else -tau
+        return U @ s
+    lo, hi = base, base + max(1.0, math.sqrt(float(gt @ gt)) / radius)    # |s(hi)| <= radius
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if norm(mid) > radius:
+            lo = mid
+        else:
+            hi = mid
+        if hi - lo <= 1e-12 * hi:
+            break
+    return U @ (gt / (lam + hi))
 
 
 def _inverse(P):
