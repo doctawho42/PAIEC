@@ -1,0 +1,89 @@
+{
+ "benchmarks": {
+  "matharena": {
+   "responses": 92944,
+   "binary_responses": 92861,
+   "eligible_pairs": 81,
+   "responses_in_eligible_pairs": 89952,
+   "distinct_items_in_eligible_pairs": 1633
+  },
+  "multi_swebench": {
+   "responses": 57975,
+   "binary_responses": 57975,
+   "eligible_pairs": 82,
+   "responses_in_eligible_pairs": 57975,
+   "distinct_items_in_eligible_pairs": 2126
+  },
+  "real_webagents": {
+   "responses": 4449,
+   "binary_responses": 4449,
+   "eligible_pairs": 26,
+   "responses_in_eligible_pairs": 4058,
+   "distinct_items_in_eligible_pairs": 233
+  },
+  "researchcodebench": {
+   "responses": 6784,
+   "binary_responses": 6784,
+   "eligible_pairs": 31,
+   "responses_in_eligible_pairs": 6784,
+   "distinct_items_in_eligible_pairs": 212
+  },
+  "swe_rebench": {
+   "responses": 67074,
+   "binary_responses": 67074,
+   "eligible_pairs": 1,
+   "responses_in_eligible_pairs": 67074,
+   "distinct_items_in_eligible_pairs": 6306
+  }
+ },
+ "matharena": {
+  "items_with_a_binary_response": 1751,
+  "competitions_of_those_items": 27,
+  "items_in_eligible_pairs": 1633,
+  "competitions_in_eligible_pairs": 25,
+  "competitions_only_below_the_floor": [
+   "imc_2025",
+   "miklos_2025"
+  ],
+  "items_only_below_the_floor": 118,
+  "items_of_those_competitions": {
+   "imc_2025": 47,
+   "miklos_2025": 13
+  },
+  "items_without_a_competition_key": 0,
+  "kangaroo_items": {
+   "in_items_table": 336,
+   "with_a_binary_response": 336,
+   "in_eligible_pairs": 336,
+   "competitions": [
+    "kangaroo_2025_11_12",
+    "kangaroo_2025_1_2",
+    "kangaroo_2025_3_4",
+    "kangaroo_2025_5_6",
+    "kangaroo_2025_7_8",
+    "kangaroo_2025_9_10"
+   ]
+  },
+  "items_table_rows": 1755
+ },
+ "total": {
+  "eligible_pairs": 221,
+  "responses_in_eligible_pairs": 225843,
+  "distinct_items_in_eligible_pairs": 10510
+ },
+ "meta": {
+  "when_utc": "2026-09-28T08:57:23+00:00",
+  "command": "python experiments/data_counts.py",
+  "commit": "4d2cc4f",
+  "script_digest": "047eed6f05d693ee",
+  "min_items": 80,
+  "data_digests": {
+   "data/matharena/response.parquet": "33aa835e229e56c1",
+   "data/matharena/items.parquet": "fb420494ce62adf5",
+   "data/multi_swebench/response.parquet": "33d31a4f3092a940",
+   "data/real_webagents/response.parquet": "b42381f563f513f6",
+   "data/researchcodebench/response.parquet": "246db2bce64309a6",
+   "data/swe_rebench/response.parquet": "2674db69e24f64a5"
+  }
+ }
+}

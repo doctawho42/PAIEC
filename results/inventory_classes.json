@@ -1,0 +1,270 @@
+{
+ "inputs": {
+  "inventory_161": {
+   "path": "results/inventory.csv",
+   "sha256": "583369336731135bfa8d227f444547d8d874d6c470f3cc1c10f7e836c9b69bad"
+  },
+  "hand_labels": {
+   "path": "results/inventory_hand_labels.csv",
+   "sha256": "84654caf2f6604a1466f8e02012c171232e019093d06a92cd65bdef806211d23"
+  },
+  "sheet": {
+   "path": "data/inventory_sheet.csv",
+   "sha256": "882809d047c6337e265e59d14250cefd1fc0300e5a8e9f7c04bfda05c960cd5a",
+   "rows": 1261,
+   "first_161_slugs_match": true
+  }
+ },
+ "validation": {
+  "n": 80,
+  "agree_llm_eval": 0.825,
+  "n_llm_eval_by_labels": 43,
+  "n_llm_eval_by_both": 40,
+  "agree_cat": 0.95,
+  "agree_cat_count": [
+   38,
+   40
+  ],
+  "agree_static_vs_codeagent": 0.975,
+  "labels_share_llm_eval": 0.5375,
+  "labels_cat_share": {
+   "agent": 0.2326,
+   "mm_image": 0.2326,
+   "text_qa": 0.2093,
+   "code": 0.1628,
+   "mm_video": 0.0698,
+   "audio": 0.0465,
+   "math": 0.0465
+  },
+  "labels_static_share_ci95": [
+   0.4440995244656957,
+   0.7502322113524089,
+   26,
+   43
+  ],
+  "in_first_161_rows": 14,
+  "confusion": {
+   "agent": {
+    "agent": 10,
+    "audio": 0,
+    "code": 0,
+    "math": 0,
+    "mm_image": 0,
+    "mm_video": 0,
+    "text_qa": 1
+   },
+   "audio": {
+    "agent": 0,
+    "audio": 1,
+    "code": 0,
+    "math": 0,
+    "mm_image": 0,
+    "mm_video": 0,
+    "text_qa": 0
+   },
+   "code": {
+    "agent": 0,
+    "audio": 0,
+    "code": 6,
+    "math": 0,
+    "mm_image": 0,
+    "mm_video": 0,
+    "text_qa": 0
+   },
+   "math": {
+    "agent": 0,
+    "audio": 0,
+    "code": 0,
+    "math": 2,
+    "mm_image": 0,
+    "mm_video": 0,
+    "text_qa": 0
+   },
+   "mm_image": {
+    "agent": 0,
+    "audio": 0,
+    "code": 0,
+    "math": 0,
+    "mm_image": 9,
+    "mm_video": 0,
+    "text_qa": 0
+   },
+   "mm_video": {
+    "agent": 0,
+    "audio": 0,
+    "code": 0,
+    "math": 0,
+    "mm_image": 0,
+    "mm_video": 2,
+    "text_qa": 0
+   },
+   "text_qa": {
+    "agent": 0,
+    "audio": 0,
+    "code": 0,
+    "math": 0,
+    "mm_image": 1,
+    "mm_video": 0,
+    "text_qa": 8
+   }
+  }
+ },
+ "inventory_161": {
+  "n": 161,
+  "n_llm_eval": 108,
+  "share_llm_eval": 0.6708,
+  "cat_counts": {
+   "text_qa": 42,
+   "mm_image": 32,
+   "agent": 16,
+   "code": 7,
+   "mm_video": 5,
+   "math": 3,
+   "audio": 3
+  },
+  "cat_share": {
+   "text_qa": 0.3889,
+   "mm_image": 0.2963,
+   "agent": 0.1481,
+   "code": 0.0648,
+   "mm_video": 0.0463,
+   "math": 0.0278,
+   "audio": 0.0278
+  },
+  "static_qa_like": 0.787,
+  "text_or_math": 0.4167,
+  "code_or_agent": 0.213
+ },
+ "a6_inventory_161": {
+  "n": 161,
+  "counts": {
+   "multimodal": 58,
+   "other": 53,
+   "qa_reason": 22,
+   "agentic": 20,
+   "code": 5,
+   "math": 3
+  },
+  "shares": {
+   "multimodal": 0.36,
+   "other": 0.329,
+   "qa_reason": 0.137,
+   "agentic": 0.124,
+   "code": 0.031,
+   "math": 0.019
+  },
+  "short_checkable_plausible_share": 0.155,
+  "llm_titles": {
+   "n": 54,
+   "share_of_inventory": 0.335,
+   "counts": {
+    "multimodal": 17,
+    "qa_reason": 12,
+    "other": 10,
+    "agentic": 10,
+    "code": 3,
+    "math": 2
+   },
+   "shares": {
+    "multimodal": 0.315,
+    "qa_reason": 0.222,
+    "other": 0.185,
+    "agentic": 0.185,
+    "code": 0.056,
+    "math": 0.037
+   },
+   "short_checkable_plausible_share": 0.259
+  },
+  "safety": {
+   "safety_share_llm": 0.056,
+   "gen_share_llm": 0.037,
+   "safety_by_class": {
+    "agentic": 2,
+    "qa_reason": 1
+   }
+  }
+ },
+ "inventory_sheet": {
+  "n": 1261,
+  "n_llm_eval": 849,
+  "share_llm_eval": 0.6733,
+  "cat_counts": {
+   "text_qa": 348,
+   "mm_image": 197,
+   "agent": 172,
+   "code": 55,
+   "mm_video": 31,
+   "math": 28,
+   "audio": 18
+  },
+  "cat_share": {
+   "text_qa": 0.4099,
+   "mm_image": 0.232,
+   "agent": 0.2026,
+   "code": 0.0648,
+   "mm_video": 0.0365,
+   "math": 0.033,
+   "audio": 0.0212
+  },
+  "static_qa_like": 0.7326,
+  "text_or_math": 0.4429,
+  "code_or_agent": 0.2674
+ },
+ "a6_inventory_sheet": {
+  "n": 1261,
+  "counts": {
+   "multimodal": 414,
+   "other": 404,
+   "agentic": 208,
+   "qa_reason": 152,
+   "code": 53,
+   "math": 30
+  },
+  "shares": {
+   "multimodal": 0.328,
+   "other": 0.32,
+   "agentic": 0.165,
+   "qa_reason": 0.121,
+   "code": 0.042,
+   "math": 0.024
+  },
+  "short_checkable_plausible_share": 0.144,
+  "llm_titles": {
+   "n": 510,
+   "share_of_inventory": 0.404,
+   "counts": {
+    "agentic": 141,
+    "other": 130,
+    "multimodal": 129,
+    "qa_reason": 71,
+    "code": 26,
+    "math": 13
+   },
+   "shares": {
+    "agentic": 0.276,
+    "other": 0.255,
+    "multimodal": 0.253,
+    "qa_reason": 0.139,
+    "code": 0.051,
+    "math": 0.025
+   },
+   "short_checkable_plausible_share": 0.165
+  },
+  "safety": {
+   "safety_share_llm": 0.065,
+   "gen_share_llm": 0.063,
+   "safety_by_class": {
+    "multimodal": 12,
+    "other": 10,
+    "agentic": 7,
+    "qa_reason": 4
+   }
+  }
+ },
+ "meta": {
+  "script_digest": "24870f89de2db7f9",
+  "commit": "4d2cc4f",
+  "command": "python experiments/inventory_classes.py",
+  "provenance": "session scratch rethink2/methodology-critic/c_inventory_meta.py (C1) and rethink2/attempt-signals/a6*_inventory_*.py, 2026-09-26; rules unchanged"
+ }
+}

@@ -1,6 +1,6 @@
 # Figures for the technical report
 
-These are the figures `docs/report/draft.md` needs, each with the data behind it. None has been drawn yet. Every figure should come from a committed file (`results/*.json`, a table in `docs/findings.md`, or a module constant), through one plotting script. The proposal is `tools/report_figures.py`, not yet written, which reads only those sources, so that a reviewer can regenerate every panel without the gated data. Key paths are given as they appear in the files on commit `f7e7d87`. Where a figure needs a number that is not yet committed, it says so.
+These are the figures `docs/report/draft.md` needs, each with the data behind it. None has been drawn yet. Every figure should come from a committed file (`results/*.json`, a table in `docs/findings.md`, or a module constant), through one plotting script. The proposal is `tools/report_figures.py`, not yet written, which reads only those sources, so that a reviewer can regenerate every panel without the gated data. Key paths are given as they appear in the files on commit `4d2cc4f` and in the results files the draft's Appendix B lists as not yet committed (`results/ship_confirm.json`, `results/formative_feedback.json`, `results/level_audit.json`, `results/heads_eval.json`). Where a figure needs a number that is not stored, it says so.
 
 Conventions for all panels:
 
@@ -35,16 +35,17 @@ The point is the collapse of the pooled-difficulty lever, from about 0.020 to ab
 Brier by budget, one panel.
 
 - Formative run 1: its nine pairs as thin lines and their mean as a thick line (legacy Predictor).
-- Formative run 2: mean only (shipped hier).
+- Formative run 2: its eight pairs as thin lines and their mean as a thick line (shipped hier, archive of ee5085a).
 - For each model, the replica's mean on test-like runs and on public R1, with a band of ± one single-run sd.
 
-It shows the budget-0 optimism, the level fix, and the flat B3 to B31 of run 2 against the test-like expectation.
+It shows the budget-0 optimism, the level fix, and the flat B3 to B31 of run 2 against the test-like expectation. The caption must say that the two runs are different draws with no subject in common, so the gap between them is not a measured effect.
 
-- Run 1 per pair: `docs/findings.md`, "Against the first real formative feedback"; the same rows are `paiec.testlike.FEEDBACK`.
-- Run 2 budget means: `docs/findings.md`, "Subject side at budgets 0 and 1". **Missing**: run 2's per-pair rows (TODO(record) into findings.md before drawing them).
-- Shipped hier, test-like, mix/whole, no-shift, R1: `results/subject_side.json`, `summary.regimes.<regime>.ship.budgets`.
-- Legacy Predictor, test-like: `results/level_calibration.json`, `summary.testlike_all` (Predictor row, `budgets`). Legacy Predictor, R1: `results/level_calibration.json`, `summary.r1`.
-- Single-run sds per budget: `results/testlike_check.json`, `summary.check` (Predictor). **Check**: the per-budget sds for the shipped hier are not stored; compute them from `results/level_calibration.json` `raw` rows for the shipped config, or run the plotting script over `data/subject_side_rows`.
+- Runs 1 and 2 per pair, with ECE: `results/formative_feedback.json`, `record.run1.pairs` and `record.run2.pairs` (`brier`, `ece_b`, `n`); budget means in `record.<run>.budgets`. The organisers' tables are `results/formative/run1.txt` and `run2.txt`. Label benchmarks with the relabelled letters of the draft's Appendix A.1, never the anonymous ids.
+- Shipped hier, test-like, mix/whole, no-shift, R1: `results/ship_confirm.json`, `regimes.<regime>.shipped.<runs>.budgets` (the same numbers as `results/subject_side.json`, `summary.regimes.<regime>.ship.budgets`).
+- Single-run sds of the shipped hier per budget: `results/ship_confirm.json`, `single_run_sd.<regime>` (also `regimes.<regime>.shipped.<runs>.single_run_sd`).
+- Legacy Predictor, test-like: `results/ship_confirm.json`, `regimes.tl.vs.legacy['0-299'].budgets[*].other` (paired with the shipped rows), or `results/level_calibration.json`, `summary.testlike_all`. Legacy Predictor, R1: `regimes.r1b.vs.legacy['0-149'].budgets[*].other` and `regimes.r1p.vs.legacy['0-99'].budgets[*].other`.
+- Single-run sds of the legacy Predictor per budget: `results/testlike_check.json`, `summary.check` (Predictor).
+- Optional overlay: the shipped model's matched estimate on run 1 by budget, `results/formative_feedback.json`, `reading.q2_shipped_on_run1['pool_B_K=15'].estimate_budgets`, labelled as a prediction for a like-sized run.
 
 ### Fig. 4: Where the pairs sit: public, test-like and hidden (§1.2, §3.4, §4.1)
 
@@ -52,17 +53,17 @@ Distributions of the pair-accuracy logit on the evaluated responses. Three serie
 
 - public R1 pairs (a histogram);
 - test-like pairs at the default regime (a histogram);
-- the nine formative run 1 pairs read through the lower root of p(1-p) = B31 (rug marks).
+- the 17 formative pairs of runs 1 and 2, as rug marks at the root their neighbours favour, with the other root as an open mark.
 
-Mark the level means: public -0.74, test-like realised -1.29, feedback about -1.6. A second rug should show the feedback pairs' upper roots, because the audit reads two of them (bench F) as high-rate pairs.
+Mark the level means on one scale (the continuity-corrected pair logit): public R1 realised -0.71, test-like realised -1.29, run 1's lower-root reading -1.51, and the pooled 17-pair reading -0.65 (K = 15) to -0.78 (K = 40) with its SE of about 0.5. Also mark the shipped LEVEL's implied mean on this scale, -1.15.
 
-- Public R1: `experiments/hier_design/levels.json` (from `levels.py` after `runs.py`).
-- Test-like realised levels: `results/testlike_check.json`, `summary.check` (regime statistics) and `summary.level_identification`.
-- Feedback: `paiec.testlike.FEEDBACK` and `paiec.testlike.rate_from_brier`.
+- Public R1 and test-like realised levels: `results/formative_feedback.json`, `reading.comparison.public_R1_realised` and `.tuned_regime_realised`; the pair-level distributions behind them in `experiments/hier_design/levels.json` (public) and `results/testlike_check.json`, `summary.check` (test-like).
+- Feedback pairs: `results/formative_feedback.json`, `reading.per_pair['K=15'|'K=40']` (`run1_pool_A`, `run2_pool_B`: both roots, the neighbour share above 0.5, the chosen root and its logit), `reading.level_distribution` (pooled means, SEs, plain and corrected logits) and `reading.comparison.run1_readings_recomputed` (run 1's three readings).
+- The shipped LEVEL on this scale: `reading.comparison.shipped_LEVEL_pair_logit_scale`.
 
 ### Fig. 5: Calibrating the level prior (§3.4, §5.3)
 
-A heat map of selection-half ALC over mu0 (x) and attr_scale (y) at sigma_mu 2.5. Overlay contours of the public-guard cost at +0.003 on each weighting, the 40-run screen where only that is available. Mark four points: the rule's argmax (mu0 -3.5, attr_scale 0.25), the recommended configuration (mu0 -3.0, 0.25), the shipped configuration (mu0 -2.5, 0.5) and hier's fitted defaults. A side strip should show that sigma_mu 2.5 wins in every cell (the edge that binds).
+A heat map of selection-half ALC over mu0 (x) and attr_scale (y) at sigma_mu 2.5. Overlay contours of the public-guard cost at +0.003 on each weighting, the 40-run screen where only that is available. Mark four points: the rule's argmax (mu0 -3.5, attr_scale 0.25), the recommended (neighbouring) configuration (mu0 -3.0, 0.25), the shipped configuration (mu0 -2.5, 0.5) and hier's fitted defaults. A side strip should show that sigma_mu 2.5 wins in every cell (the edge that binds).
 
 - `results/level_calibration.json`: `summary.grid_surface` for the surface, `summary.selection` for the per-configuration ALC and paired differences, `summary.r1` for guard costs, and `summary.shortlist` for the confirmed set (`experiments/level_calibration.py`).
 
@@ -70,8 +71,8 @@ A heat map of selection-half ALC over mu0 (x) and attr_scale (y) at sigma_mu 2.5
 
 The paired Brier difference against the legacy Predictor at each budget, with cluster-SE bars, on test-like runs and on both public weightings. Plot it for the shipped configuration, the recommended one and hier's fitted defaults. It shows the large B0 and B1 gains on test-like runs, the B0 cost on public runs, and hier giving that cost back from B7 on.
 
-- Test-like, selection half: `results/level_calibration.json`, `summary.selection["hier G mu0=-2.50 sm=2.50 as=0.50"].diff_budgets` and the same for `mu0=-3.00 ... as=0.25`.
-- Public: `summary.r1` for the configurations scored there. **Check**: the shipped configuration's public per-budget differences may exist only for the 40-run screen; if so, use `results/subject_side.json` `summary.regimes.r1b/r1p.ship.budgets` against the Predictor's R1 budgets on matching runs, and label the run sets.
+- Shipped configuration: `results/ship_confirm.json`, `regimes.tl.vs.legacy['0-299'].budgets` (test-like, 300 runs), `regimes.r1b.vs.legacy['0-149'].budgets` and `regimes.r1p.vs.legacy['0-99'].budgets` (public), each with `diff` and `cluster_se` per budget, on runs paired pair for pair. Label the run sets.
+- Recommended configuration and hier's defaults: `results/level_calibration.json`, `summary.selection[...].diff_budgets` (test-like selection half) and `summary.r1` (public).
 
 ### Fig. 7: Pooling a benchmark's level needs company (§5.2)
 
@@ -107,13 +108,17 @@ A forest plot. One row per idea gives its nested test-like ALC difference agains
 - the item-side layer (itemsig, library default and nested);
 - the known-sign cues (six covariates, nested and forced);
 - the subject side (E, H, the date forms, T, T1.8, the combined selection);
+- the meta-learned heads (nested lines are exactly 0; show the forced lines);
+- the closed language-model and encoder probes that give a harness line (the 4B judge, the entropy and hidden-state heads, the fine-tuned encoder);
 - the multiple-choice floor correction (adopted), for contrast.
 
-Leave space for the `TODO(step5)` studies and meta-heads (`TODO(record)`).
+The attempt probe (no ALC line: its accuracy was below the floor) and the pairwise comparisons (a q statistic, not an ALC line) go in the caption, not the plot.
 
 - itemsig: `results/itemsig_eval.json`, `summary.regimes.<regime>.nested_within`, `.nested_joint`, `.default`, `.in_sample_best`.
 - Known-sign cues: `results/itemcov_eval.json`, `harness` (nested and forced lines per covariate) and `harness_train_scale`.
 - Subject side: `results/subject_side.json`, `summary.nested`, `summary.gates`, `summary.per_config`, `summary.student_t`.
+- Meta-learned heads: `results/heads_eval.json`, `rows.current.configs` (and `rows.legacy.configs`, the study as it ran): `lopo_*` nested, `force_all_*` forced.
+- Closed probes: `results/llm4b_close.json`, `results/hidden_state_probe.json`, `results/finetune_encoder.json` (their harness stages); in-context learning's value map in `results/icl_probe.json`.
 - MCQ floor: `results/mcq_floor.json`, `regimes`.
 
 ### Fig. 10: Item difficulty does not transfer (§6.1, §6.2)
@@ -182,7 +187,6 @@ The gain over no pooling against the number of subjects (3 to 80), on log axes, 
 
 ## Open questions for the figures
 
-- **Per-pair rows of formative run 2.** Figs. 3 and 4 need them: record them in `docs/findings.md` first.
-- **Single-run sds by budget for the shipped hier** (Fig. 3). Compute from stored rows; they are not in a summary block.
-- **Public per-budget differences for the shipped configuration** (Fig. 6). Confirm which run sets hold them.
+- **Resolved:** run 2's per-pair rows (`results/formative_feedback.json`), the shipped hier's single-run sds by budget and its public per-budget differences (`results/ship_confirm.json`).
+- **Code of the plotted rows.** Figs. 3, 6 and every shipped-model series come from rows of the run-2 archive's library (old multiple-choice floor, solver before the floored-fit fix). Say so in the captions; the corrected floor and the fix move ALC by at most 0.0005 (draft §5.4).
 - **Palette and size.** One palette across all figures: the legacy Predictor, hier's defaults, the shipped hier and the smoothed mean should keep the same colour everywhere. Keep panels readable in greyscale, and size them for a two-column NeurIPS page.

@@ -1,0 +1,5960 @@
+{
+ "about": {
+  "shipped": {
+   "config": "hier G mu0=-2.50 sm=2.50 as=0.50",
+   "level": {
+    "mu0": -2.5,
+    "sigma_mu": 2.5,
+    "attr_scale": 0.5
+   },
+   "rows": "data/subject_side_rows/<regime>.jsonl, arm 'ship'"
+  },
+  "comparators": {
+   "legacy": "paiec.predict.Predictor, attribute prior fitted without the target's parent (the first submission's predictor)",
+   "smoothed": "Beta(2,2) on the pair's own labels (baselines.smoothed_mean(4, 0.5))",
+   "empirical": "the organisers' empirical mean (baselines.empirical_mean)"
+  },
+  "difference": "shipped minus comparator, ALC (lower is better)",
+  "se": "run SE / cluster SE ((parent, subject), 2,000 resamples, seed 0) / stratified by parent",
+  "parent_level": "mean and SE of the four multi-subject parents' appearance-weighted means",
+  "budgets": [
+   0,
+   1,
+   3,
+   7,
+   15,
+   31
+  ],
+  "weights": [
+   0.1,
+   0.2,
+   0.2,
+   0.2,
+   0.2,
+   0.1
+  ]
+ },
+ "sources": {
+  "tl": {
+   "legacy": {
+    "source": "testlike_check.json raw['check|default|<i>'] rows[*]['pred']",
+    "runs": 300,
+    "spans": [
+     "0-299"
+    ],
+    "matched_by": [
+     "testlike_check pair ids"
+    ]
+   },
+   "smoothed": {
+    "source": "level_calibration.json raw['tl|<i>|base'] 'smoothed'",
+    "runs": 200,
+    "spans": [
+     "0-199"
+    ],
+    "matched_by": [
+     "level_calibration pair ids"
+    ]
+   },
+   "empirical": {
+    "source": "testlike_check.json raw['check|default|<i>'] rows[*]['emp']",
+    "runs": 300,
+    "spans": [
+     "0-299"
+    ],
+    "matched_by": [
+     "testlike_check pair ids"
+    ]
+   },
+   "shipped": {
+    "runs": 300,
+    "file": "data/subject_side_rows/tl.jsonl"
+   }
+  },
+  "tl mix/whole": {
+   "legacy": {
+    "source": "level_calibration.json raw['tl mix/whole|<i>|base'] 'Predictor'",
+    "runs": 100,
+    "spans": [
+     "0-99"
+    ],
+    "matched_by": [
+     "level_calibration pair ids"
+    ]
+   },
+   "smoothed": {
+    "source": "level_calibration.json raw['tl mix/whole|<i>|base'] 'smoothed'",
+    "runs": 100,
+    "spans": [
+     "0-99"
+    ],
+    "matched_by": [
+     "level_calibration pair ids"
+    ]
+   },
+   "empirical": null,
+   "shipped": {
+    "runs": 200,
+    "file": "data/subject_side_rows/tl_mix-whole.jsonl"
+   }
+  },
+  "r1b": {
+   "legacy": {
+    "source": "hier_eval.json raw['r1|benchmark|pair|0|<i>|Predictor'] rows",
+    "runs": 150,
+    "spans": [
+     "0-149"
+    ],
+    "matched_by": [
+     "hier_eval Predictor = testlike_check Predictor (exact)"
+    ]
+   },
+   "smoothed": {
+    "source": "hier_eval.json raw['r1|benchmark|pair|0|<i>|smoothed Beta(2,2)'] rows",
+    "runs": 150,
+    "spans": [
+     "0-149"
+    ],
+    "matched_by": [
+     "the same hier_eval run key as its Predictor rows: hier_eval Predictor = testlike_check Predictor (exact)"
+    ]
+   },
+   "empirical": {
+    "source": "testlike_check.json raw['r1|public R1|<i>'] rows[*]['emp']",
+    "runs": 150,
+    "spans": [
+     "0-149"
+    ],
+    "matched_by": [
+     "testlike_check pair ids"
+    ]
+   },
+   "shipped": {
+    "runs": 150,
+    "file": "data/subject_side_rows/r1b.jsonl"
+   }
+  },
+  "r1p": {
+   "legacy": {
+    "source": "hier_eval.json raw['r1|pair|pair|0|<i>|Predictor'] rows",
+    "runs": 100,
+    "spans": [
+     "0-99"
+    ],
+    "matched_by": [
+     "hier_eval Predictor = level_calibration Predictor (1e-5)"
+    ]
+   },
+   "smoothed": {
+    "source": "hier_eval.json raw['r1|pair|pair|0|<i>|smoothed Beta(2,2)'] rows",
+    "runs": 100,
+    "spans": [
+     "0-99"
+    ],
+    "matched_by": [
+     "the same hier_eval run key as its Predictor rows: hier_eval Predictor = level_calibration Predictor (1e-5)"
+    ]
+   },
+   "empirical": null,
+   "shipped": {
+    "runs": 100,
+    "file": "data/subject_side_rows/r1p.jsonl"
+   }
+  },
+  "tl no shift": {
+   "legacy": {
+    "source": "level_calibration.json raw['tl no shift|<i>|base'] 'Predictor'",
+    "runs": 100,
+    "spans": [
+     "0-99"
+    ],
+    "matched_by": [
+     "level_calibration pair ids"
+    ]
+   },
+   "smoothed": {
+    "source": "level_calibration.json raw['tl no shift|<i>|base'] 'smoothed'",
+    "runs": 100,
+    "spans": [
+     "0-99"
+    ],
+    "matched_by": [
+     "level_calibration pair ids"
+    ]
+   },
+   "empirical": null,
+   "shipped": {
+    "runs": 100,
+    "file": "data/subject_side_rows/tl_no_shift.jsonl"
+   }
+  }
+ },
+ "not_stored": {
+  "tl": {
+   "smoothed": [
+    "200-299"
+   ]
+  },
+  "tl mix/whole": {
+   "legacy": [
+    "100-199"
+   ],
+   "smoothed": [
+    "100-199"
+   ],
+   "empirical": [
+    "0-99",
+    "100-199"
+   ]
+  },
+  "r1b": {},
+  "r1p": {
+   "empirical": [
+    "0-99"
+   ]
+  },
+  "tl no shift": {
+   "empirical": [
+    "0-99"
+   ]
+  }
+ },
+ "regimes": {
+  "tl": {
+   "label": "test-like (seed 2, primary)",
+   "runs": 300,
+   "appearances": 2425,
+   "shipped": {
+    "0-99": {
+     "runs": 100,
+     "range": "0-99",
+     "appearances": 791,
+     "clusters": 96,
+     "ALC": 0.1608,
+     "ALC_run_se": 0.003204,
+     "ALC_cluster_se": 0.007785,
+     "budgets": [
+      0.214771,
+      0.181488,
+      0.158807,
+      0.147994,
+      0.140876,
+      0.134899
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.022564,
+       0.038769,
+       0.035974,
+       0.034945,
+       0.033373,
+       0.031941
+      ],
+      "ALC": 0.032037
+     }
+    },
+    "100-199": {
+     "runs": 100,
+     "range": "100-199",
+     "appearances": 807,
+     "clusters": 94,
+     "ALC": 0.167724,
+     "ALC_run_se": 0.002818,
+     "ALC_cluster_se": 0.007689,
+     "budgets": [
+      0.218337,
+      0.192805,
+      0.165994,
+      0.153482,
+      0.147055,
+      0.140226
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.019694,
+       0.036977,
+       0.032414,
+       0.031157,
+       0.029972,
+       0.027775
+      ],
+      "ALC": 0.028184
+     }
+    },
+    "200-299": {
+     "runs": 100,
+     "range": "200-299",
+     "appearances": 827,
+     "clusters": 94,
+     "ALC": 0.16874,
+     "ALC_run_se": 0.003466,
+     "ALC_cluster_se": 0.007807,
+     "budgets": [
+      0.216431,
+      0.193299,
+      0.168769,
+      0.156109,
+      0.146928,
+      0.140759
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.020245,
+       0.038963,
+       0.040888,
+       0.039582,
+       0.037006,
+       0.035201
+      ],
+      "ALC": 0.03466
+     }
+    },
+    "0-299": {
+     "runs": 300,
+     "range": "0-299",
+     "appearances": 2425,
+     "clusters": 100,
+     "ALC": 0.165755,
+     "ALC_run_se": 0.001838,
+     "ALC_cluster_se": 0.007795,
+     "budgets": [
+      0.216513,
+      0.189197,
+      0.164523,
+      0.152529,
+      0.144953,
+      0.138628
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.020853,
+       0.038508,
+       0.03671,
+       0.03544,
+       0.033585,
+       0.031789
+      ],
+      "ALC": 0.031829
+     }
+    }
+   },
+   "vs": {
+    "legacy": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 791,
+      "shipped_ALC": 0.1608,
+      "shipped_ALC_run_se": 0.003204,
+      "other_ALC": 0.203933,
+      "other_ALC_run_se": 0.002387,
+      "diff": {
+       "mean": -0.043133,
+       "run_se": 0.001931,
+       "cluster_se": 0.003229,
+       "strat_se": 0.002812
+      },
+      "runs_shipped_better": 0.99,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.013808,
+        "cluster_se": 0.007667,
+        "clusters": 26,
+        "appearances": 142,
+        "runs_with": 84,
+        "leave_out": -0.048322
+       },
+       "multi_swebench": {
+        "mean": -0.059206,
+        "cluster_se": 0.003457,
+        "clusters": 43,
+        "appearances": 337,
+        "runs_with": 99,
+        "leave_out": -0.033641
+       },
+       "real_webagents": {
+        "mean": -0.034821,
+        "cluster_se": 0.006411,
+        "clusters": 12,
+        "appearances": 140,
+        "runs_with": 93,
+        "leave_out": -0.044859
+       },
+       "researchcodebench": {
+        "mean": -0.043409,
+        "cluster_se": 0.005583,
+        "clusters": 15,
+        "appearances": 172,
+        "runs_with": 92,
+        "leave_out": -0.042914
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.037811,
+       "se": 0.009461,
+       "range": [
+        -0.059206,
+        -0.013808
+       ],
+       "leave_one_out_range": [
+        -0.048322,
+        -0.033641
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.214771,
+        "other": 0.353769,
+        "diff": -0.138997,
+        "run_se": 0.006485,
+        "cluster_se": 0.011043,
+        "strat_se": 0.009106,
+        "alc_part": -0.0139
+       },
+       {
+        "budget": 1,
+        "shipped": 0.181488,
+        "other": 0.262021,
+        "diff": -0.080533,
+        "run_se": 0.004073,
+        "cluster_se": 0.006825,
+        "strat_se": 0.005843,
+        "alc_part": -0.016107
+       },
+       {
+        "budget": 3,
+        "shipped": 0.158807,
+        "other": 0.197435,
+        "diff": -0.038628,
+        "run_se": 0.001917,
+        "cluster_se": 0.00324,
+        "strat_se": 0.002979,
+        "alc_part": -0.007726
+       },
+       {
+        "budget": 7,
+        "shipped": 0.147994,
+        "other": 0.163893,
+        "diff": -0.015898,
+        "run_se": 0.000788,
+        "cluster_se": 0.00161,
+        "strat_se": 0.001532,
+        "alc_part": -0.00318
+       },
+       {
+        "budget": 15,
+        "shipped": 0.140876,
+        "other": 0.148526,
+        "diff": -0.00765,
+        "run_se": 0.000489,
+        "cluster_se": 0.000797,
+        "strat_se": 0.000804,
+        "alc_part": -0.00153
+       },
+       {
+        "budget": 31,
+        "shipped": 0.134899,
+        "other": 0.141813,
+        "diff": -0.006915,
+        "run_se": 0.000744,
+        "cluster_se": 0.001253,
+        "strat_se": 0.001214,
+        "alc_part": -0.000691
+       }
+      ]
+     },
+     "100-199": {
+      "runs": 100,
+      "range": "100-199",
+      "appearances": 807,
+      "shipped_ALC": 0.167724,
+      "shipped_ALC_run_se": 0.002818,
+      "other_ALC": 0.207328,
+      "other_ALC_run_se": 0.002208,
+      "diff": {
+       "mean": -0.039605,
+       "run_se": 0.001905,
+       "cluster_se": 0.003729,
+       "strat_se": 0.003362
+      },
+      "runs_shipped_better": 0.97,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.007067,
+        "cluster_se": 0.010402,
+        "clusters": 25,
+        "appearances": 162,
+        "runs_with": 82,
+        "leave_out": -0.046507
+       },
+       "multi_swebench": {
+        "mean": -0.058161,
+        "cluster_se": 0.003956,
+        "clusters": 41,
+        "appearances": 313,
+        "runs_with": 100,
+        "leave_out": -0.030003
+       },
+       "real_webagents": {
+        "mean": -0.032591,
+        "cluster_se": 0.007092,
+        "clusters": 13,
+        "appearances": 153,
+        "runs_with": 97,
+        "leave_out": -0.041442
+       },
+       "researchcodebench": {
+        "mean": -0.042012,
+        "cluster_se": 0.005461,
+        "clusters": 15,
+        "appearances": 179,
+        "runs_with": 97,
+        "leave_out": -0.038811
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.034958,
+       "se": 0.010691,
+       "range": [
+        -0.058161,
+        -0.007067
+       ],
+       "leave_one_out_range": [
+        -0.046507,
+        -0.030003
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.218337,
+        "other": 0.348645,
+        "diff": -0.130308,
+        "run_se": 0.005781,
+        "cluster_se": 0.012374,
+        "strat_se": 0.010606,
+        "alc_part": -0.013031
+       },
+       {
+        "budget": 1,
+        "shipped": 0.192805,
+        "other": 0.265238,
+        "diff": -0.072433,
+        "run_se": 0.003943,
+        "cluster_se": 0.00786,
+        "strat_se": 0.007001,
+        "alc_part": -0.014487
+       },
+       {
+        "budget": 3,
+        "shipped": 0.165994,
+        "other": 0.200592,
+        "diff": -0.034598,
+        "run_se": 0.002122,
+        "cluster_se": 0.003692,
+        "strat_se": 0.003379,
+        "alc_part": -0.00692
+       },
+       {
+        "budget": 7,
+        "shipped": 0.153482,
+        "other": 0.168246,
+        "diff": -0.014764,
+        "run_se": 0.000897,
+        "cluster_se": 0.001561,
+        "strat_se": 0.001534,
+        "alc_part": -0.002953
+       },
+       {
+        "budget": 15,
+        "shipped": 0.147055,
+        "other": 0.154313,
+        "diff": -0.007258,
+        "run_se": 0.00052,
+        "cluster_se": 0.000905,
+        "strat_se": 0.000878,
+        "alc_part": -0.001452
+       },
+       {
+        "budget": 31,
+        "shipped": 0.140226,
+        "other": 0.147861,
+        "diff": -0.007635,
+        "run_se": 0.000712,
+        "cluster_se": 0.001375,
+        "strat_se": 0.001292,
+        "alc_part": -0.000764
+       }
+      ]
+     },
+     "200-299": {
+      "runs": 100,
+      "range": "200-299",
+      "appearances": 827,
+      "shipped_ALC": 0.16874,
+      "shipped_ALC_run_se": 0.003466,
+      "other_ALC": 0.210651,
+      "other_ALC_run_se": 0.002784,
+      "diff": {
+       "mean": -0.041911,
+       "run_se": 0.001716,
+       "cluster_se": 0.003736,
+       "strat_se": 0.003446
+      },
+      "runs_shipped_better": 1.0,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.021488,
+        "cluster_se": 0.010508,
+        "clusters": 25,
+        "appearances": 172,
+        "runs_with": 91,
+        "leave_out": -0.047109
+       },
+       "multi_swebench": {
+        "mean": -0.056964,
+        "cluster_se": 0.00406,
+        "clusters": 41,
+        "appearances": 356,
+        "runs_with": 99,
+        "leave_out": -0.032872
+       },
+       "real_webagents": {
+        "mean": -0.031933,
+        "cluster_se": 0.007873,
+        "clusters": 13,
+        "appearances": 150,
+        "runs_with": 97,
+        "leave_out": -0.044157
+       },
+       "researchcodebench": {
+        "mean": -0.040726,
+        "cluster_se": 0.005892,
+        "clusters": 15,
+        "appearances": 149,
+        "runs_with": 93,
+        "leave_out": -0.04204
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.037778,
+       "se": 0.007507,
+       "range": [
+        -0.056964,
+        -0.021488
+       ],
+       "leave_one_out_range": [
+        -0.047109,
+        -0.032872
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.216431,
+        "other": 0.351452,
+        "diff": -0.135021,
+        "run_se": 0.005315,
+        "cluster_se": 0.012634,
+        "strat_se": 0.010915,
+        "alc_part": -0.013502
+       },
+       {
+        "budget": 1,
+        "shipped": 0.193299,
+        "other": 0.269516,
+        "diff": -0.076218,
+        "run_se": 0.003714,
+        "cluster_se": 0.007806,
+        "strat_se": 0.007081,
+        "alc_part": -0.015244
+       },
+       {
+        "budget": 3,
+        "shipped": 0.168769,
+        "other": 0.206316,
+        "diff": -0.037547,
+        "run_se": 0.001807,
+        "cluster_se": 0.003543,
+        "strat_se": 0.003354,
+        "alc_part": -0.007509
+       },
+       {
+        "budget": 7,
+        "shipped": 0.156109,
+        "other": 0.17216,
+        "diff": -0.016051,
+        "run_se": 0.000907,
+        "cluster_se": 0.00171,
+        "strat_se": 0.001698,
+        "alc_part": -0.00321
+       },
+       {
+        "budget": 15,
+        "shipped": 0.146928,
+        "other": 0.154855,
+        "diff": -0.007927,
+        "run_se": 0.000493,
+        "cluster_se": 0.001158,
+        "strat_se": 0.001109,
+        "alc_part": -0.001585
+       },
+       {
+        "budget": 31,
+        "shipped": 0.140759,
+        "other": 0.14936,
+        "diff": -0.008601,
+        "run_se": 0.000921,
+        "cluster_se": 0.002222,
+        "strat_se": 0.002081,
+        "alc_part": -0.00086
+       }
+      ]
+     },
+     "0-299": {
+      "runs": 300,
+      "range": "0-299",
+      "appearances": 2425,
+      "shipped_ALC": 0.165755,
+      "shipped_ALC_run_se": 0.001838,
+      "other_ALC": 0.207304,
+      "other_ALC_run_se": 0.001431,
+      "diff": {
+       "mean": -0.04155,
+       "run_se": 0.00107,
+       "cluster_se": 0.003413,
+       "strat_se": 0.0031
+      },
+      "runs_shipped_better": 0.986667,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.014339,
+        "cluster_se": 0.008982,
+        "clusters": 29,
+        "appearances": 476,
+        "runs_with": 257,
+        "leave_out": -0.047313
+       },
+       "multi_swebench": {
+        "mean": -0.058104,
+        "cluster_se": 0.003547,
+        "clusters": 43,
+        "appearances": 1006,
+        "runs_with": 298,
+        "leave_out": -0.032172
+       },
+       "real_webagents": {
+        "mean": -0.033102,
+        "cluster_se": 0.007015,
+        "clusters": 13,
+        "appearances": 443,
+        "runs_with": 287,
+        "leave_out": -0.043486
+       },
+       "researchcodebench": {
+        "mean": -0.042127,
+        "cluster_se": 0.005315,
+        "clusters": 15,
+        "appearances": 500,
+        "runs_with": 282,
+        "leave_out": -0.041255
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.036918,
+       "se": 0.00913,
+       "range": [
+        -0.058104,
+        -0.014339
+       ],
+       "leave_one_out_range": [
+        -0.047313,
+        -0.032172
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.216513,
+        "other": 0.351289,
+        "diff": -0.134776,
+        "run_se": 0.00339,
+        "cluster_se": 0.011376,
+        "strat_se": 0.009907,
+        "alc_part": -0.013478
+       },
+       {
+        "budget": 1,
+        "shipped": 0.189197,
+        "other": 0.265592,
+        "diff": -0.076395,
+        "run_se": 0.00226,
+        "cluster_se": 0.007203,
+        "strat_se": 0.006443,
+        "alc_part": -0.015279
+       },
+       {
+        "budget": 3,
+        "shipped": 0.164523,
+        "other": 0.201447,
+        "diff": -0.036924,
+        "run_se": 0.001128,
+        "cluster_se": 0.003335,
+        "strat_se": 0.003065,
+        "alc_part": -0.007385
+       },
+       {
+        "budget": 7,
+        "shipped": 0.152529,
+        "other": 0.1681,
+        "diff": -0.015571,
+        "run_se": 0.000499,
+        "cluster_se": 0.001499,
+        "strat_se": 0.001456,
+        "alc_part": -0.003114
+       },
+       {
+        "budget": 15,
+        "shipped": 0.144953,
+        "other": 0.152565,
+        "diff": -0.007612,
+        "run_se": 0.000289,
+        "cluster_se": 0.000862,
+        "strat_se": 0.000835,
+        "alc_part": -0.001522
+       },
+       {
+        "budget": 31,
+        "shipped": 0.138628,
+        "other": 0.146345,
+        "diff": -0.007717,
+        "run_se": 0.000461,
+        "cluster_se": 0.001472,
+        "strat_se": 0.001462,
+        "alc_part": -0.000772
+       }
+      ]
+     }
+    },
+    "smoothed": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 791,
+      "shipped_ALC": 0.1608,
+      "shipped_ALC_run_se": 0.003204,
+      "other_ALC": 0.178763,
+      "other_ALC_run_se": 0.002381,
+      "diff": {
+       "mean": -0.017963,
+       "run_se": 0.000959,
+       "cluster_se": 0.002111,
+       "strat_se": 0.001987
+      },
+      "runs_shipped_better": 0.97,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.008271,
+        "cluster_se": 0.004798,
+        "clusters": 26,
+        "appearances": 142,
+        "runs_with": 84,
+        "leave_out": -0.019355
+       },
+       "multi_swebench": {
+        "mean": -0.024331,
+        "cluster_se": 0.002776,
+        "clusters": 43,
+        "appearances": 337,
+        "runs_with": 99,
+        "leave_out": -0.014297
+       },
+       "real_webagents": {
+        "mean": -0.013472,
+        "cluster_se": 0.00603,
+        "clusters": 12,
+        "appearances": 140,
+        "runs_with": 93,
+        "leave_out": -0.01888
+       },
+       "researchcodebench": {
+        "mean": -0.017544,
+        "cluster_se": 0.003075,
+        "clusters": 15,
+        "appearances": 172,
+        "runs_with": 92,
+        "leave_out": -0.018093
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.015904,
+       "se": 0.00339,
+       "range": [
+        -0.024331,
+        -0.008271
+       ],
+       "leave_one_out_range": [
+        -0.019355,
+        -0.014297
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.214771,
+        "other": 0.25,
+        "diff": -0.035229,
+        "run_se": 0.002256,
+        "cluster_se": 0.00466,
+        "strat_se": 0.004253,
+        "alc_part": -0.003523
+       },
+       {
+        "budget": 1,
+        "shipped": 0.181488,
+        "other": 0.213865,
+        "diff": -0.032377,
+        "run_se": 0.002255,
+        "cluster_se": 0.004665,
+        "strat_se": 0.004287,
+        "alc_part": -0.006475
+       },
+       {
+        "budget": 3,
+        "shipped": 0.158807,
+        "other": 0.179935,
+        "diff": -0.021128,
+        "run_se": 0.001188,
+        "cluster_se": 0.002555,
+        "strat_se": 0.002429,
+        "alc_part": -0.004226
+       },
+       {
+        "budget": 7,
+        "shipped": 0.147994,
+        "other": 0.158225,
+        "diff": -0.010231,
+        "run_se": 0.000569,
+        "cluster_se": 0.001348,
+        "strat_se": 0.001284,
+        "alc_part": -0.002046
+       },
+       {
+        "budget": 15,
+        "shipped": 0.140876,
+        "other": 0.146245,
+        "diff": -0.005369,
+        "run_se": 0.000372,
+        "cluster_se": 0.000737,
+        "strat_se": 0.00073,
+        "alc_part": -0.001074
+       },
+       {
+        "budget": 31,
+        "shipped": 0.134899,
+        "other": 0.141093,
+        "diff": -0.006195,
+        "run_se": 0.000585,
+        "cluster_se": 0.001049,
+        "strat_se": 0.00099,
+        "alc_part": -0.000619
+       }
+      ]
+     },
+     "100-199": {
+      "runs": 100,
+      "range": "100-199",
+      "appearances": 807,
+      "shipped_ALC": 0.167724,
+      "shipped_ALC_run_se": 0.002818,
+      "other_ALC": 0.183608,
+      "other_ALC_run_se": 0.002122,
+      "diff": {
+       "mean": -0.015885,
+       "run_se": 0.000919,
+       "cluster_se": 0.002053,
+       "strat_se": 0.001972
+      },
+      "runs_shipped_better": 0.97,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.004021,
+        "cluster_se": 0.004964,
+        "clusters": 25,
+        "appearances": 162,
+        "runs_with": 82,
+        "leave_out": -0.018235
+       },
+       "multi_swebench": {
+        "mean": -0.023933,
+        "cluster_se": 0.002817,
+        "clusters": 41,
+        "appearances": 313,
+        "runs_with": 100,
+        "leave_out": -0.011331
+       },
+       "real_webagents": {
+        "mean": -0.009726,
+        "cluster_se": 0.004318,
+        "clusters": 13,
+        "appearances": 153,
+        "runs_with": 97,
+        "leave_out": -0.01759
+       },
+       "researchcodebench": {
+        "mean": -0.01776,
+        "cluster_se": 0.003307,
+        "clusters": 15,
+        "appearances": 179,
+        "runs_with": 97,
+        "leave_out": -0.015373
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.01386,
+       "se": 0.004383,
+       "range": [
+        -0.023933,
+        -0.004021
+       ],
+       "leave_one_out_range": [
+        -0.018235,
+        -0.011331
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.218337,
+        "other": 0.25,
+        "diff": -0.031663,
+        "run_se": 0.001969,
+        "cluster_se": 0.004693,
+        "strat_se": 0.004274,
+        "alc_part": -0.003166
+       },
+       {
+        "budget": 1,
+        "shipped": 0.192805,
+        "other": 0.219326,
+        "diff": -0.026521,
+        "run_se": 0.002047,
+        "cluster_se": 0.00445,
+        "strat_se": 0.004222,
+        "alc_part": -0.005304
+       },
+       {
+        "budget": 3,
+        "shipped": 0.165994,
+        "other": 0.184596,
+        "diff": -0.018603,
+        "run_se": 0.00125,
+        "cluster_se": 0.002569,
+        "strat_se": 0.002435,
+        "alc_part": -0.003721
+       },
+       {
+        "budget": 7,
+        "shipped": 0.153482,
+        "other": 0.162983,
+        "diff": -0.009501,
+        "run_se": 0.000618,
+        "cluster_se": 0.001228,
+        "strat_se": 0.001206,
+        "alc_part": -0.0019
+       },
+       {
+        "budget": 15,
+        "shipped": 0.147055,
+        "other": 0.152454,
+        "diff": -0.005399,
+        "run_se": 0.000448,
+        "cluster_se": 0.000834,
+        "strat_se": 0.000795,
+        "alc_part": -0.00108
+       },
+       {
+        "budget": 31,
+        "shipped": 0.140226,
+        "other": 0.147365,
+        "diff": -0.007139,
+        "run_se": 0.000577,
+        "cluster_se": 0.001263,
+        "strat_se": 0.001206,
+        "alc_part": -0.000714
+       }
+      ]
+     },
+     "0-199": {
+      "runs": 200,
+      "range": "0-199",
+      "appearances": 1598,
+      "shipped_ALC": 0.164262,
+      "shipped_ALC_run_se": 0.002142,
+      "other_ALC": 0.181186,
+      "other_ALC_run_se": 0.0016,
+      "diff": {
+       "mean": -0.016924,
+       "run_se": 0.000667,
+       "cluster_se": 0.002019,
+       "strat_se": 0.001939
+      },
+      "runs_shipped_better": 0.97,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.006058,
+        "cluster_se": 0.0048,
+        "clusters": 27,
+        "appearances": 304,
+        "runs_with": 166,
+        "leave_out": -0.018795
+       },
+       "multi_swebench": {
+        "mean": -0.02414,
+        "cluster_se": 0.002603,
+        "clusters": 43,
+        "appearances": 650,
+        "runs_with": 199,
+        "leave_out": -0.012814
+       },
+       "real_webagents": {
+        "mean": -0.011534,
+        "cluster_se": 0.004939,
+        "clusters": 13,
+        "appearances": 293,
+        "runs_with": 190,
+        "leave_out": -0.018235
+       },
+       "researchcodebench": {
+        "mean": -0.017653,
+        "cluster_se": 0.003044,
+        "clusters": 15,
+        "appearances": 351,
+        "runs_with": 189,
+        "leave_out": -0.016733
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.014846,
+       "se": 0.003899,
+       "range": [
+        -0.02414,
+        -0.006058
+       ],
+       "leave_one_out_range": [
+        -0.018795,
+        -0.012814
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.216554,
+        "other": 0.25,
+        "diff": -0.033446,
+        "run_se": 0.001499,
+        "cluster_se": 0.004466,
+        "strat_se": 0.004162,
+        "alc_part": -0.003345
+       },
+       {
+        "budget": 1,
+        "shipped": 0.187147,
+        "other": 0.216596,
+        "diff": -0.029449,
+        "run_se": 0.001533,
+        "cluster_se": 0.0044,
+        "strat_se": 0.004177,
+        "alc_part": -0.00589
+       },
+       {
+        "budget": 3,
+        "shipped": 0.1624,
+        "other": 0.182266,
+        "diff": -0.019865,
+        "run_se": 0.000865,
+        "cluster_se": 0.00246,
+        "strat_se": 0.002354,
+        "alc_part": -0.003973
+       },
+       {
+        "budget": 7,
+        "shipped": 0.150738,
+        "other": 0.160604,
+        "diff": -0.009866,
+        "run_se": 0.00042,
+        "cluster_se": 0.001249,
+        "strat_se": 0.001205,
+        "alc_part": -0.001973
+       },
+       {
+        "budget": 15,
+        "shipped": 0.143966,
+        "other": 0.14935,
+        "diff": -0.005384,
+        "run_se": 0.00029,
+        "cluster_se": 0.00076,
+        "strat_se": 0.00074,
+        "alc_part": -0.001077
+       },
+       {
+        "budget": 31,
+        "shipped": 0.137562,
+        "other": 0.144229,
+        "diff": -0.006667,
+        "run_se": 0.000411,
+        "cluster_se": 0.001112,
+        "strat_se": 0.001042,
+        "alc_part": -0.000667
+       }
+      ]
+     }
+    },
+    "empirical": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 791,
+      "shipped_ALC": 0.1608,
+      "shipped_ALC_run_se": 0.003204,
+      "other_ALC": 0.187823,
+      "other_ALC_run_se": 0.004226,
+      "diff": {
+       "mean": -0.027023,
+       "run_se": 0.001433,
+       "cluster_se": 0.002808,
+       "strat_se": 0.002665
+      },
+      "runs_shipped_better": 0.96,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.0316,
+        "cluster_se": 0.005062,
+        "clusters": 26,
+        "appearances": 142,
+        "runs_with": 84,
+        "leave_out": -0.026329
+       },
+       "multi_swebench": {
+        "mean": -0.018567,
+        "cluster_se": 0.003137,
+        "clusters": 43,
+        "appearances": 337,
+        "runs_with": 99,
+        "leave_out": -0.034499
+       },
+       "real_webagents": {
+        "mean": -0.031068,
+        "cluster_se": 0.008288,
+        "clusters": 12,
+        "appearances": 140,
+        "runs_with": 93,
+        "leave_out": -0.026046
+       },
+       "researchcodebench": {
+        "mean": -0.035763,
+        "cluster_se": 0.006508,
+        "clusters": 15,
+        "appearances": 172,
+        "runs_with": 92,
+        "leave_out": -0.024219
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.02925,
+       "se": 0.003712,
+       "range": [
+        -0.035763,
+        -0.018567
+       ],
+       "leave_one_out_range": [
+        -0.034499,
+        -0.024219
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.214771,
+        "other": 0.25,
+        "diff": -0.035229,
+        "run_se": 0.002256,
+        "cluster_se": 0.00466,
+        "strat_se": 0.004253,
+        "alc_part": -0.003523
+       },
+       {
+        "budget": 1,
+        "shipped": 0.181488,
+        "other": 0.269326,
+        "diff": -0.087838,
+        "run_se": 0.006078,
+        "cluster_se": 0.013343,
+        "strat_se": 0.012627,
+        "alc_part": -0.017568
+       },
+       {
+        "budget": 3,
+        "shipped": 0.158807,
+        "other": 0.175491,
+        "diff": -0.016684,
+        "run_se": 0.001553,
+        "cluster_se": 0.002301,
+        "strat_se": 0.002281,
+        "alc_part": -0.003337
+       },
+       {
+        "budget": 7,
+        "shipped": 0.147994,
+        "other": 0.154187,
+        "diff": -0.006192,
+        "run_se": 0.000783,
+        "cluster_se": 0.001386,
+        "strat_se": 0.001352,
+        "alc_part": -0.001238
+       },
+       {
+        "budget": 15,
+        "shipped": 0.140876,
+        "other": 0.144808,
+        "diff": -0.003932,
+        "run_se": 0.000438,
+        "cluster_se": 0.000723,
+        "strat_se": 0.000665,
+        "alc_part": -0.000786
+       },
+       {
+        "budget": 31,
+        "shipped": 0.134899,
+        "other": 0.140608,
+        "diff": -0.005709,
+        "run_se": 0.000631,
+        "cluster_se": 0.001058,
+        "strat_se": 0.000979,
+        "alc_part": -0.000571
+       }
+      ]
+     },
+     "100-199": {
+      "runs": 100,
+      "range": "100-199",
+      "appearances": 807,
+      "shipped_ALC": 0.167724,
+      "shipped_ALC_run_se": 0.002818,
+      "other_ALC": 0.198155,
+      "other_ALC_run_se": 0.003816,
+      "diff": {
+       "mean": -0.030432,
+       "run_se": 0.00138,
+       "cluster_se": 0.003,
+       "strat_se": 0.00292
+      },
+      "runs_shipped_better": 1.0,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.030909,
+        "cluster_se": 0.006531,
+        "clusters": 25,
+        "appearances": 162,
+        "runs_with": 82,
+        "leave_out": -0.030841
+       },
+       "multi_swebench": {
+        "mean": -0.020031,
+        "cluster_se": 0.003082,
+        "clusters": 41,
+        "appearances": 313,
+        "runs_with": 100,
+        "leave_out": -0.037766
+       },
+       "real_webagents": {
+        "mean": -0.042222,
+        "cluster_se": 0.008751,
+        "clusters": 13,
+        "appearances": 153,
+        "runs_with": 97,
+        "leave_out": -0.026913
+       },
+       "researchcodebench": {
+        "mean": -0.037221,
+        "cluster_se": 0.005987,
+        "clusters": 15,
+        "appearances": 179,
+        "runs_with": 97,
+        "leave_out": -0.028476
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.032596,
+       "se": 0.004785,
+       "range": [
+        -0.042222,
+        -0.020031
+       ],
+       "leave_one_out_range": [
+        -0.037766,
+        -0.026913
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.218337,
+        "other": 0.25,
+        "diff": -0.031663,
+        "run_se": 0.001969,
+        "cluster_se": 0.004693,
+        "strat_se": 0.004274,
+        "alc_part": -0.003166
+       },
+       {
+        "budget": 1,
+        "shipped": 0.192805,
+        "other": 0.29663,
+        "diff": -0.103825,
+        "run_se": 0.006282,
+        "cluster_se": 0.013735,
+        "strat_se": 0.013519,
+        "alc_part": -0.020765
+       },
+       {
+        "budget": 3,
+        "shipped": 0.165994,
+        "other": 0.183679,
+        "diff": -0.017685,
+        "run_se": 0.001461,
+        "cluster_se": 0.002795,
+        "strat_se": 0.002754,
+        "alc_part": -0.003537
+       },
+       {
+        "budget": 7,
+        "shipped": 0.153482,
+        "other": 0.160205,
+        "diff": -0.006723,
+        "run_se": 0.000675,
+        "cluster_se": 0.001688,
+        "strat_se": 0.001646,
+        "alc_part": -0.001345
+       },
+       {
+        "budget": 15,
+        "shipped": 0.147055,
+        "other": 0.15177,
+        "diff": -0.004714,
+        "run_se": 0.000511,
+        "cluster_se": 0.000794,
+        "strat_se": 0.000741,
+        "alc_part": -0.000943
+       },
+       {
+        "budget": 31,
+        "shipped": 0.140226,
+        "other": 0.146984,
+        "diff": -0.006759,
+        "run_se": 0.000606,
+        "cluster_se": 0.001261,
+        "strat_se": 0.001199,
+        "alc_part": -0.000676
+       }
+      ]
+     },
+     "200-299": {
+      "runs": 100,
+      "range": "200-299",
+      "appearances": 827,
+      "shipped_ALC": 0.16874,
+      "shipped_ALC_run_se": 0.003466,
+      "other_ALC": 0.202249,
+      "other_ALC_run_se": 0.004653,
+      "diff": {
+       "mean": -0.033509,
+       "run_se": 0.001566,
+       "cluster_se": 0.003455,
+       "strat_se": 0.00327
+      },
+      "runs_shipped_better": 1.0,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.046443,
+        "cluster_se": 0.008796,
+        "clusters": 25,
+        "appearances": 172,
+        "runs_with": 91,
+        "leave_out": -0.030302
+       },
+       "multi_swebench": {
+        "mean": -0.020171,
+        "cluster_se": 0.002738,
+        "clusters": 41,
+        "appearances": 356,
+        "runs_with": 99,
+        "leave_out": -0.044683
+       },
+       "real_webagents": {
+        "mean": -0.043996,
+        "cluster_se": 0.010057,
+        "clusters": 13,
+        "appearances": 150,
+        "runs_with": 97,
+        "leave_out": -0.030724
+       },
+       "researchcodebench": {
+        "mean": -0.038714,
+        "cluster_se": 0.005569,
+        "clusters": 15,
+        "appearances": 149,
+        "runs_with": 93,
+        "leave_out": -0.032398
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.037331,
+       "se": 0.005943,
+       "range": [
+        -0.046443,
+        -0.020171
+       ],
+       "leave_one_out_range": [
+        -0.044683,
+        -0.030302
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.216431,
+        "other": 0.25,
+        "diff": -0.033569,
+        "run_se": 0.002025,
+        "cluster_se": 0.004777,
+        "strat_se": 0.004421,
+        "alc_part": -0.003357
+       },
+       {
+        "budget": 1,
+        "shipped": 0.193299,
+        "other": 0.304042,
+        "diff": -0.110743,
+        "run_se": 0.006281,
+        "cluster_se": 0.014066,
+        "strat_se": 0.013443,
+        "alc_part": -0.022149
+       },
+       {
+        "budget": 3,
+        "shipped": 0.168769,
+        "other": 0.191594,
+        "diff": -0.022825,
+        "run_se": 0.002099,
+        "cluster_se": 0.003882,
+        "strat_se": 0.003725,
+        "alc_part": -0.004565
+       },
+       {
+        "budget": 7,
+        "shipped": 0.156109,
+        "other": 0.164538,
+        "diff": -0.008429,
+        "run_se": 0.000833,
+        "cluster_se": 0.002027,
+        "strat_se": 0.001941,
+        "alc_part": -0.001686
+       },
+       {
+        "budget": 15,
+        "shipped": 0.146928,
+        "other": 0.152283,
+        "diff": -0.005354,
+        "run_se": 0.000543,
+        "cluster_se": 0.001163,
+        "strat_se": 0.001093,
+        "alc_part": -0.001071
+       },
+       {
+        "budget": 31,
+        "shipped": 0.140759,
+        "other": 0.147576,
+        "diff": -0.006817,
+        "run_se": 0.000608,
+        "cluster_se": 0.001566,
+        "strat_se": 0.001445,
+        "alc_part": -0.000682
+       }
+      ]
+     },
+     "0-299": {
+      "runs": 300,
+      "range": "0-299",
+      "appearances": 2425,
+      "shipped_ALC": 0.165755,
+      "shipped_ALC_run_se": 0.001838,
+      "other_ALC": 0.196076,
+      "other_ALC_run_se": 0.002468,
+      "diff": {
+       "mean": -0.030321,
+       "run_se": 0.000855,
+       "cluster_se": 0.002953,
+       "strat_se": 0.002784
+      },
+      "runs_shipped_better": 0.986667,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.03673,
+        "cluster_se": 0.005938,
+        "clusters": 29,
+        "appearances": 476,
+        "runs_with": 257,
+        "leave_out": -0.029157
+       },
+       "multi_swebench": {
+        "mean": -0.019581,
+        "cluster_se": 0.002655,
+        "clusters": 43,
+        "appearances": 1006,
+        "runs_with": 298,
+        "leave_out": -0.038983
+       },
+       "real_webagents": {
+        "mean": -0.03917,
+        "cluster_se": 0.008922,
+        "clusters": 13,
+        "appearances": 443,
+        "runs_with": 287,
+        "leave_out": -0.027895
+       },
+       "researchcodebench": {
+        "mean": -0.037145,
+        "cluster_se": 0.005227,
+        "clusters": 15,
+        "appearances": 500,
+        "runs_with": 282,
+        "leave_out": -0.028364
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.033157,
+       "se": 0.004556,
+       "range": [
+        -0.03917,
+        -0.019581
+       ],
+       "leave_one_out_range": [
+        -0.038983,
+        -0.027895
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.216513,
+        "other": 0.25,
+        "diff": -0.033487,
+        "run_se": 0.001204,
+        "cluster_se": 0.00464,
+        "strat_se": 0.004233,
+        "alc_part": -0.003349
+       },
+       {
+        "budget": 1,
+        "shipped": 0.189197,
+        "other": 0.289999,
+        "diff": -0.100802,
+        "run_se": 0.003619,
+        "cluster_se": 0.013204,
+        "strat_se": 0.012454,
+        "alc_part": -0.02016
+       },
+       {
+        "budget": 3,
+        "shipped": 0.164523,
+        "other": 0.183588,
+        "diff": -0.019065,
+        "run_se": 0.001006,
+        "cluster_se": 0.002716,
+        "strat_se": 0.002646,
+        "alc_part": -0.003813
+       },
+       {
+        "budget": 7,
+        "shipped": 0.152529,
+        "other": 0.159643,
+        "diff": -0.007115,
+        "run_se": 0.000444,
+        "cluster_se": 0.001584,
+        "strat_se": 0.001507,
+        "alc_part": -0.001423
+       },
+       {
+        "budget": 15,
+        "shipped": 0.144953,
+        "other": 0.14962,
+        "diff": -0.004667,
+        "run_se": 0.000289,
+        "cluster_se": 0.000824,
+        "strat_se": 0.000772,
+        "alc_part": -0.000933
+       },
+       {
+        "budget": 31,
+        "shipped": 0.138628,
+        "other": 0.145056,
+        "diff": -0.006428,
+        "run_se": 0.000355,
+        "cluster_se": 0.001207,
+        "strat_se": 0.001151,
+        "alc_part": -0.000643
+       }
+      ]
+     }
+    }
+   }
+  },
+  "tl mix/whole": {
+   "label": "test-like, groups merged at random and wholes (seed 3)",
+   "runs": 200,
+   "appearances": 1637,
+   "shipped": {
+    "0-99": {
+     "runs": 100,
+     "range": "0-99",
+     "appearances": 813,
+     "clusters": 97,
+     "ALC": 0.169385,
+     "ALC_run_se": 0.003098,
+     "ALC_cluster_se": 0.009652,
+     "budgets": [
+      0.216496,
+      0.189805,
+      0.166847,
+      0.157956,
+      0.151677,
+      0.144785
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.01503,
+       0.037838,
+       0.034129,
+       0.034341,
+       0.033972,
+       0.031116
+      ],
+      "ALC": 0.030981
+     }
+    },
+    "100-199": {
+     "runs": 100,
+     "range": "100-199",
+     "appearances": 824,
+     "clusters": 100,
+     "ALC": 0.172738,
+     "ALC_run_se": 0.003484,
+     "ALC_cluster_se": 0.009774,
+     "budgets": [
+      0.219063,
+      0.196395,
+      0.171625,
+      0.160007,
+      0.153165,
+      0.145935
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.019006,
+       0.042001,
+       0.039834,
+       0.037173,
+       0.037007,
+       0.034434
+      ],
+      "ALC": 0.034838
+     }
+    },
+    "0-199": {
+     "runs": 200,
+     "range": "0-199",
+     "appearances": 1637,
+     "clusters": 105,
+     "ALC": 0.171062,
+     "ALC_run_se": 0.002328,
+     "ALC_cluster_se": 0.009736,
+     "budgets": [
+      0.217779,
+      0.1931,
+      0.169236,
+      0.158982,
+      0.152421,
+      0.14536
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.017139,
+       0.04001,
+       0.037075,
+       0.03571,
+       0.03544,
+       0.032739
+      ],
+      "ALC": 0.032926
+     }
+    }
+   },
+   "vs": {
+    "legacy": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 813,
+      "shipped_ALC": 0.169385,
+      "shipped_ALC_run_se": 0.003098,
+      "other_ALC": 0.212942,
+      "other_ALC_run_se": 0.002269,
+      "diff": {
+       "mean": -0.043557,
+       "run_se": 0.00136,
+       "cluster_se": 0.003943,
+       "strat_se": 0.003117
+      },
+      "runs_shipped_better": 1.0,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.009949,
+        "cluster_se": 0.007716,
+        "clusters": 27,
+        "appearances": 98,
+        "runs_with": 66,
+        "leave_out": -0.047348
+       },
+       "multi_swebench": {
+        "mean": -0.064915,
+        "cluster_se": 0.00234,
+        "clusters": 42,
+        "appearances": 439,
+        "runs_with": 100,
+        "leave_out": -0.018871
+       },
+       "real_webagents": {
+        "mean": -0.016111,
+        "cluster_se": 0.007761,
+        "clusters": 13,
+        "appearances": 108,
+        "runs_with": 77,
+        "leave_out": -0.047901
+       },
+       "researchcodebench": {
+        "mean": -0.026255,
+        "cluster_se": 0.005946,
+        "clusters": 15,
+        "appearances": 168,
+        "runs_with": 90,
+        "leave_out": -0.048068
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.029308,
+       "se": 0.012336,
+       "range": [
+        -0.064915,
+        -0.009949
+       ],
+       "leave_one_out_range": [
+        -0.048068,
+        -0.018871
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.216496,
+        "other": 0.356776,
+        "diff": -0.140281,
+        "run_se": 0.004311,
+        "cluster_se": 0.013251,
+        "strat_se": 0.010461,
+        "alc_part": -0.014028
+       },
+       {
+        "budget": 1,
+        "shipped": 0.189805,
+        "other": 0.267095,
+        "diff": -0.07729,
+        "run_se": 0.003057,
+        "cluster_se": 0.008859,
+        "strat_se": 0.006968,
+        "alc_part": -0.015458
+       },
+       {
+        "budget": 3,
+        "shipped": 0.166847,
+        "other": 0.204255,
+        "diff": -0.037409,
+        "run_se": 0.00155,
+        "cluster_se": 0.003955,
+        "strat_se": 0.003085,
+        "alc_part": -0.007482
+       },
+       {
+        "budget": 7,
+        "shipped": 0.157956,
+        "other": 0.17589,
+        "diff": -0.017934,
+        "run_se": 0.000827,
+        "cluster_se": 0.001594,
+        "strat_se": 0.001457,
+        "alc_part": -0.003587
+       },
+       {
+        "budget": 15,
+        "shipped": 0.151677,
+        "other": 0.161681,
+        "diff": -0.010004,
+        "run_se": 0.000628,
+        "cluster_se": 0.001199,
+        "strat_se": 0.001059,
+        "alc_part": -0.002001
+       },
+       {
+        "budget": 31,
+        "shipped": 0.144785,
+        "other": 0.154802,
+        "diff": -0.010017,
+        "run_se": 0.00101,
+        "cluster_se": 0.001806,
+        "strat_se": 0.001578,
+        "alc_part": -0.001002
+       }
+      ]
+     }
+    },
+    "smoothed": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 813,
+      "shipped_ALC": 0.169385,
+      "shipped_ALC_run_se": 0.003098,
+      "other_ALC": 0.186973,
+      "other_ALC_run_se": 0.002448,
+      "diff": {
+       "mean": -0.017588,
+       "run_se": 0.00076,
+       "cluster_se": 0.002223,
+       "strat_se": 0.00192
+      },
+      "runs_shipped_better": 1.0,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.007104,
+        "cluster_se": 0.003611,
+        "clusters": 27,
+        "appearances": 98,
+        "runs_with": 66,
+        "leave_out": -0.018577
+       },
+       "multi_swebench": {
+        "mean": -0.026929,
+        "cluster_se": 0.002339,
+        "clusters": 42,
+        "appearances": 439,
+        "runs_with": 100,
+        "leave_out": -0.006324
+       },
+       "real_webagents": {
+        "mean": -0.006184,
+        "cluster_se": 0.004389,
+        "clusters": 13,
+        "appearances": 108,
+        "runs_with": 77,
+        "leave_out": -0.019403
+       },
+       "researchcodebench": {
+        "mean": -0.007351,
+        "cluster_se": 0.002561,
+        "clusters": 15,
+        "appearances": 168,
+        "runs_with": 90,
+        "leave_out": -0.020384
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.011892,
+       "se": 0.005019,
+       "range": [
+        -0.026929,
+        -0.006184
+       ],
+       "leave_one_out_range": [
+        -0.020384,
+        -0.006324
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.216496,
+        "other": 0.25,
+        "diff": -0.033504,
+        "run_se": 0.001503,
+        "cluster_se": 0.004673,
+        "strat_se": 0.003903,
+        "alc_part": -0.00335
+       },
+       {
+        "budget": 1,
+        "shipped": 0.189805,
+        "other": 0.217872,
+        "diff": -0.028067,
+        "run_se": 0.001928,
+        "cluster_se": 0.005424,
+        "strat_se": 0.004577,
+        "alc_part": -0.005613
+       },
+       {
+        "budget": 3,
+        "shipped": 0.166847,
+        "other": 0.185971,
+        "diff": -0.019125,
+        "run_se": 0.001009,
+        "cluster_se": 0.003095,
+        "strat_se": 0.00259,
+        "alc_part": -0.003825
+       },
+       {
+        "budget": 7,
+        "shipped": 0.157956,
+        "other": 0.168979,
+        "diff": -0.011023,
+        "run_se": 0.000608,
+        "cluster_se": 0.001198,
+        "strat_se": 0.001105,
+        "alc_part": -0.002205
+       },
+       {
+        "budget": 15,
+        "shipped": 0.151677,
+        "other": 0.15954,
+        "diff": -0.007863,
+        "run_se": 0.000594,
+        "cluster_se": 0.001066,
+        "strat_se": 0.000912,
+        "alc_part": -0.001573
+       },
+       {
+        "budget": 31,
+        "shipped": 0.144785,
+        "other": 0.155003,
+        "diff": -0.010219,
+        "run_se": 0.000787,
+        "cluster_se": 0.001495,
+        "strat_se": 0.001176,
+        "alc_part": -0.001022
+       }
+      ]
+     }
+    }
+   }
+  },
+  "r1b": {
+   "label": "public R1, benchmark-first (seed 0, split scope pair)",
+   "runs": 150,
+   "appearances": 1307,
+   "shipped": {
+    "0-99": {
+     "runs": 100,
+     "range": "0-99",
+     "appearances": 874,
+     "clusters": 203,
+     "ALC": 0.205265,
+     "ALC_run_se": 0.002872,
+     "ALC_cluster_se": 0.009155,
+     "budgets": [
+      0.235977,
+      0.224464,
+      0.213757,
+      0.197452,
+      0.184496,
+      0.176335
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.032981,
+       0.038816,
+       0.03574,
+       0.028668,
+       0.026192,
+       0.02489
+      ],
+      "ALC": 0.028723
+     }
+    },
+    "100-149": {
+     "runs": 50,
+     "range": "100-149",
+     "appearances": 433,
+     "clusters": 167,
+     "ALC": 0.204816,
+     "ALC_run_se": 0.004019,
+     "ALC_cluster_se": 0.010082,
+     "budgets": [
+      0.232977,
+      0.223855,
+      0.211017,
+      0.196958,
+      0.186457,
+      0.178604
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.033389,
+       0.034436,
+       0.032304,
+       0.028741,
+       0.0271,
+       0.026011
+      ],
+      "ALC": 0.02842
+     }
+    },
+    "0-149": {
+     "runs": 150,
+     "range": "0-149",
+     "appearances": 1307,
+     "clusters": 214,
+     "ALC": 0.205115,
+     "ALC_run_se": 0.002329,
+     "ALC_cluster_se": 0.00927,
+     "budgets": [
+      0.234977,
+      0.224261,
+      0.212843,
+      0.197288,
+      0.18515,
+      0.177091
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.033036,
+       0.037298,
+       0.034548,
+       0.028596,
+       0.026424,
+       0.025205
+      ],
+      "ALC": 0.028527
+     }
+    }
+   },
+   "vs": {
+    "legacy": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 874,
+      "shipped_ALC": 0.205265,
+      "shipped_ALC_run_se": 0.002872,
+      "other_ALC": 0.206795,
+      "other_ALC_run_se": 0.002362,
+      "diff": {
+       "mean": -0.00153,
+       "run_se": 0.000997,
+       "cluster_se": 0.002141,
+       "strat_se": 0.001811
+      },
+      "runs_shipped_better": 0.62,
+      "per_parent": {
+       "matharena": {
+        "mean": 0.010635,
+        "cluster_se": 0.003183,
+        "clusters": 72,
+        "appearances": 192,
+        "runs_with": 89,
+        "leave_out": -0.004629
+       },
+       "multi_swebench": {
+        "mean": -0.013061,
+        "cluster_se": 0.00281,
+        "clusters": 73,
+        "appearances": 201,
+        "runs_with": 93,
+        "leave_out": 0.001875
+       },
+       "real_webagents": {
+        "mean": -0.005788,
+        "cluster_se": 0.006158,
+        "clusters": 26,
+        "appearances": 209,
+        "runs_with": 95,
+        "leave_out": -0.000222
+       },
+       "researchcodebench": {
+        "mean": -0.001801,
+        "cluster_se": 0.002338,
+        "clusters": 31,
+        "appearances": 186,
+        "runs_with": 88,
+        "leave_out": -0.001222
+       },
+       "swe_rebench": {
+        "mean": 0.009169,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 86,
+        "runs_with": 86,
+        "leave_out": -0.00279
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.002504,
+       "se": 0.004961,
+       "range": [
+        -0.013061,
+        0.010635
+       ],
+       "leave_one_out_range": [
+        -0.004629,
+        0.001875
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.235977,
+        "other": 0.229886,
+        "diff": 0.006091,
+        "run_se": 0.002957,
+        "cluster_se": 0.00666,
+        "strat_se": 0.005648,
+        "alc_part": 0.000609
+       },
+       {
+        "budget": 1,
+        "shipped": 0.224464,
+        "other": 0.221935,
+        "diff": 0.002529,
+        "run_se": 0.002312,
+        "cluster_se": 0.00408,
+        "strat_se": 0.003656,
+        "alc_part": 0.000506
+       },
+       {
+        "budget": 3,
+        "shipped": 0.213757,
+        "other": 0.213431,
+        "diff": 0.000326,
+        "run_se": 0.001259,
+        "cluster_se": 0.002463,
+        "strat_se": 0.002156,
+        "alc_part": 6.5e-05
+       },
+       {
+        "budget": 7,
+        "shipped": 0.197452,
+        "other": 0.201709,
+        "diff": -0.004257,
+        "run_se": 0.000629,
+        "cluster_se": 0.001277,
+        "strat_se": 0.00099,
+        "alc_part": -0.000851
+       },
+       {
+        "budget": 15,
+        "shipped": 0.184496,
+        "other": 0.191198,
+        "diff": -0.006702,
+        "run_se": 0.000597,
+        "cluster_se": 0.00112,
+        "strat_se": 0.00078,
+        "alc_part": -0.00134
+       },
+       {
+        "budget": 31,
+        "shipped": 0.176335,
+        "other": 0.181514,
+        "diff": -0.005179,
+        "run_se": 0.000646,
+        "cluster_se": 0.001078,
+        "strat_se": 0.000905,
+        "alc_part": -0.000518
+       }
+      ]
+     },
+     "100-149": {
+      "runs": 50,
+      "range": "100-149",
+      "appearances": 433,
+      "shipped_ALC": 0.204816,
+      "shipped_ALC_run_se": 0.004019,
+      "other_ALC": 0.206928,
+      "other_ALC_run_se": 0.003244,
+      "diff": {
+       "mean": -0.002112,
+       "run_se": 0.001417,
+       "cluster_se": 0.002516,
+       "strat_se": 0.001996
+      },
+      "runs_shipped_better": 0.6,
+      "per_parent": {
+       "matharena": {
+        "mean": 0.009045,
+        "cluster_se": 0.004693,
+        "clusters": 55,
+        "appearances": 93,
+        "runs_with": 44,
+        "leave_out": -0.005488
+       },
+       "multi_swebench": {
+        "mean": -0.014241,
+        "cluster_se": 0.003795,
+        "clusters": 55,
+        "appearances": 102,
+        "runs_with": 41,
+        "leave_out": 0.001286
+       },
+       "real_webagents": {
+        "mean": -0.007368,
+        "cluster_se": 0.006459,
+        "clusters": 25,
+        "appearances": 99,
+        "runs_with": 42,
+        "leave_out": -0.000654
+       },
+       "researchcodebench": {
+        "mean": -0.001961,
+        "cluster_se": 0.002034,
+        "clusters": 31,
+        "appearances": 95,
+        "runs_with": 43,
+        "leave_out": -0.001355
+       },
+       "swe_rebench": {
+        "mean": 0.011339,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 44,
+        "runs_with": 44,
+        "leave_out": -0.003562
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.003631,
+       "se": 0.004916,
+       "range": [
+        -0.014241,
+        0.009045
+       ],
+       "leave_one_out_range": [
+        -0.005488,
+        0.001286
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.232977,
+        "other": 0.230525,
+        "diff": 0.002452,
+        "run_se": 0.004482,
+        "cluster_se": 0.007826,
+        "strat_se": 0.006832,
+        "alc_part": 0.000245
+       },
+       {
+        "budget": 1,
+        "shipped": 0.223855,
+        "other": 0.223148,
+        "diff": 0.000707,
+        "run_se": 0.003184,
+        "cluster_se": 0.00496,
+        "strat_se": 0.004165,
+        "alc_part": 0.000141
+       },
+       {
+        "budget": 3,
+        "shipped": 0.211017,
+        "other": 0.213395,
+        "diff": -0.002378,
+        "run_se": 0.001784,
+        "cluster_se": 0.002805,
+        "strat_se": 0.002227,
+        "alc_part": -0.000476
+       },
+       {
+        "budget": 7,
+        "shipped": 0.196958,
+        "other": 0.199753,
+        "diff": -0.002795,
+        "run_se": 0.001015,
+        "cluster_se": 0.001383,
+        "strat_se": 0.001067,
+        "alc_part": -0.000559
+       },
+       {
+        "budget": 15,
+        "shipped": 0.186457,
+        "other": 0.191421,
+        "diff": -0.004964,
+        "run_se": 0.000734,
+        "cluster_se": 0.001138,
+        "strat_se": 0.000781,
+        "alc_part": -0.000993
+       },
+       {
+        "budget": 31,
+        "shipped": 0.178604,
+        "other": 0.183317,
+        "diff": -0.004713,
+        "run_se": 0.000856,
+        "cluster_se": 0.001093,
+        "strat_se": 0.0009,
+        "alc_part": -0.000471
+       }
+      ]
+     },
+     "0-149": {
+      "runs": 150,
+      "range": "0-149",
+      "appearances": 1307,
+      "shipped_ALC": 0.205115,
+      "shipped_ALC_run_se": 0.002329,
+      "other_ALC": 0.206839,
+      "other_ALC_run_se": 0.001904,
+      "diff": {
+       "mean": -0.001724,
+       "run_se": 0.000813,
+       "cluster_se": 0.002128,
+       "strat_se": 0.001755
+      },
+      "runs_shipped_better": 0.613333,
+      "per_parent": {
+       "matharena": {
+        "mean": 0.0101,
+        "cluster_se": 0.003147,
+        "clusters": 76,
+        "appearances": 285,
+        "runs_with": 133,
+        "leave_out": -0.004915
+       },
+       "multi_swebench": {
+        "mean": -0.013449,
+        "cluster_se": 0.002681,
+        "clusters": 80,
+        "appearances": 303,
+        "runs_with": 134,
+        "leave_out": 0.001679
+       },
+       "real_webagents": {
+        "mean": -0.00629,
+        "cluster_se": 0.006019,
+        "clusters": 26,
+        "appearances": 308,
+        "runs_with": 137,
+        "leave_out": -0.000366
+       },
+       "researchcodebench": {
+        "mean": -0.001857,
+        "cluster_se": 0.002154,
+        "clusters": 31,
+        "appearances": 281,
+        "runs_with": 131,
+        "leave_out": -0.001267
+       },
+       "swe_rebench": {
+        "mean": 0.009906,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 130,
+        "runs_with": 130,
+        "leave_out": -0.003048
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.002874,
+       "se": 0.00494,
+       "range": [
+        -0.013449,
+        0.0101
+       ],
+       "leave_one_out_range": [
+        -0.004915,
+        0.001679
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.234977,
+        "other": 0.230099,
+        "diff": 0.004878,
+        "run_se": 0.002469,
+        "cluster_se": 0.00651,
+        "strat_se": 0.005745,
+        "alc_part": 0.000488
+       },
+       {
+        "budget": 1,
+        "shipped": 0.224261,
+        "other": 0.222339,
+        "diff": 0.001922,
+        "run_se": 0.001866,
+        "cluster_se": 0.004,
+        "strat_se": 0.003565,
+        "alc_part": 0.000384
+       },
+       {
+        "budget": 3,
+        "shipped": 0.212843,
+        "other": 0.213419,
+        "diff": -0.000576,
+        "run_se": 0.001031,
+        "cluster_se": 0.00239,
+        "strat_se": 0.002012,
+        "alc_part": -0.000115
+       },
+       {
+        "budget": 7,
+        "shipped": 0.197288,
+        "other": 0.201057,
+        "diff": -0.00377,
+        "run_se": 0.00054,
+        "cluster_se": 0.001213,
+        "strat_se": 0.000857,
+        "alc_part": -0.000754
+       },
+       {
+        "budget": 15,
+        "shipped": 0.18515,
+        "other": 0.191272,
+        "diff": -0.006123,
+        "run_se": 0.000471,
+        "cluster_se": 0.001057,
+        "strat_se": 0.000628,
+        "alc_part": -0.001225
+       },
+       {
+        "budget": 31,
+        "shipped": 0.177091,
+        "other": 0.182115,
+        "diff": -0.005024,
+        "run_se": 0.000515,
+        "cluster_se": 0.001006,
+        "strat_se": 0.000782,
+        "alc_part": -0.000502
+       }
+      ]
+     }
+    },
+    "smoothed": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 874,
+      "shipped_ALC": 0.205265,
+      "shipped_ALC_run_se": 0.002872,
+      "other_ALC": 0.213799,
+      "other_ALC_run_se": 0.001994,
+      "diff": {
+       "mean": -0.008534,
+       "run_se": 0.001225,
+       "cluster_se": 0.003016,
+       "strat_se": 0.00217
+      },
+      "runs_shipped_better": 0.83,
+      "per_parent": {
+       "matharena": {
+        "mean": 0.005888,
+        "cluster_se": 0.002589,
+        "clusters": 72,
+        "appearances": 192,
+        "runs_with": 89,
+        "leave_out": -0.011986
+       },
+       "multi_swebench": {
+        "mean": -0.023053,
+        "cluster_se": 0.004331,
+        "clusters": 73,
+        "appearances": 201,
+        "runs_with": 93,
+        "leave_out": -0.004068
+       },
+       "real_webagents": {
+        "mean": -0.016526,
+        "cluster_se": 0.007321,
+        "clusters": 26,
+        "appearances": 209,
+        "runs_with": 95,
+        "leave_out": -0.005994
+       },
+       "researchcodebench": {
+        "mean": -0.008363,
+        "cluster_se": 0.003484,
+        "clusters": 31,
+        "appearances": 186,
+        "runs_with": 88,
+        "leave_out": -0.008456
+       },
+       "swe_rebench": {
+        "mean": 0.011967,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 86,
+        "runs_with": 86,
+        "leave_out": -0.010957
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.010514,
+       "se": 0.006238,
+       "range": [
+        -0.023053,
+        0.005888
+       ],
+       "leave_one_out_range": [
+        -0.011986,
+        -0.004068
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.235977,
+        "other": 0.25,
+        "diff": -0.014023,
+        "run_se": 0.003298,
+        "cluster_se": 0.008188,
+        "strat_se": 0.006526,
+        "alc_part": -0.001402
+       },
+       {
+        "budget": 1,
+        "shipped": 0.224464,
+        "other": 0.234033,
+        "diff": -0.009569,
+        "run_se": 0.002716,
+        "cluster_se": 0.005681,
+        "strat_se": 0.004479,
+        "alc_part": -0.001914
+       },
+       {
+        "budget": 3,
+        "shipped": 0.213757,
+        "other": 0.219141,
+        "diff": -0.005384,
+        "run_se": 0.001545,
+        "cluster_se": 0.003482,
+        "strat_se": 0.002569,
+        "alc_part": -0.001077
+       },
+       {
+        "budget": 7,
+        "shipped": 0.197452,
+        "other": 0.203976,
+        "diff": -0.006524,
+        "run_se": 0.000793,
+        "cluster_se": 0.001711,
+        "strat_se": 0.001133,
+        "alc_part": -0.001305
+       },
+       {
+        "budget": 15,
+        "shipped": 0.184496,
+        "other": 0.192557,
+        "diff": -0.008062,
+        "run_se": 0.000643,
+        "cluster_se": 0.001255,
+        "strat_se": 0.0008,
+        "alc_part": -0.001612
+       },
+       {
+        "budget": 31,
+        "shipped": 0.176335,
+        "other": 0.188573,
+        "diff": -0.012238,
+        "run_se": 0.000882,
+        "cluster_se": 0.001678,
+        "strat_se": 0.001104,
+        "alc_part": -0.001224
+       }
+      ]
+     },
+     "100-149": {
+      "runs": 50,
+      "range": "100-149",
+      "appearances": 433,
+      "shipped_ALC": 0.204816,
+      "shipped_ALC_run_se": 0.004019,
+      "other_ALC": 0.213595,
+      "other_ALC_run_se": 0.002686,
+      "diff": {
+       "mean": -0.00878,
+       "run_se": 0.001648,
+       "cluster_se": 0.003413,
+       "strat_se": 0.002346
+      },
+      "runs_shipped_better": 0.74,
+      "per_parent": {
+       "matharena": {
+        "mean": 0.00622,
+        "cluster_se": 0.003416,
+        "clusters": 55,
+        "appearances": 93,
+        "runs_with": 44,
+        "leave_out": -0.013091
+       },
+       "multi_swebench": {
+        "mean": -0.023802,
+        "cluster_se": 0.005123,
+        "clusters": 55,
+        "appearances": 102,
+        "runs_with": 41,
+        "leave_out": -0.004384
+       },
+       "real_webagents": {
+        "mean": -0.014697,
+        "cluster_se": 0.007028,
+        "clusters": 25,
+        "appearances": 99,
+        "runs_with": 42,
+        "leave_out": -0.007014
+       },
+       "researchcodebench": {
+        "mean": -0.013344,
+        "cluster_se": 0.00467,
+        "clusters": 31,
+        "appearances": 95,
+        "runs_with": 43,
+        "leave_out": -0.006578
+       },
+       "swe_rebench": {
+        "mean": 0.014238,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 44,
+        "runs_with": 44,
+        "leave_out": -0.011316
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.011406,
+       "se": 0.006317,
+       "range": [
+        -0.023802,
+        0.00622
+       ],
+       "leave_one_out_range": [
+        -0.013091,
+        -0.004384
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.232977,
+        "other": 0.25,
+        "diff": -0.017023,
+        "run_se": 0.004722,
+        "cluster_se": 0.008821,
+        "strat_se": 0.007135,
+        "alc_part": -0.001702
+       },
+       {
+        "budget": 1,
+        "shipped": 0.223855,
+        "other": 0.234597,
+        "diff": -0.010741,
+        "run_se": 0.003483,
+        "cluster_se": 0.00659,
+        "strat_se": 0.004845,
+        "alc_part": -0.002148
+       },
+       {
+        "budget": 3,
+        "shipped": 0.211017,
+        "other": 0.219665,
+        "diff": -0.008648,
+        "run_se": 0.002011,
+        "cluster_se": 0.003906,
+        "strat_se": 0.002718,
+        "alc_part": -0.00173
+       },
+       {
+        "budget": 7,
+        "shipped": 0.196958,
+        "other": 0.20188,
+        "diff": -0.004922,
+        "run_se": 0.001147,
+        "cluster_se": 0.00191,
+        "strat_se": 0.001331,
+        "alc_part": -0.000984
+       },
+       {
+        "budget": 15,
+        "shipped": 0.186457,
+        "other": 0.192424,
+        "diff": -0.005966,
+        "run_se": 0.000792,
+        "cluster_se": 0.001321,
+        "strat_se": 0.000804,
+        "alc_part": -0.001193
+       },
+       {
+        "budget": 31,
+        "shipped": 0.178604,
+        "other": 0.188823,
+        "diff": -0.010219,
+        "run_se": 0.001094,
+        "cluster_se": 0.001671,
+        "strat_se": 0.001173,
+        "alc_part": -0.001022
+       }
+      ]
+     },
+     "0-149": {
+      "runs": 150,
+      "range": "0-149",
+      "appearances": 1307,
+      "shipped_ALC": 0.205115,
+      "shipped_ALC_run_se": 0.002329,
+      "other_ALC": 0.213731,
+      "other_ALC_run_se": 0.001598,
+      "diff": {
+       "mean": -0.008616,
+       "run_se": 0.000981,
+       "cluster_se": 0.003015,
+       "strat_se": 0.002093
+      },
+      "runs_shipped_better": 0.8,
+      "per_parent": {
+       "matharena": {
+        "mean": 0.006,
+        "cluster_se": 0.002403,
+        "clusters": 76,
+        "appearances": 285,
+        "runs_with": 133,
+        "leave_out": -0.012355
+       },
+       "multi_swebench": {
+        "mean": -0.023299,
+        "cluster_se": 0.004042,
+        "clusters": 80,
+        "appearances": 303,
+        "runs_with": 134,
+        "leave_out": -0.004174
+       },
+       "real_webagents": {
+        "mean": -0.015945,
+        "cluster_se": 0.00679,
+        "clusters": 26,
+        "appearances": 308,
+        "runs_with": 137,
+        "leave_out": -0.006334
+       },
+       "researchcodebench": {
+        "mean": -0.010103,
+        "cluster_se": 0.003784,
+        "clusters": 31,
+        "appearances": 281,
+        "runs_with": 131,
+        "leave_out": -0.00783
+       },
+       "swe_rebench": {
+        "mean": 0.012738,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 130,
+        "runs_with": 130,
+        "leave_out": -0.011077
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.010837,
+       "se": 0.006228,
+       "range": [
+        -0.023299,
+        0.006
+       ],
+       "leave_one_out_range": [
+        -0.012355,
+        -0.004174
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.234977,
+        "other": 0.25,
+        "diff": -0.015023,
+        "run_se": 0.002697,
+        "cluster_se": 0.007868,
+        "strat_se": 0.006337,
+        "alc_part": -0.001502
+       },
+       {
+        "budget": 1,
+        "shipped": 0.224261,
+        "other": 0.234221,
+        "diff": -0.00996,
+        "run_se": 0.002145,
+        "cluster_se": 0.005625,
+        "strat_se": 0.004283,
+        "alc_part": -0.001992
+       },
+       {
+        "budget": 3,
+        "shipped": 0.212843,
+        "other": 0.219315,
+        "diff": -0.006472,
+        "run_se": 0.001231,
+        "cluster_se": 0.003428,
+        "strat_se": 0.002439,
+        "alc_part": -0.001294
+       },
+       {
+        "budget": 7,
+        "shipped": 0.197288,
+        "other": 0.203277,
+        "diff": -0.00599,
+        "run_se": 0.000653,
+        "cluster_se": 0.001683,
+        "strat_se": 0.001072,
+        "alc_part": -0.001198
+       },
+       {
+        "budget": 15,
+        "shipped": 0.18515,
+        "other": 0.192513,
+        "diff": -0.007363,
+        "run_se": 0.000508,
+        "cluster_se": 0.001214,
+        "strat_se": 0.000651,
+        "alc_part": -0.001473
+       },
+       {
+        "budget": 31,
+        "shipped": 0.177091,
+        "other": 0.188656,
+        "diff": -0.011565,
+        "run_se": 0.000694,
+        "cluster_se": 0.001616,
+        "strat_se": 0.000971,
+        "alc_part": -0.001157
+       }
+      ]
+     }
+    },
+    "empirical": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 874,
+      "shipped_ALC": 0.205265,
+      "shipped_ALC_run_se": 0.002872,
+      "other_ALC": 0.25033,
+      "other_ALC_run_se": 0.003741,
+      "diff": {
+       "mean": -0.045065,
+       "run_se": 0.001562,
+       "cluster_se": 0.003136,
+       "strat_se": 0.002743
+      },
+      "runs_shipped_better": 0.98,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.038216,
+        "cluster_se": 0.006181,
+        "clusters": 72,
+        "appearances": 192,
+        "runs_with": 89,
+        "leave_out": -0.047053
+       },
+       "multi_swebench": {
+        "mean": -0.034508,
+        "cluster_se": 0.003451,
+        "clusters": 73,
+        "appearances": 201,
+        "runs_with": 93,
+        "leave_out": -0.048514
+       },
+       "real_webagents": {
+        "mean": -0.046872,
+        "cluster_se": 0.007903,
+        "clusters": 26,
+        "appearances": 209,
+        "runs_with": 95,
+        "leave_out": -0.04513
+       },
+       "researchcodebench": {
+        "mean": -0.054991,
+        "cluster_se": 0.005464,
+        "clusters": 31,
+        "appearances": 186,
+        "runs_with": 88,
+        "leave_out": -0.041824
+       },
+       "swe_rebench": {
+        "mean": -0.058842,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 86,
+        "runs_with": 86,
+        "leave_out": -0.043561
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.043647,
+       "se": 0.004584,
+       "range": [
+        -0.054991,
+        -0.034508
+       ],
+       "leave_one_out_range": [
+        -0.048514,
+        -0.041824
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.235977,
+        "other": 0.25,
+        "diff": -0.014023,
+        "run_se": 0.003298,
+        "cluster_se": 0.008188,
+        "strat_se": 0.006526,
+        "alc_part": -0.001402
+       },
+       {
+        "budget": 1,
+        "shipped": 0.224464,
+        "other": 0.370166,
+        "diff": -0.145702,
+        "run_se": 0.005493,
+        "cluster_se": 0.01226,
+        "strat_se": 0.009899,
+        "alc_part": -0.02914
+       },
+       {
+        "budget": 3,
+        "shipped": 0.213757,
+        "other": 0.256779,
+        "diff": -0.043022,
+        "run_se": 0.002588,
+        "cluster_se": 0.005009,
+        "strat_se": 0.004454,
+        "alc_part": -0.008604
+       },
+       {
+        "budget": 7,
+        "shipped": 0.197452,
+        "other": 0.211558,
+        "diff": -0.014106,
+        "run_se": 0.001034,
+        "cluster_se": 0.00195,
+        "strat_se": 0.001876,
+        "alc_part": -0.002821
+       },
+       {
+        "budget": 15,
+        "shipped": 0.184496,
+        "other": 0.193684,
+        "diff": -0.009189,
+        "run_se": 0.000763,
+        "cluster_se": 0.001189,
+        "strat_se": 0.001006,
+        "alc_part": -0.001838
+       },
+       {
+        "budget": 31,
+        "shipped": 0.176335,
+        "other": 0.188926,
+        "diff": -0.012591,
+        "run_se": 0.000929,
+        "cluster_se": 0.001698,
+        "strat_se": 0.001217,
+        "alc_part": -0.001259
+       }
+      ]
+     },
+     "100-149": {
+      "runs": 50,
+      "range": "100-149",
+      "appearances": 433,
+      "shipped_ALC": 0.204816,
+      "shipped_ALC_run_se": 0.004019,
+      "other_ALC": 0.248723,
+      "other_ALC_run_se": 0.004927,
+      "diff": {
+       "mean": -0.043907,
+       "run_se": 0.001966,
+       "cluster_se": 0.002968,
+       "strat_se": 0.002765
+      },
+      "runs_shipped_better": 1.0,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.043123,
+        "cluster_se": 0.006722,
+        "clusters": 55,
+        "appearances": 93,
+        "runs_with": 44,
+        "leave_out": -0.045115
+       },
+       "multi_swebench": {
+        "mean": -0.031172,
+        "cluster_se": 0.004394,
+        "clusters": 55,
+        "appearances": 102,
+        "runs_with": 41,
+        "leave_out": -0.047635
+       },
+       "real_webagents": {
+        "mean": -0.042147,
+        "cluster_se": 0.007351,
+        "clusters": 25,
+        "appearances": 99,
+        "runs_with": 42,
+        "leave_out": -0.045516
+       },
+       "researchcodebench": {
+        "mean": -0.055835,
+        "cluster_se": 0.00629,
+        "clusters": 31,
+        "appearances": 95,
+        "runs_with": 43,
+        "leave_out": -0.039694
+       },
+       "swe_rebench": {
+        "mean": -0.051173,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 44,
+        "runs_with": 44,
+        "leave_out": -0.042878
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.043069,
+       "se": 0.005044,
+       "range": [
+        -0.055835,
+        -0.031172
+       ],
+       "leave_one_out_range": [
+        -0.047635,
+        -0.039694
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.232977,
+        "other": 0.25,
+        "diff": -0.017023,
+        "run_se": 0.004722,
+        "cluster_se": 0.008821,
+        "strat_se": 0.007135,
+        "alc_part": -0.001702
+       },
+       {
+        "budget": 1,
+        "shipped": 0.223855,
+        "other": 0.372983,
+        "diff": -0.149128,
+        "run_se": 0.006713,
+        "cluster_se": 0.013264,
+        "strat_se": 0.01123,
+        "alc_part": -0.029826
+       },
+       {
+        "budget": 3,
+        "shipped": 0.211017,
+        "other": 0.248097,
+        "diff": -0.03708,
+        "run_se": 0.003846,
+        "cluster_se": 0.004882,
+        "strat_se": 0.004771,
+        "alc_part": -0.007416
+       },
+       {
+        "budget": 7,
+        "shipped": 0.196958,
+        "other": 0.208445,
+        "diff": -0.011487,
+        "run_se": 0.001492,
+        "cluster_se": 0.001765,
+        "strat_se": 0.001676,
+        "alc_part": -0.002297
+       },
+       {
+        "budget": 15,
+        "shipped": 0.186457,
+        "other": 0.194282,
+        "diff": -0.007824,
+        "run_se": 0.000963,
+        "cluster_se": 0.001281,
+        "strat_se": 0.001128,
+        "alc_part": -0.001565
+       },
+       {
+        "budget": 31,
+        "shipped": 0.178604,
+        "other": 0.189613,
+        "diff": -0.01101,
+        "run_se": 0.00114,
+        "cluster_se": 0.001744,
+        "strat_se": 0.00133,
+        "alc_part": -0.001101
+       }
+      ]
+     },
+     "0-149": {
+      "runs": 150,
+      "range": "0-149",
+      "appearances": 1307,
+      "shipped_ALC": 0.205115,
+      "shipped_ALC_run_se": 0.002329,
+      "other_ALC": 0.249794,
+      "other_ALC_run_se": 0.002977,
+      "diff": {
+       "mean": -0.044679,
+       "run_se": 0.001227,
+       "cluster_se": 0.002807,
+       "strat_se": 0.002363
+      },
+      "runs_shipped_better": 0.986667,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.039869,
+        "cluster_se": 0.005493,
+        "clusters": 76,
+        "appearances": 285,
+        "runs_with": 133,
+        "leave_out": -0.046407
+       },
+       "multi_swebench": {
+        "mean": -0.033412,
+        "cluster_se": 0.003023,
+        "clusters": 80,
+        "appearances": 303,
+        "runs_with": 134,
+        "leave_out": -0.048221
+       },
+       "real_webagents": {
+        "mean": -0.045371,
+        "cluster_se": 0.007243,
+        "clusters": 26,
+        "appearances": 308,
+        "runs_with": 137,
+        "leave_out": -0.045259
+       },
+       "researchcodebench": {
+        "mean": -0.055286,
+        "cluster_se": 0.004846,
+        "clusters": 31,
+        "appearances": 281,
+        "runs_with": 131,
+        "leave_out": -0.041114
+       },
+       "swe_rebench": {
+        "mean": -0.056238,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 130,
+        "runs_with": 130,
+        "leave_out": -0.043334
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.043485,
+       "se": 0.004631,
+       "range": [
+        -0.055286,
+        -0.033412
+       ],
+       "leave_one_out_range": [
+        -0.048221,
+        -0.041114
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.234977,
+        "other": 0.25,
+        "diff": -0.015023,
+        "run_se": 0.002697,
+        "cluster_se": 0.007868,
+        "strat_se": 0.006337,
+        "alc_part": -0.001502
+       },
+       {
+        "budget": 1,
+        "shipped": 0.224261,
+        "other": 0.371105,
+        "diff": -0.146844,
+        "run_se": 0.00428,
+        "cluster_se": 0.011812,
+        "strat_se": 0.009044,
+        "alc_part": -0.029369
+       },
+       {
+        "budget": 3,
+        "shipped": 0.212843,
+        "other": 0.253885,
+        "diff": -0.041041,
+        "run_se": 0.002154,
+        "cluster_se": 0.004388,
+        "strat_se": 0.00393,
+        "alc_part": -0.008208
+       },
+       {
+        "budget": 7,
+        "shipped": 0.197288,
+        "other": 0.21052,
+        "diff": -0.013233,
+        "run_se": 0.000853,
+        "cluster_se": 0.001674,
+        "strat_se": 0.001515,
+        "alc_part": -0.002647
+       },
+       {
+        "budget": 15,
+        "shipped": 0.18515,
+        "other": 0.193884,
+        "diff": -0.008734,
+        "run_se": 0.000602,
+        "cluster_se": 0.001088,
+        "strat_se": 0.000873,
+        "alc_part": -0.001747
+       },
+       {
+        "budget": 31,
+        "shipped": 0.177091,
+        "other": 0.189155,
+        "diff": -0.012064,
+        "run_se": 0.000727,
+        "cluster_se": 0.001627,
+        "strat_se": 0.001097,
+        "alc_part": -0.001206
+       }
+      ]
+     }
+    }
+   }
+  },
+  "r1p": {
+   "label": "public R1, pair-uniform (seed 0, split scope pair)",
+   "runs": 100,
+   "appearances": 874,
+   "shipped": {
+    "0-99": {
+     "runs": 100,
+     "range": "0-99",
+     "appearances": 874,
+     "clusters": 215,
+     "ALC": 0.202029,
+     "ALC_run_se": 0.002609,
+     "ALC_cluster_se": 0.005786,
+     "budgets": [
+      0.244156,
+      0.221512,
+      0.206894,
+      0.192943,
+      0.181331,
+      0.170775
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.029711,
+       0.039317,
+       0.029727,
+       0.027878,
+       0.025656,
+       0.024384
+      ],
+      "ALC": 0.026086
+     }
+    }
+   },
+   "vs": {
+    "legacy": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 874,
+      "shipped_ALC": 0.202029,
+      "shipped_ALC_run_se": 0.002609,
+      "other_ALC": 0.20382,
+      "other_ALC_run_se": 0.002261,
+      "diff": {
+       "mean": -0.001791,
+       "run_se": 0.00102,
+       "cluster_se": 0.001749,
+       "strat_se": 0.00157
+      },
+      "runs_shipped_better": 0.64,
+      "per_parent": {
+       "matharena": {
+        "mean": 0.009411,
+        "cluster_se": 0.002258,
+        "clusters": 78,
+        "appearances": 334,
+        "runs_with": 98,
+        "leave_out": -0.008987
+       },
+       "multi_swebench": {
+        "mean": -0.01541,
+        "cluster_se": 0.002632,
+        "clusters": 80,
+        "appearances": 309,
+        "runs_with": 97,
+        "leave_out": 0.005184
+       },
+       "real_webagents": {
+        "mean": -0.00421,
+        "cluster_se": 0.006676,
+        "clusters": 25,
+        "appearances": 95,
+        "runs_with": 57,
+        "leave_out": -0.001352
+       },
+       "researchcodebench": {
+        "mean": 0.002247,
+        "cluster_se": 0.00294,
+        "clusters": 31,
+        "appearances": 129,
+        "runs_with": 72,
+        "leave_out": -0.00256
+       },
+       "swe_rebench": {
+        "mean": 0.011446,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 7,
+        "runs_with": 7,
+        "leave_out": -0.001895
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.001991,
+       "se": 0.005268,
+       "range": [
+        -0.01541,
+        0.009411
+       ],
+       "leave_one_out_range": [
+        -0.008987,
+        0.005184
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.244156,
+        "other": 0.230167,
+        "diff": 0.013989,
+        "run_se": 0.003067,
+        "cluster_se": 0.007172,
+        "strat_se": 0.005492,
+        "alc_part": 0.001399
+       },
+       {
+        "budget": 1,
+        "shipped": 0.221512,
+        "other": 0.220014,
+        "diff": 0.001498,
+        "run_se": 0.002729,
+        "cluster_se": 0.003607,
+        "strat_se": 0.00332,
+        "alc_part": 0.0003
+       },
+       {
+        "budget": 3,
+        "shipped": 0.206894,
+        "other": 0.209393,
+        "diff": -0.002499,
+        "run_se": 0.00118,
+        "cluster_se": 0.001808,
+        "strat_se": 0.001743,
+        "alc_part": -0.0005
+       },
+       {
+        "budget": 7,
+        "shipped": 0.192943,
+        "other": 0.197917,
+        "diff": -0.004975,
+        "run_se": 0.000682,
+        "cluster_se": 0.000885,
+        "strat_se": 0.000853,
+        "alc_part": -0.000995
+       },
+       {
+        "budget": 15,
+        "shipped": 0.181331,
+        "other": 0.188937,
+        "diff": -0.007607,
+        "run_se": 0.000762,
+        "cluster_se": 0.000902,
+        "strat_se": 0.000825,
+        "alc_part": -0.001521
+       },
+       {
+        "budget": 31,
+        "shipped": 0.170775,
+        "other": 0.175511,
+        "diff": -0.004736,
+        "run_se": 0.000735,
+        "cluster_se": 0.001032,
+        "strat_se": 0.000971,
+        "alc_part": -0.000474
+       }
+      ]
+     }
+    },
+    "smoothed": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 874,
+      "shipped_ALC": 0.202029,
+      "shipped_ALC_run_se": 0.002609,
+      "other_ALC": 0.21131,
+      "other_ALC_run_se": 0.001869,
+      "diff": {
+       "mean": -0.009281,
+       "run_se": 0.001074,
+       "cluster_se": 0.002068,
+       "strat_se": 0.001865
+      },
+      "runs_shipped_better": 0.83,
+      "per_parent": {
+       "matharena": {
+        "mean": 0.004331,
+        "cluster_se": 0.001788,
+        "clusters": 78,
+        "appearances": 334,
+        "runs_with": 98,
+        "leave_out": -0.018329
+       },
+       "multi_swebench": {
+        "mean": -0.024785,
+        "cluster_se": 0.003681,
+        "clusters": 80,
+        "appearances": 309,
+        "runs_with": 97,
+        "leave_out": -0.000956
+       },
+       "real_webagents": {
+        "mean": -0.014499,
+        "cluster_se": 0.006994,
+        "clusters": 25,
+        "appearances": 95,
+        "runs_with": 57,
+        "leave_out": -0.008449
+       },
+       "researchcodebench": {
+        "mean": -0.005617,
+        "cluster_se": 0.005169,
+        "clusters": 31,
+        "appearances": 129,
+        "runs_with": 72,
+        "leave_out": -0.009992
+       },
+       "swe_rebench": {
+        "mean": 0.01407,
+        "cluster_se": null,
+        "clusters": 1,
+        "appearances": 7,
+        "runs_with": 7,
+        "leave_out": -0.009464
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.010142,
+       "se": 0.006214,
+       "range": [
+        -0.024785,
+        0.004331
+       ],
+       "leave_one_out_range": [
+        -0.018329,
+        -0.000956
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.244156,
+        "other": 0.25,
+        "diff": -0.005844,
+        "run_se": 0.002971,
+        "cluster_se": 0.007254,
+        "strat_se": 0.005573,
+        "alc_part": -0.000584
+       },
+       {
+        "budget": 1,
+        "shipped": 0.221512,
+        "other": 0.232043,
+        "diff": -0.010531,
+        "run_se": 0.002784,
+        "cluster_se": 0.004339,
+        "strat_se": 0.003975,
+        "alc_part": -0.002106
+       },
+       {
+        "budget": 3,
+        "shipped": 0.206894,
+        "other": 0.215554,
+        "diff": -0.00866,
+        "run_se": 0.001291,
+        "cluster_se": 0.002305,
+        "strat_se": 0.00219,
+        "alc_part": -0.001732
+       },
+       {
+        "budget": 7,
+        "shipped": 0.192943,
+        "other": 0.200577,
+        "diff": -0.007634,
+        "run_se": 0.000762,
+        "cluster_se": 0.001092,
+        "strat_se": 0.001051,
+        "alc_part": -0.001527
+       },
+       {
+        "budget": 15,
+        "shipped": 0.181331,
+        "other": 0.19078,
+        "diff": -0.009449,
+        "run_se": 0.000751,
+        "cluster_se": 0.000952,
+        "strat_se": 0.000889,
+        "alc_part": -0.00189
+       },
+       {
+        "budget": 31,
+        "shipped": 0.170775,
+        "other": 0.185195,
+        "diff": -0.01442,
+        "run_se": 0.000987,
+        "cluster_se": 0.001489,
+        "strat_se": 0.001305,
+        "alc_part": -0.001442
+       }
+      ]
+     }
+    }
+   }
+  },
+  "tl no shift": {
+   "label": "test-like, no date shift (seed 3)",
+   "runs": 100,
+   "appearances": 796,
+   "shipped": {
+    "0-99": {
+     "runs": 100,
+     "range": "0-99",
+     "appearances": 796,
+     "clusters": 95,
+     "ALC": 0.158508,
+     "ALC_run_se": 0.003349,
+     "ALC_cluster_se": 0.008605,
+     "budgets": [
+      0.194779,
+      0.176307,
+      0.162034,
+      0.147894,
+      0.141272,
+      0.135286
+     ],
+     "single_run_sd": {
+      "budgets": [
+       0.042264,
+       0.041785,
+       0.038352,
+       0.032664,
+       0.030729,
+       0.028586
+      ],
+      "ALC": 0.03349
+     }
+    }
+   },
+   "vs": {
+    "legacy": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 796,
+      "shipped_ALC": 0.158508,
+      "shipped_ALC_run_se": 0.003349,
+      "other_ALC": 0.172894,
+      "other_ALC_run_se": 0.002673,
+      "diff": {
+       "mean": -0.014386,
+       "run_se": 0.001191,
+       "cluster_se": 0.002355,
+       "strat_se": 0.002234
+      },
+      "runs_shipped_better": 0.87,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.000427,
+        "cluster_se": 0.007788,
+        "clusters": 27,
+        "appearances": 155,
+        "runs_with": 84,
+        "leave_out": -0.017168
+       },
+       "multi_swebench": {
+        "mean": -0.024415,
+        "cluster_se": 0.002427,
+        "clusters": 40,
+        "appearances": 326,
+        "runs_with": 100,
+        "leave_out": -0.009156
+       },
+       "real_webagents": {
+        "mean": -0.009989,
+        "cluster_se": 0.004729,
+        "clusters": 13,
+        "appearances": 138,
+        "runs_with": 92,
+        "leave_out": -0.015107
+       },
+       "researchcodebench": {
+        "mean": -0.01273,
+        "cluster_se": 0.002778,
+        "clusters": 15,
+        "appearances": 177,
+        "runs_with": 97,
+        "leave_out": -0.014873
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.01189,
+       "se": 0.004938,
+       "range": [
+        -0.024415,
+        -0.000427
+       ],
+       "leave_one_out_range": [
+        -0.017168,
+        -0.009156
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.194779,
+        "other": 0.23467,
+        "diff": -0.039891,
+        "run_se": 0.004151,
+        "cluster_se": 0.008127,
+        "strat_se": 0.007219,
+        "alc_part": -0.003989
+       },
+       {
+        "budget": 1,
+        "shipped": 0.176307,
+        "other": 0.199793,
+        "diff": -0.023485,
+        "run_se": 0.002438,
+        "cluster_se": 0.004791,
+        "strat_se": 0.004466,
+        "alc_part": -0.004697
+       },
+       {
+        "budget": 3,
+        "shipped": 0.162034,
+        "other": 0.174909,
+        "diff": -0.012875,
+        "run_se": 0.001359,
+        "cluster_se": 0.002309,
+        "strat_se": 0.002256,
+        "alc_part": -0.002575
+       },
+       {
+        "budget": 7,
+        "shipped": 0.147894,
+        "other": 0.155144,
+        "diff": -0.00725,
+        "run_se": 0.000572,
+        "cluster_se": 0.001013,
+        "strat_se": 0.000997,
+        "alc_part": -0.00145
+       },
+       {
+        "budget": 15,
+        "shipped": 0.141272,
+        "other": 0.14658,
+        "diff": -0.005308,
+        "run_se": 0.000479,
+        "cluster_se": 0.000853,
+        "strat_se": 0.000775,
+        "alc_part": -0.001062
+       },
+       {
+        "budget": 31,
+        "shipped": 0.135286,
+        "other": 0.141418,
+        "diff": -0.006132,
+        "run_se": 0.00058,
+        "cluster_se": 0.001422,
+        "strat_se": 0.001314,
+        "alc_part": -0.000613
+       }
+      ]
+     }
+    },
+    "smoothed": {
+     "0-99": {
+      "runs": 100,
+      "range": "0-99",
+      "appearances": 796,
+      "shipped_ALC": 0.158508,
+      "shipped_ALC_run_se": 0.003349,
+      "other_ALC": 0.180556,
+      "other_ALC_run_se": 0.002276,
+      "diff": {
+       "mean": -0.022048,
+       "run_se": 0.00138,
+       "cluster_se": 0.002959,
+       "strat_se": 0.002777
+      },
+      "runs_shipped_better": 0.92,
+      "per_parent": {
+       "matharena": {
+        "mean": -0.005651,
+        "cluster_se": 0.006596,
+        "clusters": 27,
+        "appearances": 155,
+        "runs_with": 84,
+        "leave_out": -0.025218
+       },
+       "multi_swebench": {
+        "mean": -0.034505,
+        "cluster_se": 0.003568,
+        "clusters": 40,
+        "appearances": 326,
+        "runs_with": 100,
+        "leave_out": -0.015296
+       },
+       "real_webagents": {
+        "mean": -0.01598,
+        "cluster_se": 0.007897,
+        "clusters": 13,
+        "appearances": 138,
+        "runs_with": 92,
+        "leave_out": -0.022965
+       },
+       "researchcodebench": {
+        "mean": -0.019659,
+        "cluster_se": 0.003951,
+        "clusters": 15,
+        "appearances": 177,
+        "runs_with": 97,
+        "leave_out": -0.022849
+       }
+      },
+      "parent_level": {
+       "parents": [
+        "matharena",
+        "multi_swebench",
+        "real_webagents",
+        "researchcodebench"
+       ],
+       "mean": -0.018949,
+       "se": 0.005973,
+       "range": [
+        -0.034505,
+        -0.005651
+       ],
+       "leave_one_out_range": [
+        -0.025218,
+        -0.015296
+       ]
+      },
+      "budgets": [
+       {
+        "budget": 0,
+        "shipped": 0.194779,
+        "other": 0.25,
+        "diff": -0.055221,
+        "run_se": 0.004226,
+        "cluster_se": 0.008793,
+        "strat_se": 0.007926,
+        "alc_part": -0.005522
+       },
+       {
+        "budget": 1,
+        "shipped": 0.176307,
+        "other": 0.214545,
+        "diff": -0.038238,
+        "run_se": 0.002807,
+        "cluster_se": 0.006079,
+        "strat_se": 0.005621,
+        "alc_part": -0.007648
+       },
+       {
+        "budget": 3,
+        "shipped": 0.162034,
+        "other": 0.184123,
+        "diff": -0.022089,
+        "run_se": 0.001641,
+        "cluster_se": 0.003227,
+        "strat_se": 0.00305,
+        "alc_part": -0.004418
+       },
+       {
+        "budget": 7,
+        "shipped": 0.147894,
+        "other": 0.159493,
+        "diff": -0.011599,
+        "run_se": 0.000717,
+        "cluster_se": 0.001419,
+        "strat_se": 0.001381,
+        "alc_part": -0.00232
+       },
+       {
+        "budget": 15,
+        "shipped": 0.141272,
+        "other": 0.148037,
+        "diff": -0.006766,
+        "run_se": 0.000507,
+        "cluster_se": 0.000893,
+        "strat_se": 0.000823,
+        "alc_part": -0.001353
+       },
+       {
+        "budget": 31,
+        "shipped": 0.135286,
+        "other": 0.143167,
+        "diff": -0.007881,
+        "run_se": 0.000681,
+        "cluster_se": 0.001445,
+        "strat_se": 0.001331,
+        "alc_part": -0.000788
+       }
+      ]
+     }
+    }
+   }
+  }
+ },
+ "single_run_sd": {
+  "tl": {
+   "runs": 300,
+   "B0": 0.020853,
+   "B1": 0.038508,
+   "B3": 0.03671,
+   "B7": 0.03544,
+   "B15": 0.033585,
+   "B31": 0.031789,
+   "ALC": 0.031829
+  },
+  "tl mix/whole": {
+   "runs": 200,
+   "B0": 0.017139,
+   "B1": 0.04001,
+   "B3": 0.037075,
+   "B7": 0.03571,
+   "B15": 0.03544,
+   "B31": 0.032739,
+   "ALC": 0.032926
+  },
+  "r1b": {
+   "runs": 150,
+   "B0": 0.033036,
+   "B1": 0.037298,
+   "B3": 0.034548,
+   "B7": 0.028596,
+   "B15": 0.026424,
+   "B31": 0.025205,
+   "ALC": 0.028527
+  },
+  "r1p": {
+   "runs": 100,
+   "B0": 0.029711,
+   "B1": 0.039317,
+   "B3": 0.029727,
+   "B7": 0.027878,
+   "B15": 0.025656,
+   "B31": 0.024384,
+   "ALC": 0.026086
+  },
+  "tl no shift": {
+   "runs": 100,
+   "B0": 0.042264,
+   "B1": 0.041785,
+   "B3": 0.038352,
+   "B7": 0.032664,
+   "B15": 0.030729,
+   "B31": 0.028586,
+   "ALC": 0.03349
+  }
+ },
+ "run2_placement": {
+  "run2": {
+   "date": "2026-09-26",
+   "commit": "ee5085a",
+   "pairs": 8,
+   "ALC": 0.192623,
+   "budgets": [
+    0.237,
+    0.195,
+    0.196,
+    0.184,
+    0.178,
+    0.183
+   ]
+  },
+  "regimes": {
+   "tl": {
+    "runs": 300,
+    "mean_ALC": 0.165755,
+    "sd_ALC": 0.031829,
+    "z_ALC": 0.844142,
+    "share_runs_at_or_above": 0.2,
+    "z_budgets": [
+     0.982458,
+     0.150687,
+     0.857455,
+     0.888014,
+     0.983963,
+     1.395834
+    ],
+    "mean_budgets": [
+     0.216513,
+     0.189197,
+     0.164523,
+     0.152529,
+     0.144953,
+     0.138628
+    ]
+   },
+   "tl mix/whole": {
+    "runs": 200,
+    "mean_ALC": 0.171062,
+    "sd_ALC": 0.032926,
+    "z_ALC": 0.654849,
+    "share_runs_at_or_above": 0.245,
+    "z_budgets": [
+     1.121442,
+     0.04749,
+     0.721889,
+     0.700604,
+     0.721753,
+     1.149684
+    ],
+    "mean_budgets": [
+     0.217779,
+     0.1931,
+     0.169236,
+     0.158982,
+     0.152421,
+     0.14536
+    ]
+   },
+   "r1b": {
+    "runs": 150,
+    "mean_ALC": 0.205115,
+    "sd_ALC": 0.028527,
+    "z_ALC": -0.437897,
+    "share_runs_at_or_above": 0.673333,
+    "z_budgets": [
+     0.061244,
+     -0.784523,
+     -0.487539,
+     -0.464658,
+     -0.270574,
+     0.234436
+    ],
+    "mean_budgets": [
+     0.234977,
+     0.224261,
+     0.212843,
+     0.197288,
+     0.18515,
+     0.177091
+    ]
+   },
+   "r1p": {
+    "runs": 100,
+    "mean_ALC": 0.202029,
+    "sd_ALC": 0.026086,
+    "z_ALC": -0.360582,
+    "share_runs_at_or_above": 0.68,
+    "z_budgets": [
+     -0.240868,
+     -0.674317,
+     -0.366478,
+     -0.320778,
+     -0.129821,
+     0.501373
+    ],
+    "mean_budgets": [
+     0.244156,
+     0.221512,
+     0.206894,
+     0.192943,
+     0.181331,
+     0.170775
+    ]
+   },
+   "tl no shift": {
+    "runs": 100,
+    "mean_ALC": 0.158508,
+    "sd_ALC": 0.03349,
+    "z_ALC": 1.018663,
+    "share_runs_at_or_above": 0.18,
+    "z_budgets": [
+     0.998984,
+     0.447352,
+     0.885627,
+     1.105397,
+     1.195229,
+     1.669167
+    ],
+    "mean_budgets": [
+     0.194779,
+     0.176307,
+     0.162034,
+     0.147894,
+     0.141272,
+     0.135286
+    ]
+   }
+  },
+  "note": "run 2 is one draw of 8 pairs; a z is its distance from a regime's run mean in that regime's single-run sds, not a test"
+ },
+ "table": [
+  {
+   "regime": "tl",
+   "comparator": "legacy",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.1608,
+   "other_ALC": 0.203933,
+   "diff": -0.043133,
+   "run_se": 0.001931,
+   "cluster_se": 0.003229,
+   "strat_se": 0.002812,
+   "parent_mean": -0.037811,
+   "parent_se": 0.009461,
+   "parent_range": [
+    -0.059206,
+    -0.013808
+   ],
+   "path": "regimes['tl'].vs.legacy['0-99']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "legacy",
+   "runs": "100-199",
+   "n_runs": 100,
+   "shipped_ALC": 0.167724,
+   "other_ALC": 0.207328,
+   "diff": -0.039605,
+   "run_se": 0.001905,
+   "cluster_se": 0.003729,
+   "strat_se": 0.003362,
+   "parent_mean": -0.034958,
+   "parent_se": 0.010691,
+   "parent_range": [
+    -0.058161,
+    -0.007067
+   ],
+   "path": "regimes['tl'].vs.legacy['100-199']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "legacy",
+   "runs": "200-299",
+   "n_runs": 100,
+   "shipped_ALC": 0.16874,
+   "other_ALC": 0.210651,
+   "diff": -0.041911,
+   "run_se": 0.001716,
+   "cluster_se": 0.003736,
+   "strat_se": 0.003446,
+   "parent_mean": -0.037778,
+   "parent_se": 0.007507,
+   "parent_range": [
+    -0.056964,
+    -0.021488
+   ],
+   "path": "regimes['tl'].vs.legacy['200-299']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "legacy",
+   "runs": "0-299",
+   "n_runs": 300,
+   "shipped_ALC": 0.165755,
+   "other_ALC": 0.207304,
+   "diff": -0.04155,
+   "run_se": 0.00107,
+   "cluster_se": 0.003413,
+   "strat_se": 0.0031,
+   "parent_mean": -0.036918,
+   "parent_se": 0.00913,
+   "parent_range": [
+    -0.058104,
+    -0.014339
+   ],
+   "path": "regimes['tl'].vs.legacy['0-299']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "smoothed",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.1608,
+   "other_ALC": 0.178763,
+   "diff": -0.017963,
+   "run_se": 0.000959,
+   "cluster_se": 0.002111,
+   "strat_se": 0.001987,
+   "parent_mean": -0.015904,
+   "parent_se": 0.00339,
+   "parent_range": [
+    -0.024331,
+    -0.008271
+   ],
+   "path": "regimes['tl'].vs.smoothed['0-99']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "smoothed",
+   "runs": "100-199",
+   "n_runs": 100,
+   "shipped_ALC": 0.167724,
+   "other_ALC": 0.183608,
+   "diff": -0.015885,
+   "run_se": 0.000919,
+   "cluster_se": 0.002053,
+   "strat_se": 0.001972,
+   "parent_mean": -0.01386,
+   "parent_se": 0.004383,
+   "parent_range": [
+    -0.023933,
+    -0.004021
+   ],
+   "path": "regimes['tl'].vs.smoothed['100-199']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "smoothed",
+   "runs": "0-199",
+   "n_runs": 200,
+   "shipped_ALC": 0.164262,
+   "other_ALC": 0.181186,
+   "diff": -0.016924,
+   "run_se": 0.000667,
+   "cluster_se": 0.002019,
+   "strat_se": 0.001939,
+   "parent_mean": -0.014846,
+   "parent_se": 0.003899,
+   "parent_range": [
+    -0.02414,
+    -0.006058
+   ],
+   "path": "regimes['tl'].vs.smoothed['0-199']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "empirical",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.1608,
+   "other_ALC": 0.187823,
+   "diff": -0.027023,
+   "run_se": 0.001433,
+   "cluster_se": 0.002808,
+   "strat_se": 0.002665,
+   "parent_mean": -0.02925,
+   "parent_se": 0.003712,
+   "parent_range": [
+    -0.035763,
+    -0.018567
+   ],
+   "path": "regimes['tl'].vs.empirical['0-99']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "empirical",
+   "runs": "100-199",
+   "n_runs": 100,
+   "shipped_ALC": 0.167724,
+   "other_ALC": 0.198155,
+   "diff": -0.030432,
+   "run_se": 0.00138,
+   "cluster_se": 0.003,
+   "strat_se": 0.00292,
+   "parent_mean": -0.032596,
+   "parent_se": 0.004785,
+   "parent_range": [
+    -0.042222,
+    -0.020031
+   ],
+   "path": "regimes['tl'].vs.empirical['100-199']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "empirical",
+   "runs": "200-299",
+   "n_runs": 100,
+   "shipped_ALC": 0.16874,
+   "other_ALC": 0.202249,
+   "diff": -0.033509,
+   "run_se": 0.001566,
+   "cluster_se": 0.003455,
+   "strat_se": 0.00327,
+   "parent_mean": -0.037331,
+   "parent_se": 0.005943,
+   "parent_range": [
+    -0.046443,
+    -0.020171
+   ],
+   "path": "regimes['tl'].vs.empirical['200-299']"
+  },
+  {
+   "regime": "tl",
+   "comparator": "empirical",
+   "runs": "0-299",
+   "n_runs": 300,
+   "shipped_ALC": 0.165755,
+   "other_ALC": 0.196076,
+   "diff": -0.030321,
+   "run_se": 0.000855,
+   "cluster_se": 0.002953,
+   "strat_se": 0.002784,
+   "parent_mean": -0.033157,
+   "parent_se": 0.004556,
+   "parent_range": [
+    -0.03917,
+    -0.019581
+   ],
+   "path": "regimes['tl'].vs.empirical['0-299']"
+  },
+  {
+   "regime": "tl mix/whole",
+   "comparator": "legacy",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.169385,
+   "other_ALC": 0.212942,
+   "diff": -0.043557,
+   "run_se": 0.00136,
+   "cluster_se": 0.003943,
+   "strat_se": 0.003117,
+   "parent_mean": -0.029308,
+   "parent_se": 0.012336,
+   "parent_range": [
+    -0.064915,
+    -0.009949
+   ],
+   "path": "regimes['tl mix/whole'].vs.legacy['0-99']"
+  },
+  {
+   "regime": "tl mix/whole",
+   "comparator": "smoothed",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.169385,
+   "other_ALC": 0.186973,
+   "diff": -0.017588,
+   "run_se": 0.00076,
+   "cluster_se": 0.002223,
+   "strat_se": 0.00192,
+   "parent_mean": -0.011892,
+   "parent_se": 0.005019,
+   "parent_range": [
+    -0.026929,
+    -0.006184
+   ],
+   "path": "regimes['tl mix/whole'].vs.smoothed['0-99']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "legacy",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.205265,
+   "other_ALC": 0.206795,
+   "diff": -0.00153,
+   "run_se": 0.000997,
+   "cluster_se": 0.002141,
+   "strat_se": 0.001811,
+   "parent_mean": -0.002504,
+   "parent_se": 0.004961,
+   "parent_range": [
+    -0.013061,
+    0.010635
+   ],
+   "path": "regimes['r1b'].vs.legacy['0-99']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "legacy",
+   "runs": "100-149",
+   "n_runs": 50,
+   "shipped_ALC": 0.204816,
+   "other_ALC": 0.206928,
+   "diff": -0.002112,
+   "run_se": 0.001417,
+   "cluster_se": 0.002516,
+   "strat_se": 0.001996,
+   "parent_mean": -0.003631,
+   "parent_se": 0.004916,
+   "parent_range": [
+    -0.014241,
+    0.009045
+   ],
+   "path": "regimes['r1b'].vs.legacy['100-149']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "legacy",
+   "runs": "0-149",
+   "n_runs": 150,
+   "shipped_ALC": 0.205115,
+   "other_ALC": 0.206839,
+   "diff": -0.001724,
+   "run_se": 0.000813,
+   "cluster_se": 0.002128,
+   "strat_se": 0.001755,
+   "parent_mean": -0.002874,
+   "parent_se": 0.00494,
+   "parent_range": [
+    -0.013449,
+    0.0101
+   ],
+   "path": "regimes['r1b'].vs.legacy['0-149']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "smoothed",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.205265,
+   "other_ALC": 0.213799,
+   "diff": -0.008534,
+   "run_se": 0.001225,
+   "cluster_se": 0.003016,
+   "strat_se": 0.00217,
+   "parent_mean": -0.010514,
+   "parent_se": 0.006238,
+   "parent_range": [
+    -0.023053,
+    0.005888
+   ],
+   "path": "regimes['r1b'].vs.smoothed['0-99']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "smoothed",
+   "runs": "100-149",
+   "n_runs": 50,
+   "shipped_ALC": 0.204816,
+   "other_ALC": 0.213595,
+   "diff": -0.00878,
+   "run_se": 0.001648,
+   "cluster_se": 0.003413,
+   "strat_se": 0.002346,
+   "parent_mean": -0.011406,
+   "parent_se": 0.006317,
+   "parent_range": [
+    -0.023802,
+    0.00622
+   ],
+   "path": "regimes['r1b'].vs.smoothed['100-149']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "smoothed",
+   "runs": "0-149",
+   "n_runs": 150,
+   "shipped_ALC": 0.205115,
+   "other_ALC": 0.213731,
+   "diff": -0.008616,
+   "run_se": 0.000981,
+   "cluster_se": 0.003015,
+   "strat_se": 0.002093,
+   "parent_mean": -0.010837,
+   "parent_se": 0.006228,
+   "parent_range": [
+    -0.023299,
+    0.006
+   ],
+   "path": "regimes['r1b'].vs.smoothed['0-149']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "empirical",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.205265,
+   "other_ALC": 0.25033,
+   "diff": -0.045065,
+   "run_se": 0.001562,
+   "cluster_se": 0.003136,
+   "strat_se": 0.002743,
+   "parent_mean": -0.043647,
+   "parent_se": 0.004584,
+   "parent_range": [
+    -0.054991,
+    -0.034508
+   ],
+   "path": "regimes['r1b'].vs.empirical['0-99']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "empirical",
+   "runs": "100-149",
+   "n_runs": 50,
+   "shipped_ALC": 0.204816,
+   "other_ALC": 0.248723,
+   "diff": -0.043907,
+   "run_se": 0.001966,
+   "cluster_se": 0.002968,
+   "strat_se": 0.002765,
+   "parent_mean": -0.043069,
+   "parent_se": 0.005044,
+   "parent_range": [
+    -0.055835,
+    -0.031172
+   ],
+   "path": "regimes['r1b'].vs.empirical['100-149']"
+  },
+  {
+   "regime": "r1b",
+   "comparator": "empirical",
+   "runs": "0-149",
+   "n_runs": 150,
+   "shipped_ALC": 0.205115,
+   "other_ALC": 0.249794,
+   "diff": -0.044679,
+   "run_se": 0.001227,
+   "cluster_se": 0.002807,
+   "strat_se": 0.002363,
+   "parent_mean": -0.043485,
+   "parent_se": 0.004631,
+   "parent_range": [
+    -0.055286,
+    -0.033412
+   ],
+   "path": "regimes['r1b'].vs.empirical['0-149']"
+  },
+  {
+   "regime": "r1p",
+   "comparator": "legacy",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.202029,
+   "other_ALC": 0.20382,
+   "diff": -0.001791,
+   "run_se": 0.00102,
+   "cluster_se": 0.001749,
+   "strat_se": 0.00157,
+   "parent_mean": -0.001991,
+   "parent_se": 0.005268,
+   "parent_range": [
+    -0.01541,
+    0.009411
+   ],
+   "path": "regimes['r1p'].vs.legacy['0-99']"
+  },
+  {
+   "regime": "r1p",
+   "comparator": "smoothed",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.202029,
+   "other_ALC": 0.21131,
+   "diff": -0.009281,
+   "run_se": 0.001074,
+   "cluster_se": 0.002068,
+   "strat_se": 0.001865,
+   "parent_mean": -0.010142,
+   "parent_se": 0.006214,
+   "parent_range": [
+    -0.024785,
+    0.004331
+   ],
+   "path": "regimes['r1p'].vs.smoothed['0-99']"
+  },
+  {
+   "regime": "tl no shift",
+   "comparator": "legacy",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.158508,
+   "other_ALC": 0.172894,
+   "diff": -0.014386,
+   "run_se": 0.001191,
+   "cluster_se": 0.002355,
+   "strat_se": 0.002234,
+   "parent_mean": -0.01189,
+   "parent_se": 0.004938,
+   "parent_range": [
+    -0.024415,
+    -0.000427
+   ],
+   "path": "regimes['tl no shift'].vs.legacy['0-99']"
+  },
+  {
+   "regime": "tl no shift",
+   "comparator": "smoothed",
+   "runs": "0-99",
+   "n_runs": 100,
+   "shipped_ALC": 0.158508,
+   "other_ALC": 0.180556,
+   "diff": -0.022048,
+   "run_se": 0.00138,
+   "cluster_se": 0.002959,
+   "strat_se": 0.002777,
+   "parent_mean": -0.018949,
+   "parent_se": 0.005973,
+   "parent_range": [
+    -0.034505,
+    -0.005651
+   ],
+   "path": "regimes['tl no shift'].vs.smoothed['0-99']"
+  }
+ ],
+ "code_gap": {
+  "rows_code": {
+   "head": "bd0be676d4b8868b4fc29b2cd080343b6af0cb5a",
+   "paiec_dirty": true,
+   "digests": {
+    "paiec/hier.py": "70a3a81a557a099e",
+    "paiec/prior.py": "3a8a8c7dcd0da53e",
+    "paiec/subjects.py": "79eaa16553a90e6b",
+    "paiec/official.py": "c70684dc15b560bc",
+    "paiec/testlike.py": "b3ad531e5a218469",
+    "experiments/level_calibration.py": "0d810dddfde74741",
+    "experiments/subject_side.py": "5542310a6587b298"
+   },
+   "source": "subject_side.json passes[stage 'run', configs holding 'ship']"
+  },
+  "mcq_floor_fix_minus_old": {
+   "tl": {
+    "runs": 200,
+    "est": -0.000263,
+    "run_se": 3.28e-05,
+    "cluster_se": 8.33e-05,
+    "strat_se": 6.99e-05,
+    "n_app": 1598,
+    "n_runs": 200,
+    "n_clusters": 98,
+    "path": "mcq_floor.json regimes.tl.compare['fix - ship'].all.per_appearance"
+   },
+   "r1b": {
+    "runs": 200,
+    "est": -0.0002676,
+    "run_se": 4.43e-05,
+    "cluster_se": 0.0001073,
+    "strat_se": 9.84e-05,
+    "n_app": 1724,
+    "n_runs": 200,
+    "n_clusters": 219,
+    "path": "mcq_floor.json regimes.r1b.compare['fix - ship'].all.per_appearance"
+   },
+   "r1p": {
+    "runs": 200,
+    "est": -0.0004514,
+    "run_se": 5.42e-05,
+    "cluster_se": 0.0001312,
+    "strat_se": 0.0001266,
+    "n_app": 1724,
+    "n_runs": 200,
+    "n_clusters": 221,
+    "path": "mcq_floor.json regimes.r1p.compare['fix - ship'].all.per_appearance"
+   }
+  },
+  "floored_fit_fix": {
+   "tl": {
+    "runs": 200,
+    "alc_diff": 0.0,
+    "alc_diff_run_se": 0.0,
+    "path": "hier_floor.json replay.tl_lib_ship"
+   },
+   "r1b": {
+    "runs": 200,
+    "alc_diff": -1.8617626849483874e-07,
+    "alc_diff_run_se": 1.453077208835606e-07,
+    "path": "hier_floor.json replay.r1b_lib_ship"
+   },
+   "r1p": {
+    "runs": 200,
+    "alc_diff": -8.155534561959038e-06,
+    "alc_diff_run_se": 8.183193420555013e-06,
+    "path": "hier_floor.json replay.r1p_lib_ship"
+   }
+  },
+  "library_digests": {
+   "ee5085a:paiec/hier.py": "70a3a81a557a099e",
+   "ee5085a:paiec/mcq.py": "a833a6c7cc7d7a3f",
+   "ee5085a:paiec/prior.py": "fad73fe88ab433c5",
+   "ee5085a:paiec/subjects.py": "8688fa1a46428d49",
+   "4d2cc4f:paiec/hier.py": "d9a9561202b63b9d",
+   "4d2cc4f:paiec/mcq.py": "f240425d01fb7278",
+   "4d2cc4f:paiec/prior.py": "3a8a8c7dcd0da53e",
+   "4d2cc4f:paiec/subjects.py": "79eaa16553a90e6b",
+   "HEAD:paiec/hier.py": "d9a9561202b63b9d",
+   "HEAD:paiec/mcq.py": "f240425d01fb7278",
+   "HEAD:paiec/prior.py": "3a8a8c7dcd0da53e",
+   "HEAD:paiec/subjects.py": "79eaa16553a90e6b"
+  },
+  "note": "the rows are hier.py 70a3a81a557a099e with the old multiple-choice floor; the archive built at 4d2cc4f adds the corrected floor then the floored-fit fix, measured on runs 0-199 by the two files above (corrected floor at the pre-fix solver, then the fix at the corrected floor); nothing here adds them in"
+ },
+ "checks": {
+  "passed": 150,
+  "failed": 0,
+  "items": [
+   {
+    "check": "selection: shipped ALC",
+    "ok": true,
+    "got": 0.1608,
+    "want": 0.16080016512987017,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: legacy ALC",
+    "ok": true,
+    "got": 0.203933,
+    "want": 0.20393314373015872,
+    "source": "level_calibration.json summary.selection.configs['Predictor'].ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: difference mean",
+    "ok": true,
+    "got": -0.043133,
+    "want": -0.0431329786002886,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].diff.mean (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: difference run_se",
+    "ok": true,
+    "got": 0.001931,
+    "want": 0.0019308998639030223,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].diff.run_se (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: difference cluster_se",
+    "ok": true,
+    "got": 0.003229,
+    "want": 0.003229084595504834,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].diff.cluster_se (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: difference strat_se",
+    "ok": true,
+    "got": 0.002812,
+    "want": 0.002811646122755824,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].diff.strat_se (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: leave out matharena",
+    "ok": true,
+    "got": -0.048322,
+    "want": -0.04832181362554114,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].diff.lopo.matharena (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: leave out multi_swebench",
+    "ok": true,
+    "got": -0.033641,
+    "want": -0.03364077905122655,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].diff.lopo.multi_swebench (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: leave out real_webagents",
+    "ok": true,
+    "got": -0.044859,
+    "want": -0.04485902681818182,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].diff.lopo.real_webagents (tolerance 5e-06)"
+   },
+   {
+    "check": "selection: leave out researchcodebench",
+    "ok": true,
+    "got": -0.042914,
+    "want": -0.04291322605339106,
+    "source": "level_calibration.json summary.selection.configs['hier G mu0=-2.50 sm=2.50 as=0.50'].diff.lopo.researchcodebench (tolerance 5e-06)"
+   },
+   {
+    "check": "selection as printed: 0.1608",
+    "ok": true,
+    "got": "0.1608",
+    "want": "0.1608",
+    "source": "review section 7"
+   },
+   {
+    "check": "selection as printed: 0.2039",
+    "ok": true,
+    "got": "0.2039",
+    "want": "0.2039",
+    "source": "review section 7"
+   },
+   {
+    "check": "selection as printed: -0.0431",
+    "ok": true,
+    "got": "-0.0431",
+    "want": "-0.0431",
+    "source": "review section 7"
+   },
+   {
+    "check": "selection as printed: 0.0019",
+    "ok": true,
+    "got": "0.0019",
+    "want": "0.0019",
+    "source": "review section 7"
+   },
+   {
+    "check": "selection: smoothed ALC",
+    "ok": true,
+    "got": 0.178763,
+    "want": 0.17876341638888885,
+    "source": "level_calibration.json summary.selection.configs['smoothed'].ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "guard r1b: Predictor ALC",
+    "ok": true,
+    "got": 0.206795,
+    "want": 0.2067944659163059,
+    "source": "level_calibration.json summary.r1.r1b.Predictor.ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "guard r1b: Predictor ALC as printed",
+    "ok": true,
+    "got": "0.2068",
+    "want": "0.2068",
+    "source": "review section 7"
+   },
+   {
+    "check": "guard r1b: smoothed ALC",
+    "ok": true,
+    "got": 0.213799,
+    "want": 0.2137987266955267,
+    "source": "level_calibration.json summary.r1.r1b.smoothed.ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "guard r1p: Predictor ALC",
+    "ok": true,
+    "got": 0.20382,
+    "want": 0.20382008665945162,
+    "source": "level_calibration.json summary.r1.r1p.Predictor.ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "guard r1p: Predictor ALC as printed",
+    "ok": true,
+    "got": "0.2038",
+    "want": "0.2038",
+    "source": "review section 7"
+   },
+   {
+    "check": "guard r1p: smoothed ALC",
+    "ok": true,
+    "got": 0.21131,
+    "want": 0.2113100353860029,
+    "source": "level_calibration.json summary.r1.r1p.smoothed.ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "sensitivity tl mix/whole: runs matched pair for pair",
+    "ok": true,
+    "got": 100,
+    "want": 100,
+    "source": "level_calibration.json raw['meta|tl mix/whole|<i>'] against the shipped rows"
+   },
+   {
+    "check": "sensitivity tl mix/whole: Predictor ALC",
+    "ok": true,
+    "got": 0.212942,
+    "want": 0.2129420025721501,
+    "source": "level_calibration.json summary.sensitivity['tl mix/whole']['Predictor'].ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "sensitivity tl mix/whole: smoothed ALC",
+    "ok": true,
+    "got": 0.186973,
+    "want": 0.18697261872655122,
+    "source": "level_calibration.json summary.sensitivity['tl mix/whole']['smoothed'].ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "sensitivity tl no shift: runs matched pair for pair",
+    "ok": true,
+    "got": 100,
+    "want": 100,
+    "source": "level_calibration.json raw['meta|tl no shift|<i>'] against the shipped rows"
+   },
+   {
+    "check": "sensitivity tl no shift: Predictor ALC",
+    "ok": true,
+    "got": 0.172894,
+    "want": 0.17289409628787883,
+    "source": "level_calibration.json summary.sensitivity['tl no shift']['Predictor'].ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "sensitivity tl no shift: smoothed ALC",
+    "ok": true,
+    "got": 0.180556,
+    "want": 0.18055618010101016,
+    "source": "level_calibration.json summary.sensitivity['tl no shift']['smoothed'].ALC[0] (tolerance 5e-06)"
+   },
+   {
+    "check": "shipped LEVEL = submission/model.py's",
+    "ok": true,
+    "got": {
+     "mu0": -2.5,
+     "sigma_mu": 2.5,
+     "attr_scale": 0.5
+    },
+    "want": {
+     "mu0": -2.5,
+     "sigma_mu": 2.5,
+     "attr_scale": 0.5
+    },
+    "source": "subject_side.json summary.level; submission/model.py LEVEL"
+   },
+   {
+    "check": "subject_side summary tl: shipped ALC",
+    "ok": true,
+    "got": 0.165755,
+    "want": 0.165755,
+    "source": "subject_side.json summary.regimes['tl'].ship.ALC (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary tl: shipped ALC run SE",
+    "ok": true,
+    "got": 0.001838,
+    "want": 0.001838,
+    "source": "subject_side.json summary.regimes['tl'].ship.ALC_run_se (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary tl mix/whole: shipped ALC",
+    "ok": true,
+    "got": 0.171062,
+    "want": 0.171062,
+    "source": "subject_side.json summary.regimes['tl mix/whole'].ship.ALC (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary tl mix/whole: shipped ALC run SE",
+    "ok": true,
+    "got": 0.002328,
+    "want": 0.002328,
+    "source": "subject_side.json summary.regimes['tl mix/whole'].ship.ALC_run_se (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary r1b: shipped ALC",
+    "ok": true,
+    "got": 0.205115,
+    "want": 0.205115,
+    "source": "subject_side.json summary.regimes['r1b'].ship.ALC (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary r1b: shipped ALC run SE",
+    "ok": true,
+    "got": 0.002329,
+    "want": 0.002329,
+    "source": "subject_side.json summary.regimes['r1b'].ship.ALC_run_se (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary r1p: shipped ALC",
+    "ok": true,
+    "got": 0.202029,
+    "want": 0.202029,
+    "source": "subject_side.json summary.regimes['r1p'].ship.ALC (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary r1p: shipped ALC run SE",
+    "ok": true,
+    "got": 0.002609,
+    "want": 0.002609,
+    "source": "subject_side.json summary.regimes['r1p'].ship.ALC_run_se (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary tl no shift: shipped ALC",
+    "ok": true,
+    "got": 0.158508,
+    "want": 0.158508,
+    "source": "subject_side.json summary.regimes['tl no shift'].ship.ALC (tolerance 1e-06)"
+   },
+   {
+    "check": "subject_side summary tl no shift: shipped ALC run SE",
+    "ok": true,
+    "got": 0.003349,
+    "want": 0.003349,
+    "source": "subject_side.json summary.regimes['tl no shift'].ship.ALC_run_se (tolerance 1e-06)"
+   },
+   {
+    "check": "level_calibration's own rows of hier G mu0=-2.50 sm=2.50 as=0.50 on tl (100 runs), per pair ALC",
+    "ok": true,
+    "got": 5e-06,
+    "want": "<= 6.0e-06",
+    "source": "level_calibration.json raw (grid/screen tasks holding 'hier G mu0=-2.50 sm=2.50 as=0.50')"
+   },
+   {
+    "check": "level_calibration's own rows of hier G mu0=-2.50 sm=2.50 as=0.50 on r1b (40 runs), per pair ALC",
+    "ok": true,
+    "got": 5e-06,
+    "want": "<= 6.0e-06",
+    "source": "level_calibration.json raw (grid/screen tasks holding 'hier G mu0=-2.50 sm=2.50 as=0.50')"
+   },
+   {
+    "check": "mcq_floor old-floor arm, test-like runs 0-199",
+    "ok": true,
+    "got": 0.164262,
+    "want": 0.1642618,
+    "source": "mcq_floor.json regimes.tl.alc.ship.mean (provenance.library_floor 'old') (tolerance 1e-06)"
+   },
+   {
+    "check": "official_baselines per-run smoothed Beta(2,2), r1b (150 runs)",
+    "ok": true,
+    "got": 1e-06,
+    "want": "<= 2e-6",
+    "source": "official_baselines.json r1.per_run[*].alc['smoothed Beta(2,2)']"
+   },
+   {
+    "check": "official_baselines per-run empirical mean, r1b (150 runs)",
+    "ok": true,
+    "got": 1e-06,
+    "want": "<= 2e-6",
+    "source": "official_baselines.json r1.per_run[*].alc['empirical mean']"
+   },
+   {
+    "check": "review W2 tl 0-99: shipped ALC",
+    "ok": true,
+    "got": "0.1608",
+    "want": "0.1608",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 0-99: legacy ALC",
+    "ok": true,
+    "got": "0.2039",
+    "want": "0.2039",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 0-99: difference",
+    "ok": true,
+    "got": "-0.0431",
+    "want": "-0.0431",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 0-99: run SE",
+    "ok": true,
+    "got": "0.0019",
+    "want": "0.0019",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 100-199: shipped ALC",
+    "ok": true,
+    "got": "0.1677",
+    "want": "0.1677",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 100-199: legacy ALC",
+    "ok": true,
+    "got": "0.2073",
+    "want": "0.2073",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 100-199: difference",
+    "ok": true,
+    "got": "-0.0396",
+    "want": "-0.0396",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 100-199: run SE",
+    "ok": true,
+    "got": "0.0019",
+    "want": "0.0019",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 200-299: shipped ALC",
+    "ok": true,
+    "got": "0.1687",
+    "want": "0.1687",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 200-299: legacy ALC",
+    "ok": true,
+    "got": "0.2107",
+    "want": "0.2107",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 200-299: difference",
+    "ok": true,
+    "got": "-0.0419",
+    "want": "-0.0419",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 200-299: run SE",
+    "ok": true,
+    "got": "0.0017",
+    "want": "0.0017",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 0-299: shipped ALC",
+    "ok": true,
+    "got": "0.1658",
+    "want": "0.1658",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 0-299: legacy ALC",
+    "ok": true,
+    "got": "0.2073",
+    "want": "0.2073",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 0-299: difference",
+    "ok": true,
+    "got": "-0.0415",
+    "want": "-0.0415",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl 0-299: run SE",
+    "ok": true,
+    "got": "0.0011",
+    "want": "0.0011",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1b 0-99: shipped ALC",
+    "ok": true,
+    "got": "0.2053",
+    "want": "0.2053",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1b 0-99: legacy ALC",
+    "ok": true,
+    "got": "0.2068",
+    "want": "0.2068",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1b 0-99: difference",
+    "ok": true,
+    "got": "-0.0015",
+    "want": "-0.0015",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1b 0-99: run SE",
+    "ok": true,
+    "got": "0.0010",
+    "want": "0.0010",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1b 0-149: difference",
+    "ok": true,
+    "got": "-0.0017",
+    "want": "-0.0017",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1b 0-149: run SE",
+    "ok": true,
+    "got": "0.0008",
+    "want": "0.0008",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1p 0-99: shipped ALC",
+    "ok": true,
+    "got": "0.2020",
+    "want": "0.2020",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1p 0-99: legacy ALC",
+    "ok": true,
+    "got": "0.2038",
+    "want": "0.2038",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1p 0-99: difference",
+    "ok": true,
+    "got": "-0.0018",
+    "want": "-0.0018",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 r1p 0-99: run SE",
+    "ok": true,
+    "got": "0.0010",
+    "want": "0.0010",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl mix/whole 0-99: shipped ALC",
+    "ok": true,
+    "got": "0.1694",
+    "want": "0.1694",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl mix/whole 0-99: legacy ALC",
+    "ok": true,
+    "got": "0.2129",
+    "want": "0.2129",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl mix/whole 0-99: difference",
+    "ok": true,
+    "got": "-0.0436",
+    "want": "-0.0436",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl no shift 0-99: shipped ALC",
+    "ok": true,
+    "got": "0.1585",
+    "want": "0.1585",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl no shift 0-99: legacy ALC",
+    "ok": true,
+    "got": "0.1729",
+    "want": "0.1729",
+    "source": "review W2"
+   },
+   {
+    "check": "review W2 tl no shift 0-99: difference",
+    "ok": true,
+    "got": "-0.0144",
+    "want": "-0.0144",
+    "source": "review W2"
+   },
+   {
+    "check": "review section 7 sd tl B0",
+    "ok": true,
+    "got": "0.0209",
+    "want": "0.0209",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl B1",
+    "ok": true,
+    "got": "0.0385",
+    "want": "0.0385",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl B3",
+    "ok": true,
+    "got": "0.0367",
+    "want": "0.0367",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl B7",
+    "ok": true,
+    "got": "0.0354",
+    "want": "0.0354",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl B15",
+    "ok": true,
+    "got": "0.0336",
+    "want": "0.0336",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl B31",
+    "ok": true,
+    "got": "0.0318",
+    "want": "0.0318",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl ALC",
+    "ok": true,
+    "got": "0.0318",
+    "want": "0.0318",
+    "source": "review section 7"
+   },
+   {
+    "check": "review W1 tl: mean ALC",
+    "ok": true,
+    "got": "0.1658",
+    "want": "0.1658",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: sd",
+    "ok": true,
+    "got": "0.0318",
+    "want": "0.0318",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: run 2's z",
+    "ok": true,
+    "got": "+0.84",
+    "want": "+0.84",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: share >= run 2",
+    "ok": true,
+    "got": "0.20",
+    "want": "0.20",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: run 2's z at B0",
+    "ok": true,
+    "got": "+0.98",
+    "want": "+0.98",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: run 2's z at B1",
+    "ok": true,
+    "got": "+0.15",
+    "want": "+0.15",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: run 2's z at B3",
+    "ok": true,
+    "got": "+0.86",
+    "want": "+0.86",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: run 2's z at B7",
+    "ok": true,
+    "got": "+0.89",
+    "want": "+0.89",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: run 2's z at B15",
+    "ok": true,
+    "got": "+0.98",
+    "want": "+0.98",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl: run 2's z at B31",
+    "ok": true,
+    "got": "+1.40",
+    "want": "+1.40",
+    "source": "review W1"
+   },
+   {
+    "check": "review section 7 sd tl mix/whole B0",
+    "ok": true,
+    "got": "0.0171",
+    "want": "0.0171",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl mix/whole B1",
+    "ok": true,
+    "got": "0.0400",
+    "want": "0.0400",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl mix/whole B3",
+    "ok": true,
+    "got": "0.0371",
+    "want": "0.0371",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl mix/whole B7",
+    "ok": true,
+    "got": "0.0357",
+    "want": "0.0357",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl mix/whole B15",
+    "ok": true,
+    "got": "0.0354",
+    "want": "0.0354",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl mix/whole B31",
+    "ok": true,
+    "got": "0.0327",
+    "want": "0.0327",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl mix/whole ALC",
+    "ok": true,
+    "got": "0.0329",
+    "want": "0.0329",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1b B0",
+    "ok": true,
+    "got": "0.0330",
+    "want": "0.0330",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1b B1",
+    "ok": true,
+    "got": "0.0373",
+    "want": "0.0373",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1b B3",
+    "ok": true,
+    "got": "0.0345",
+    "want": "0.0345",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1b B7",
+    "ok": true,
+    "got": "0.0286",
+    "want": "0.0286",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1b B15",
+    "ok": true,
+    "got": "0.0264",
+    "want": "0.0264",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1b B31",
+    "ok": true,
+    "got": "0.0252",
+    "want": "0.0252",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1b ALC",
+    "ok": true,
+    "got": "0.0285",
+    "want": "0.0285",
+    "source": "review section 7"
+   },
+   {
+    "check": "review W1 r1b: mean ALC",
+    "ok": true,
+    "got": "0.2051",
+    "want": "0.2051",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: sd",
+    "ok": true,
+    "got": "0.0285",
+    "want": "0.0285",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: run 2's z",
+    "ok": true,
+    "got": "-0.44",
+    "want": "-0.44",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: share >= run 2",
+    "ok": true,
+    "got": "0.67",
+    "want": "0.67",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: run 2's z at B0",
+    "ok": true,
+    "got": "+0.06",
+    "want": "+0.06",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: run 2's z at B1",
+    "ok": true,
+    "got": "-0.78",
+    "want": "-0.78",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: run 2's z at B3",
+    "ok": true,
+    "got": "-0.49",
+    "want": "-0.49",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: run 2's z at B7",
+    "ok": true,
+    "got": "-0.46",
+    "want": "-0.46",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: run 2's z at B15",
+    "ok": true,
+    "got": "-0.27",
+    "want": "-0.27",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1b: run 2's z at B31",
+    "ok": true,
+    "got": "+0.23",
+    "want": "+0.23",
+    "source": "review W1"
+   },
+   {
+    "check": "review section 7 sd r1p B0",
+    "ok": true,
+    "got": "0.0297",
+    "want": "0.0297",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1p B1",
+    "ok": true,
+    "got": "0.0393",
+    "want": "0.0393",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1p B3",
+    "ok": true,
+    "got": "0.0297",
+    "want": "0.0297",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1p B7",
+    "ok": true,
+    "got": "0.0279",
+    "want": "0.0279",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1p B15",
+    "ok": true,
+    "got": "0.0257",
+    "want": "0.0257",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1p B31",
+    "ok": true,
+    "got": "0.0244",
+    "want": "0.0244",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd r1p ALC",
+    "ok": true,
+    "got": "0.0261",
+    "want": "0.0261",
+    "source": "review section 7"
+   },
+   {
+    "check": "review W1 r1p: mean ALC",
+    "ok": true,
+    "got": "0.2020",
+    "want": "0.2020",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: sd",
+    "ok": true,
+    "got": "0.0261",
+    "want": "0.0261",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: run 2's z",
+    "ok": true,
+    "got": "-0.36",
+    "want": "-0.36",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: share >= run 2",
+    "ok": true,
+    "got": "0.68",
+    "want": "0.68",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: run 2's z at B0",
+    "ok": true,
+    "got": "-0.24",
+    "want": "-0.24",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: run 2's z at B1",
+    "ok": true,
+    "got": "-0.67",
+    "want": "-0.67",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: run 2's z at B3",
+    "ok": true,
+    "got": "-0.37",
+    "want": "-0.37",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: run 2's z at B7",
+    "ok": true,
+    "got": "-0.32",
+    "want": "-0.32",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: run 2's z at B15",
+    "ok": true,
+    "got": "-0.13",
+    "want": "-0.13",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 r1p: run 2's z at B31",
+    "ok": true,
+    "got": "+0.50",
+    "want": "+0.50",
+    "source": "review W1"
+   },
+   {
+    "check": "review section 7 sd tl no shift B0",
+    "ok": true,
+    "got": "0.0423",
+    "want": "0.0423",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl no shift B1",
+    "ok": true,
+    "got": "0.0418",
+    "want": "0.0418",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl no shift B3",
+    "ok": true,
+    "got": "0.0384",
+    "want": "0.0384",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl no shift B7",
+    "ok": true,
+    "got": "0.0327",
+    "want": "0.0327",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl no shift B15",
+    "ok": true,
+    "got": "0.0307",
+    "want": "0.0307",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl no shift B31",
+    "ok": true,
+    "got": "0.0286",
+    "want": "0.0286",
+    "source": "review section 7"
+   },
+   {
+    "check": "review section 7 sd tl no shift ALC",
+    "ok": true,
+    "got": "0.0335",
+    "want": "0.0335",
+    "source": "review section 7"
+   },
+   {
+    "check": "review W1 tl no shift: mean ALC",
+    "ok": true,
+    "got": "0.1585",
+    "want": "0.1585",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: sd",
+    "ok": true,
+    "got": "0.0335",
+    "want": "0.0335",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: run 2's z",
+    "ok": true,
+    "got": "+1.02",
+    "want": "+1.02",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: share >= run 2",
+    "ok": true,
+    "got": "0.18",
+    "want": "0.18",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: run 2's z at B0",
+    "ok": true,
+    "got": "+1.00",
+    "want": "+1.00",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: run 2's z at B1",
+    "ok": true,
+    "got": "+0.45",
+    "want": "+0.45",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: run 2's z at B3",
+    "ok": true,
+    "got": "+0.89",
+    "want": "+0.89",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: run 2's z at B7",
+    "ok": true,
+    "got": "+1.11",
+    "want": "+1.11",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: run 2's z at B15",
+    "ok": true,
+    "got": "+1.20",
+    "want": "+1.20",
+    "source": "review W1"
+   },
+   {
+    "check": "review W1 tl no shift: run 2's z at B31",
+    "ok": true,
+    "got": "+1.67",
+    "want": "+1.67",
+    "source": "review W1"
+   }
+  ]
+ },
+ "provenance": {
+  "command": "python experiments/ship_confirm.py",
+  "script": "experiments/ship_confirm.py",
+  "script_sha256": "ec6e73ea1e3e8935b15dfeddfe32e185e3d9d6d2b65fff336a2476c91f92fa96",
+  "code_sha256": {
+   "experiments/ship_confirm.py": "ec6e73ea1e3e8935b15dfeddfe32e185e3d9d6d2b65fff336a2476c91f92fa96",
+   "experiments/level_calibration.py": "0d810dddfde74741c81c25608cd6390ad702db5bd8ef90f30d4d3bb07d2e6ec2",
+   "experiments/subject_side.py": "888c11b0c1b13c0544a7c9fcc081d797e31c34482fe4c52a0f85fd820f7106be"
+  },
+  "head": "4d2cc4f52751cb5ed12e9c4a077d729e32aa0adc",
+  "script_status": "?? experiments/ship_confirm.py",
+  "inputs_sha256": {
+   "data/subject_side_rows/tl.jsonl": "cf6b13fe3e6b62ed269176cddeb72dcacd6526a06f88ff372af89552469977bf",
+   "data/subject_side_rows/tl_mix-whole.jsonl": "7487c6f6502c9adc738ef274530299a06ed102d0a7942d8b4aa405b365f768e2",
+   "data/subject_side_rows/r1b.jsonl": "aa64294509350651f269d2ab9078b738dc77ffce4f63c376fa6ce6291fb254c1",
+   "data/subject_side_rows/r1p.jsonl": "3d63ad7f0852f73f3c575af698505fcf4714f9425df80d0c45fe9340a73aefa4",
+   "data/subject_side_rows/tl_no_shift.jsonl": "e5d68dba6cc59880ccfa5027a214b459d2610d10f5172fd68dbfaad3dcd19a78",
+   "results/testlike_check.json": "26dfdc2296cd0038dcfb0013057feead5628c4cd63fb2b150ce5be2caa753849",
+   "results/hier_eval.json": "ed8aee01f5e0a1a5489fa51b501a30d9ddaa3530ce020e38398330dfc9ddf530",
+   "results/level_calibration.json": "b9318813c2754bb40d41e9e76d2f59af31b1ec19f997665ad0dc31f906dfafe5",
+   "results/subject_side.json": "bf7f49d859a755b9524d401be413bf16b853f2c2c537430994bfb6ea3a5310dc",
+   "results/mcq_floor.json": "0deea8cd324975aa90b57dfd6cd37060e32747a88133dab9b5f3504889448938",
+   "results/hier_floor.json": "0790fe7c81e1554daa67a663abdf9d16ec377f7e492b33ae746fdaeb83874894",
+   "results/official_baselines.json": "669edf4326a5c29bd92feda696871771588db9d1c56fd26c3a93e7b59771bf2a",
+   "submission/model.py": "a9561290e62d3f7c65935c860b7f4300359cc5df34c6bccc207eb85305dfd82e"
+  },
+  "python": "3.10.8",
+  "numpy": "1.26.4",
+  "boots": 2000,
+  "wall_s": 4.7
+ }
+}

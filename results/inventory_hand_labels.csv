@@ -1,0 +1,81 @@
+sheet_row,benchmark_name_slug,title,llm_eval,cat
+1055,nlqtsbench,Sonar-TS: Search-Then-Verify Natural Language Querying for Time Series Databases,1,code
+1198,appworld_ul,AppWorld-UL: Benchmarking Diverse Agent-User Interactions for Tool-Use,1,agent
+638,voxdialogue,VoxDialogue: Can Spoken Dialogue Systems Understand Information Beyond Words?,1,audio
+292,erbench,ERBench: An Entity-Relationship based Automatically Verifiable Hallucination Benchmark for Large Language Models,1,text_qa
+523,triplane_neural_field_classification,Neural Processing of Tri-Plane Hybrid Neural Fields,0,
+797,omnibench,What Limits Virtual Agent Application? OmniBench: A Scalable Multi-Dimensional Benchmark for Essential Virtual Agent Capabilities,1,agent
+311,xland_minigrid,XLand-MiniGrid: Scalable Meta-Reinforcement Learning Environments in JAX,0,
+181,causal2needles,Two Causally Related Needles in a Video Haystack,1,mm_video
+907,spatialab,SpatiaLab: Can Vision–Language Models Perform Spatial Reasoning in the Wild?,1,mm_image
+867,visjudge_bench,VisJudge-Bench: Aesthetics and Quality Assessment of Visualizations,1,mm_image
+961,open_proof_corpus,The Open Proof Corpus: A Large-Scale Study of LLM-Generated Mathematical Proofs,1,math
+587,cwe_bench_java,IRIS: LLM-Assisted Static Analysis for Detecting Security Vulnerabilities,1,code
+712,multi_state_rna_design,gRNAde: Geometric Deep Learning for 3D RNA inverse design,0,
+1120,vla_arena,VLA-Arena: An Open-Source Framework for Benchmarking Vision-Language-Action Models,0,
+394,emgbench,EMGBench: Benchmarking Out-of-Distribution Generalization and Adaptation for Electromyography,0,
+340,embodied_agent_interface,Embodied Agent Interface: Benchmarking LLMs for Embodied Decision Making,1,agent
+757,llmnodebed,When Do LLMs Help With Node Classification? A Comprehensive Analysis,1,text_qa
+220,danmakutppbench,DanmakuTPPBench: A Multi-modal Benchmark for Temporal Point Process Modeling and Understanding,0,
+349,imagenet3d,ImageNet3D: Towards General-Purpose Object-Level 3D Understanding,0,
+839,robustspring,"RobustSpring: Benchmarking Robustness to Image Corruptions for Optical Flow, Scene Flow and Stereo",0,
+296,androidcontrol,On the Effects of Data Scale on UI Control Agents,1,agent
+972,dm4ct,DM4CT: Benchmarking Diffusion Models for Computed Tomography Reconstruction,0,
+884,redacbench,RedacBench: Can AI Erase Your Secrets?,1,text_qa
+1142,iesbench,When the Prompt Becomes Visual: Vision-Centric Jailbreak Attacks for Large Image Editing Models,0,
+271,mercury,Mercury: A Code Efficiency Benchmark for Code Large Language Models,1,code
+976,picabench,PICABench: How Far are We from Physical Realistic  Image Editing?,0,
+61,swe_bench_live,SWE-bench Goes Live!,1,code
+1128,ok_vos,Seg-ReSearch: Segmentation with Interleaved Reasoning and External Search,0,
+397,ava_256,"Codec Avatar Studio: Paired Human Captures for Complete, Driveable, and Generalizable Avatars",0,
+77,brace,BRACE: A Benchmark for Robust Audio Caption Quality Evaluation,1,audio
+933,ravenea,RAVENEA: A Benchmark for Multimodal Retrieval-Augmented Visual Culture Understanding,1,mm_image
+169,loogle_v2,LooGLE v2: Are LLMs Ready for Real World Long Dependency Challenges?,1,text_qa
+1172,time_series_decomposition_diagnostic,Time-Series Decomposition as a Standalone Task: A Mechanism-Driven Diagnostic Benchmark,0,
+1251,mm_or_pose,DisPOSE: Projected Polystochastic Diffusion for Self-Supervised Multi-View 3D Human Pose Estimation,0,
+513,metacoco,MetaCoCo: A New Few-Shot Classification Benchmark with Spurious Correlation,0,
+128,drivaerstar,DrivAerStar: An Industrial-Grade CFD Dataset for Vehicle Aerodynamic Optimization,0,
+294,drivaernet_plusplus,DrivAerNet++: A Large-Scale Multimodal Car Dataset with Computational Fluid Dynamics Simulations and Deep Learning Benchmarks,0,
+135,cogphys,CogPhys: Assessing Cognitive Load via Multimodal Remote and Contact-based Physiological Sensing,0,
+1031,vcg_bench,VCG-Bench: Towards A Unified Visual-Centric Benchmark for Structured Generation and Editing,1,mm_image
+635,motionpercept,Aligning Human Motion Generation with Human Perceptions,0,
+353,streambench,StreamBench: Towards Benchmarking Continuous Improvement of Language Agents,1,text_qa
+1154,partnr_dialog,LLawCo: Learning Laws of Cooperation for Modeling Embodied Multi-Agent Behavior,0,
+914,perspectra,PerSpectra: A Scalable and Configurable Pluralist Benchmark of Perspectives from Arguments,1,text_qa
+107,physics,Scaling Physical Reasoning with the PHYSICS Dataset,1,math
+577,hr_extreme,HR-Extreme: A High-Resolution Dataset for Extreme Weather Forecasting,0,
+405,gmai_mmbench,GMAI-MMBench: A Comprehensive Multimodal Evaluation Benchmark Towards General Medical AI,1,mm_image
+93,opens2v_eval,OpenS2V-Nexus: A Detailed Benchmark and Million-Scale Dataset for Subject-to-Video Generation,0,
+53,dermacon_in,DermaCon-IN: A Multiconcept-Annotated Dermatological Image Dataset of Indian Skin Disorders for Clinical AI Research,0,
+316,remi,ReMI: A Dataset for Reasoning with Multiple Images,1,mm_image
+189,omnibench,OmniBench: Towards The Future of Universal Omni-Language Models,1,mm_image
+1070,liveoibench,LiveOIBench: Can Large Language Models Outperform Human Contestants in Informatics Olympiads?,1,code
+539,pinocchio,Towards Understanding Factual Knowledge of Large Language Models,1,text_qa
+80,situat3dchange,Situat3DChange: Situated 3D Change Understanding Dataset for Multimodal Large Language Model,1,mm_image
+783,memorybench,SAM2Act: Integrating Visual Foundation Model with A Memory Architecture for Robotic Manipulation,0,
+830,kaleidoscope,Kaleidoscope: In-language Exams for Massively  Multilingual Vision Evaluation,1,mm_image
+1228,trip_bench,TRIP-Bench: A Benchmark for Long-Horizon Interactive Agents in Real-World Scenarios,1,agent
+515,universalner_benchmark,UniversalNER: Targeted Distillation from Large Language Models for Open Named Entity Recognition,0,
+1235,reward_hacking_benchmark,Reward Hacking Benchmark: Measuring Exploits in LLM Agents with Tool Use,1,agent
+172,favor_bench,FAVOR-Bench: A Comprehensive Benchmark for Fine-Grained Video Motion Understanding,1,mm_video
+324,mmcows,MmCows: A Multimodal Dataset for Dairy Cattle Monitoring,0,
+239,dosi,Benchmarking Structural Inference Methods for Interacting Dynamical Systems with Synthetic Data,0,
+92,moe_cap,"MoE-CAP: Benchmarking Cost, Accuracy and Performance of Sparse Mixture-of-Experts Systems",0,
+641,vnbench,Needle In A Video Haystack: A Scalable  Synthetic Evaluator for Video MLLMs,1,mm_video
+60,capability,CAPability: A Comprehensive Visual Caption Benchmark for Evaluating Both Correctness and Thoroughness,1,mm_image
+1171,pebench,World-Shaper: A Unified Framework for 360° Panoramic Editing,0,
+1074,venusbench_mobile,VenusBench-Mobile: A Challenging and User-Centric Benchmark for Mobile GUI Agents with Capability Diagnostics,1,agent
+482,sharperatio_at_k,Towards Assessing and Benchmarking Risk-Return Tradeoff of Off-Policy Evaluation,0,
+38,multi_swe_bench,Multi-SWE-bench: A Multilingual Benchmark for Issue Resolving,1,code
+288,gametraversalbenchmark,GameTraversalBenchmark: Evaluating Planning Abilities Of Large Language Models Through Traversing 2D Game Maps,1,agent
+677,mceval,McEval: Massively Multilingual Code Evaluation,1,code
+548,w_bench,Robust Watermarking Using Generative Priors Against Image Editing: From Benchmarking to Advances,0,
+536,imagenet_ood,ImageNet-OOD: Deciphering Modern Out-of-Distribution Detection Algorithms,0,
+532,arena_hard_200,LMSYS-Chat-1M: A Large-Scale Real-World LLM Conversation Dataset,1,text_qa
+31,agent_red_teaming,Security Challenges in AI Agent Deployment: Insights from a Large Scale Public Competition,1,agent
+977,lasched,ATLAS: Alibaba Dataset and Benchmark for Learning-Augmented Scheduling,0,
+1109,worldtravel,WorldTravel: A Realistic Multimodal Travel-Planning Benchmark with Tightly Coupled Constraints,1,agent
+44,emergenttts_eval,"EmergentTTS-Eval: Evaluating TTS Models on Complex Prosodic, Expressiveness, and Linguistic Challenges Using Model-as-a-Judge",0,
+232,repliqa,RepLiQA: A Question-Answering Dataset for Benchmarking LLMs on Unseen Reference Content,1,text_qa
+69,knotgym,Knot So Simple: A Minimalistic Environment for Spatial Reasoning,0,
+344,bucktales,BuckTales: A multi-UAV dataset for multi-object tracking and re-identification of wild antelopes,0,

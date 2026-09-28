@@ -1,0 +1,277 @@
+{
+ "passes": [
+  {
+   "stage": "replay",
+   "command": "python experiments/script_revisions.py --stage replay",
+   "when_utc": "2026-09-28T09:02:11+00:00",
+   "commit": "4d2cc4f",
+   "script_digest": "92419b869541d255",
+   "edit_log_digest": "a210b16786c2c9d2"
+  },
+  {
+   "stage": "reread",
+   "command": "python experiments/script_revisions.py --stage reread",
+   "when_utc": "2026-09-28T09:02:59+00:00",
+   "commit": "4d2cc4f",
+   "script_digest": "92419b869541d255",
+   "edit_log_digest": "a210b16786c2c9d2"
+  }
+ ],
+ "about": "Edits made to two moved scripts after one of their stages had already written results, as the (old, new) string replacements they were made with, in order. Recovered from the Claude Code session log of the lanes that made them (2026-09-28), except the last level_audit.py revision, made while fixing the report's verifier findings. experiments/script_revisions.py undoes them from the files on disk and checks every intermediate version against the script digests the results files recorded.",
+ "replay": {
+  "experiments/formative_feedback.py": {
+   "on_disk": "93cb6a84d9762894",
+   "note": "d3fe28fd wrote the first record and the preregistration; 5099ef81 the second record (with the archives) and the first read; 321c189e the second read; 93cb6a84 the third and fourth reads and the last record. The stored record and reading are 93cb6a84's, the stored archives 5099ef81's record pass.",
+   "versions_rebuilt": [
+    "93cb6a84d9762894",
+    "321c189e8104be3c",
+    "5099ef8179cf67be",
+    "d3fe28fdda6626ec"
+   ],
+   "revisions": [
+    {
+     "when_utc": "2026-09-28T05:12:39Z to 05:12:58Z",
+     "before": "d3fe28fdda6626ec",
+     "after": "5099ef8179cf67be",
+     "stage": "record",
+     "what": "record takes --rebuild1/--rebuild2 and compares each rebuilt archive with the uploaded one; docstring. The read stage is untouched."
+    },
+    {
+     "when_utc": "2026-09-28T05:15:31Z",
+     "before": "5099ef8179cf67be",
+     "after": "321c189e8104be3c",
+     "stage": "read (descriptive output only)",
+     "what": "the descriptive block 'where run 2's B0 excess sits' is rewritten: it was one split at K 15 into rates below 0.5 and at or above it (run2_b0_excess_by_rate_K=15, with q3, whose B31 has no real root, counted at or above); it is now given for K 15 and K 40, with pairs whose B31 is 0.25 or more kept apart as 'unidentified' (run2_b0_excess_by_rate). Four explanatory notes are added (reading.notes). No decision quantity is touched."
+    },
+    {
+     "when_utc": "2026-09-28T05:18:45Z",
+     "before": "321c189e8104be3c",
+     "after": "93cb6a84d9762894",
+     "stage": "read (descriptive output only)",
+     "what": "each robustness entry of the shipped config's matched estimate on run 1 (q2_shipped_on_run1, robustness_K=25) also reports its neighbours' mean median distance (mean_nn_median_dist). No decision quantity is touched."
+    }
+   ],
+   "passes": [
+    {
+     "stage": "record",
+     "when_utc": "2026-09-28T05:04:42+00:00",
+     "script_digest": "d3fe28fdda6626ec"
+    },
+    {
+     "stage": "prereg",
+     "when_utc": "2026-09-28T05:06:59+00:00",
+     "script_digest": "d3fe28fdda6626ec"
+    },
+    {
+     "stage": "record",
+     "when_utc": "2026-09-28T05:13:25+00:00",
+     "script_digest": "5099ef8179cf67be"
+    },
+    {
+     "stage": "read",
+     "when_utc": "2026-09-28T05:13:48+00:00",
+     "script_digest": "5099ef8179cf67be"
+    },
+    {
+     "stage": "read",
+     "when_utc": "2026-09-28T05:15:57+00:00",
+     "script_digest": "321c189e8104be3c"
+    },
+    {
+     "stage": "read",
+     "when_utc": "2026-09-28T05:19:08+00:00",
+     "script_digest": "93cb6a84d9762894"
+    },
+    {
+     "stage": "record",
+     "when_utc": "2026-09-28T05:20:09+00:00",
+     "script_digest": "93cb6a84d9762894"
+    },
+    {
+     "stage": "read",
+     "when_utc": "2026-09-28T05:20:19+00:00",
+     "script_digest": "93cb6a84d9762894"
+    }
+   ],
+   "recorded_digests_rebuilt": {
+    "321c189e8104be3c": true,
+    "5099ef8179cf67be": true,
+    "93cb6a84d9762894": true,
+    "d3fe28fdda6626ec": true
+   }
+  },
+  "experiments/level_audit.py": {
+   "on_disk": "8ef6d56161e72716",
+   "note": "9f164314 is the first default pass, whose stages later default passes rewrote; it predates this log. The stored extra stage is 40ed9e5b's; the stored feedback, analyse and mild stages are the last default pass's (8ef6d561).",
+   "versions_rebuilt": [
+    "8ef6d56161e72716",
+    "fdd56ac82867d415",
+    "40ed9e5bbdf3c851"
+   ],
+   "revisions": [
+    {
+     "when_utc": "2026-09-28T07:10:57Z",
+     "before": "40ed9e5bbdf3c851",
+     "after": "fdd56ac82867d415",
+     "stage": "analyse",
+     "what": "the analyse stage's two nested leave-one-parent-out selections (over the guarded configurations and over the Gaussian grids) choose on unrounded weighted means and round only what they store, as the audit's scratch code did; before, they chose on means rounded to 4 decimals. The extra stage and the library are untouched."
+    },
+    {
+     "when_utc": "2026-09-28T08:55:17Z",
+     "before": "fdd56ac82867d415",
+     "after": "8ef6d56161e72716",
+     "stage": "none (docstring)",
+     "what": "the docstring's run times are the recorded ones: about 5 seconds for the default stages and about 24 minutes (1,414 s, 1.9 GB) for extra."
+    }
+   ],
+   "passes": [
+    {
+     "stage": "(default)",
+     "when_utc": null,
+     "script_digest": "9f164314abab8c32"
+    },
+    {
+     "stage": "--stage mild",
+     "when_utc": null,
+     "script_digest": "40ed9e5bbdf3c851"
+    },
+    {
+     "stage": "--stage extra --jobs 1",
+     "when_utc": null,
+     "script_digest": "40ed9e5bbdf3c851"
+    },
+    {
+     "stage": "(default)",
+     "when_utc": null,
+     "script_digest": "fdd56ac82867d415"
+    },
+    {
+     "stage": "(default)",
+     "when_utc": null,
+     "script_digest": "8ef6d56161e72716"
+    }
+   ],
+   "recorded_digests_rebuilt": {
+    "40ed9e5bbdf3c851": true,
+    "8ef6d56161e72716": true,
+    "9f164314abab8c32": false,
+    "fdd56ac82867d415": true
+   }
+  }
+ },
+ "reread": {
+  "stored_reading_from": "93cb6a84d9762894",
+  "versions": {
+   "321c189e8104be3c": {
+    "followed_by_edit_of": "2026-09-28T05:18:45Z",
+    "decision_equals_stored": true,
+    "z_mean": {
+     "K=15": 1.2448972662369124,
+     "K=40": 1.0009144186917944
+    },
+    "z_sd": {
+     "K=15": 0.28801111355452585,
+     "K=40": 0.14103354168632634
+    },
+    "bias_guard_trips": {
+     "mean": false,
+     "sd": false
+    },
+    "outcome": "no candidate: LEVEL stays",
+    "leaves": 1559,
+    "common_with_stored": 1559,
+    "common_that_differ": [],
+    "only_in_stored": {
+     "count": 6,
+     "under": [
+      "q2_shipped_on_run1"
+     ]
+    },
+    "only_in_this_version": {
+     "count": 0,
+     "under": []
+    }
+   },
+   "5099ef8179cf67be": {
+    "followed_by_edit_of": "2026-09-28T05:15:31Z",
+    "decision_equals_stored": true,
+    "z_mean": {
+     "K=15": 1.2448972662369124,
+     "K=40": 1.0009144186917944
+    },
+    "z_sd": {
+     "K=15": 0.28801111355452585,
+     "K=40": 0.14103354168632634
+    },
+    "bias_guard_trips": {
+     "mean": false,
+     "sd": false
+    },
+    "outcome": "no candidate: LEVEL stays",
+    "leaves": 1530,
+    "common_with_stored": 1502,
+    "common_that_differ": [],
+    "only_in_stored": {
+     "count": 63,
+     "under": [
+      "notes",
+      "q2_shipped_on_run1",
+      "run2_b0_excess_by_rate"
+     ]
+    },
+    "only_in_this_version": {
+     "count": 28,
+     "under": [
+      "run2_b0_excess_by_rate_K=15"
+     ]
+    },
+    "run2_b0_excess_by_rate_K=15": {
+     "mean_on_rates_below_half": 0.047221,
+     "pairs_below_half": 4,
+     "mean_on_rates_at_or_above_half": 0.059933249999999993,
+     "pairs_at_or_above_half": 4
+    }
+   },
+   "d3fe28fdda6626ec": {
+    "followed_by_edit_of": "2026-09-28T05:12:39Z to 05:12:58Z",
+    "decision_equals_stored": true,
+    "z_mean": {
+     "K=15": 1.2448972662369124,
+     "K=40": 1.0009144186917944
+    },
+    "z_sd": {
+     "K=15": 0.28801111355452585,
+     "K=40": 0.14103354168632634
+    },
+    "bias_guard_trips": {
+     "mean": false,
+     "sd": false
+    },
+    "outcome": "no candidate: LEVEL stays",
+    "leaves": 1530,
+    "common_with_stored": 1502,
+    "common_that_differ": [],
+    "only_in_stored": {
+     "count": 63,
+     "under": [
+      "notes",
+      "q2_shipped_on_run1",
+      "run2_b0_excess_by_rate"
+     ]
+    },
+    "only_in_this_version": {
+     "count": 28,
+     "under": [
+      "run2_b0_excess_by_rate_K=15"
+     ]
+    },
+    "run2_b0_excess_by_rate_K=15": {
+     "mean_on_rates_below_half": 0.047221,
+     "pairs_below_half": 4,
+     "mean_on_rates_at_or_above_half": 0.059933249999999993,
+     "pairs_at_or_above_half": 4
+    }
+   }
+  }
+ }
+}

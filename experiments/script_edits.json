@@ -1,0 +1,106 @@
+{
+ "about": "Edits made to two moved scripts after one of their stages had already written results, as the (old, new) string replacements they were made with, in order. Recovered from the Claude Code session log of the lanes that made them (2026-09-28), except the last level_audit.py revision, made while fixing the report's verifier findings. experiments/script_revisions.py undoes them from the files on disk and checks every intermediate version against the script digests the results files recorded.",
+ "files": {
+  "experiments/formative_feedback.py": {
+   "results": "results/formative_feedback.json",
+   "revisions": [
+    {
+     "when_utc": "2026-09-28T05:12:39Z to 05:12:58Z",
+     "before": "d3fe28fdda6626ec",
+     "after": "5099ef8179cf67be",
+     "stage": "record",
+     "what": "record takes --rebuild1/--rebuild2 and compares each rebuilt archive with the uploaded one; docstring. The read stage is untouched.",
+     "edits": [
+      [
+       "    for name, path in ((\"run1\", args.archive1), (\"run2\", args.archive2)):\n        if path:\n            arch[name] = verify_archive(os.path.abspath(path), RUNS[name][\"commit\"])\n            arch[name][\"how\"] = getattr(args, f\"{name}_how\") or \"\"\n        else:\n            arch[name] = old.get(name, {\"sha256\": \"not recorded\"})",
+       "    for name, path, rebuilt in ((\"run1\", args.archive1, args.rebuild1),\n                                (\"run2\", args.archive2, args.rebuild2)):\n        if path:\n            arch[name] = verify_archive(os.path.abspath(path), RUNS[name][\"commit\"])\n            arch[name][\"how\"] = getattr(args, f\"{name}_how\") or \"\"\n            if rebuilt:\n                rb = verify_archive(os.path.abspath(rebuilt), RUNS[name][\"commit\"])\n                arch[name][\"rebuild\"] = rb\n                arch[name][\"rebuild_equals_archive\"] = rb[\"sha256\"] == arch[name][\"sha256\"]\n        else:\n            arch[name] = old.get(name, {\"sha256\": \"not recorded\"})"
+      ],
+      [
+       "    ap.add_argument(\"--run1-how\", dest=\"run1_how\", default=\"\",",
+       "    ap.add_argument(\"--rebuild1\", help=\"an archive rebuilt from b68492c, compared with --archive1\")\n    ap.add_argument(\"--rebuild2\", help=\"an archive rebuilt from ee5085a, compared with --archive2\")\n    ap.add_argument(\"--run1-how\", dest=\"run1_how\", default=\"\","
+      ],
+      [
+       "Run:  python experiments/formative_feedback.py --stage record \\\n          [--archive1 PATH --archive2 PATH]",
+       "Run:  python experiments/formative_feedback.py --stage record \\\n          [--archive1 PATH [--rebuild1 PATH] --run1-how TEXT] \\\n          [--archive2 PATH [--rebuild2 PATH] --run2-how TEXT]"
+      ]
+     ]
+    },
+    {
+     "when_utc": "2026-09-28T05:15:31Z",
+     "before": "5099ef8179cf67be",
+     "after": "321c189e8104be3c",
+     "stage": "read (descriptive output only)",
+     "what": "the descriptive block 'where run 2's B0 excess sits' is rewritten: it was one split at K 15 into rates below 0.5 and at or above it (run2_b0_excess_by_rate_K=15, with q3, whose B31 has no real root, counted at or above); it is now given for K 15 and K 40, with pairs whose B31 is 0.25 or more kept apart as 'unidentified' (run2_b0_excess_by_rate). Four explanatory notes are added (reading.notes). No decision quantity is touched.",
+     "edits": [
+      [
+       "    # 7. descriptive: where run 2's B0 excess sits\n    b2 = out[\"per_pair\"][\"K=15\"][\"run2_pool_B\"]\n    ex = [p[\"brier\"][0] - p[\"brier\"][5] for p in r2]\n    lowr = [e for e, x in zip(ex, b2) if x[\"rate\"] < 0.5]\n    highr = [e for e, x in zip(ex, b2) if x[\"rate\"] >= 0.5]\n    out[\"run2_b0_excess_by_rate_K=15\"] = {\n        \"per_pair\": [{\"b0_minus_b31\": e, \"rate\": x[\"rate\"], \"root\": x[\"root\"]}\n                     for e, x in zip(ex, b2)],\n        \"mean_on_rates_below_half\": float(np.mean(lowr)) if lowr else None,\n        \"pairs_below_half\": len(lowr),\n        \"mean_on_rates_at_or_above_half\": float(np.mean(highr)) if highr else None,\n        \"pairs_at_or_above_half\": len(highr)}\n    return out",
+       "    # 7. descriptive: where run 2's B0 excess over B31 sits (findings, \"Subject\n    # side at budgets 0 and 1\", asks whether it is on low-rate pairs). A B31 of\n    # 0.25 or more reads as 0.5 on either side, so those pairs are kept apart.\n    ex = [p[\"brier\"][0] - p[\"brier\"][5] for p in r2]\n    b0x = {\"b0_minus_b31\": ex, \"b0_minus_b31_mean\": float(np.mean(ex))}\n    for K in KS:\n        b2 = out[\"per_pair\"][f\"K={K}\"][\"run2_pool_B\"]\n        side = [\"unidentified\" if x[\"lower_root\"] >= 0.5 else\n                (\"below half\" if x[\"rate\"] < 0.5 else \"above half\") for x in b2]\n        b0x[f\"K={K}\"] = {\"rate\": [x[\"rate\"] for x in b2], \"side\": side,\n                         **{s: {\"pairs\": side.count(s),\n                                \"mean_b0_minus_b31\": (float(np.mean([e for e, t in zip(ex, side)\n                                                                     if t == s]))\n                                                      if s in side else None)}\n                            for s in (\"below half\", \"unidentified\", \"above half\")}}\n    out[\"run2_b0_excess_by_rate\"] = b0x\n    out[\"notes\"] = [\n        \"port_check: the audit's scratch estimator on its own inputs; the screen pool here is \"\n        \"every appearance where the shipped config is scored, the audit's also dropped runs \"\n        \"missing any screened config, hence differences up to 1e-5\",\n        \"level_reweighted is a new estimator (bins of pair logit, width 0.5), a proxy for scoring \"\n        \"a regime at that level; it reweights the level only, not the attribute optimism the \"\n        \"date shift carries, which is why the Predictor's reweighted B0 falls short of run 1's\",\n        \"the 17 pairs sit on 7 benchmark ids; every SE here resamples the benchmarks\",\n        \"the reading-bias guard applies the root reading on the true side; side errors of the \"\n        \"neighbour rule add to it and are not measured\"]\n    return out"
+      ]
+     ]
+    },
+    {
+     "when_utc": "2026-09-28T05:18:45Z",
+     "before": "321c189e8104be3c",
+     "after": "93cb6a84d9762894",
+     "stage": "read (descriptive output only)",
+     "what": "each robustness entry of the shipped config's matched estimate on run 1 (q2_shipped_on_run1, robustness_K=25) also reports its neighbours' mean median distance (mean_nn_median_dist). No decision quantity is touched.",
+     "edits": [
+      [
+       "            rob[f\"{label} | {cl}\"] = {\"appearances\": len(sub),\n                                      \"estimate_alc\": alc1 + float(np.mean([x[\"d\"] for x in rows]))}",
+       "            rob[f\"{label} | {cl}\"] = {\"appearances\": len(sub),\n                                      \"estimate_alc\": alc1 + float(np.mean([x[\"d\"] for x in rows])),\n                                      \"mean_nn_median_dist\": float(np.mean([x[\"nn_median_dist\"]\n                                                                            for x in rows]))}"
+      ]
+     ]
+    }
+   ],
+   "note": "d3fe28fd wrote the first record and the preregistration; 5099ef81 the second record (with the archives) and the first read; 321c189e the second read; 93cb6a84 the third and fourth reads and the last record. The stored record and reading are 93cb6a84's, the stored archives 5099ef81's record pass."
+  },
+  "experiments/level_audit.py": {
+   "results": "results/level_audit.json",
+   "revisions": [
+    {
+     "when_utc": "2026-09-28T07:10:57Z",
+     "before": "40ed9e5bbdf3c851",
+     "after": "fdd56ac82867d415",
+     "stage": "analyse",
+     "what": "the analyse stage's two nested leave-one-parent-out selections (over the guarded configurations and over the Gaussian grids) choose on unrounded weighted means and round only what they store, as the audit's scratch code did; before, they chose on means rounded to 4 decimals. The extra stage and the library are untouched.",
+     "edits": [
+      [
+       "    def wmean(rows):\n        w = np.array([1 / r[3] for r in rows]); d = np.array([r[2] for r in rows])\n        return [r4((w * d).sum() / w.sum()), len(rows)]\n",
+       "    def wm(rows):\n        w = np.array([1 / r[3] for r in rows]); d = np.array([r[2] for r in rows])\n        return float((w * d).sum() / w.sum())\n\n    def wmean(rows):\n        return [r4(wm(rows)), len(rows)]\n"
+      ],
+      [
+       "        score = {n: wmean([r for r in pp(n, range(100)) if r[1][\"parent\"] != q])[0]\n                 for n in guarded if pp(n, range(100)) is not None}\n        pick = min(score, key=score.get)\n        ev = {n: (wmean([r for r in pp(n, range(100, 200)) if r[1][\"parent\"] == q])[0]\n                  if pp(n, range(100, 200)) else None) for n in dict.fromkeys([pick, AGGR, R35])}\n        oracle = {n: wmean([r for r in pp(n, range(100, 200)) if r[1][\"parent\"] == q])[0]\n                  for n in guarded if pp(n, range(100, 200))}\n        best = min(oracle, key=oracle.get)\n        nested[q] = {\"pick_without_q\": pick, \"pick_on_q_confirmation\": ev[pick], \"AGGR_on_q_confirmation\": ev[AGGR],\n                     \"best_on_q_confirmation\": [best, oracle[best]], \"n_guarded_scored\": len(oracle)}",
+       "        score = {n: wm([r for r in pp(n, range(100)) if r[1][\"parent\"] != q])\n                 for n in guarded if pp(n, range(100)) is not None}\n        pick = min(score, key=score.get)\n        ev = {n: (wm([r for r in pp(n, range(100, 200)) if r[1][\"parent\"] == q])\n                  if pp(n, range(100, 200)) else None) for n in dict.fromkeys([pick, AGGR, R35])}\n        oracle = {n: wm([r for r in pp(n, range(100, 200)) if r[1][\"parent\"] == q])\n                  for n in guarded if pp(n, range(100, 200))}\n        best = min(oracle, key=oracle.get)\n        nested[q] = {\"pick_without_q\": pick, \"pick_on_q_confirmation\": r4(ev[pick]),\n                     \"AGGR_on_q_confirmation\": r4(ev[AGGR]),\n                     \"best_on_q_confirmation\": [best, r4(oracle[best])], \"n_guarded_scored\": len(oracle)}"
+      ],
+      [
+       "            sc_out[n] = wmean([r for r in d if r[1][\"parent\"] != q])[0]\n            sc_in[n] = wmean([r for r in d if r[1][\"parent\"] == q])[0]\n        pick = min(sc_out, key=sc_out.get)\n        best = min(sc_in, key=sc_in.get)\n        nested_g[q] = {\"pick\": pick, \"pick_on_q\": sc_in[pick], \"best_on_q\": [best, sc_in[best]],\n                       \"AGGR_on_q\": sc_in.get(AGGR), \"MILD_on_q\": sc_in.get(MILD), \"regret\": r4(sc_in[pick] - sc_in[best])}",
+       "            sc_out[n] = wm([r for r in d if r[1][\"parent\"] != q])\n            sc_in[n] = wm([r for r in d if r[1][\"parent\"] == q])\n        pick = min(sc_out, key=sc_out.get)\n        best = min(sc_in, key=sc_in.get)\n        nested_g[q] = {\"pick\": pick, \"pick_on_q\": r4(sc_in[pick]), \"best_on_q\": [best, r4(sc_in[best])],\n                       \"AGGR_on_q\": r4(sc_in.get(AGGR)), \"MILD_on_q\": r4(sc_in.get(MILD)),\n                       \"regret\": r4(sc_in[pick] - sc_in[best])}"
+      ]
+     ]
+    },
+    {
+     "when_utc": "2026-09-28T08:55:17Z",
+     "before": "fdd56ac82867d415",
+     "after": "8ef6d56161e72716",
+     "stage": "none (docstring)",
+     "what": "the docstring's run times are the recorded ones: about 5 seconds for the default stages and about 24 minutes (1,414 s, 1.9 GB) for extra.",
+     "edits": [
+      [
+       "  extra     NEW RUNS (optional, about 20 minutes on one process): the audit's",
+       "  extra     NEW RUNS (optional, about 24 minutes on one process): the audit's"
+      ],
+      [
+       "    python experiments/level_audit.py                 # feedback, analyse, mild (about a minute)",
+       "    python experiments/level_audit.py                 # feedback, analyse, mild (about 5 seconds)"
+      ],
+      [
+       "    python experiments/level_audit.py --stage extra   # the new regimes (about 20 minutes)",
+       "    python experiments/level_audit.py --stage extra   # the new regimes (about 24 minutes, 1.9 GB)"
+      ]
+     ]
+    }
+   ],
+   "note": "9f164314 is the first default pass, whose stages later default passes rewrote; it predates this log. The stored extra stage is 40ed9e5b's; the stored feedback, analyse and mild stages are the last default pass's (8ef6d561)."
+  }
+ }
+}

@@ -111,6 +111,24 @@ The feature is still safe to ship: the per-pair slope collapses to zero where th
 signal is absent and the Laplace shrinkage keeps it from doing damage at small
 budgets. It is just not a lever.
 
+**How the ratings were made, and what is not recorded.** The 180 main and 60
+control ratings are hard-coded in `experiments/llm_rating/ratings_main.py` and
+`ratings_control.py`; the texts and Rasch targets are in
+`results/rate2_truth.json` and `results/ctrl_truth.json`. All of them entered
+the repository in its first commit (165b4c0, 2026-09-23), co-authored by Claude
+Opus 5 in a Claude Code web session, and have not changed since. The rating
+model, its version, the prompt, the date, the sampling settings and how the
+rater was kept from the targets are recorded nowhere. The most likely rater is
+Claude Opus 5 inside that coding session, an inference only. "Blind" means the
+difficulty was withheld: the item ids carry the benchmark and the texts name
+their domain. The main texts are 63 to 700 characters (median 450) and the
+control texts 274 to 4,000 (median 1,030), so the control's "full text" was
+capped at 4,000 characters. Whether the rater saw measurement-db (which that
+session held in `data/`) or the benchmarks' public leaderboards cannot be
+excluded. The correlations re-derive from the stored ratings; the ratings do
+not re-derive. The fully specified substitute is the local 4B judge ("The 4B
+judge, closed out").
+
 ## The offline bank
 
 `python experiments/inventory_scan.py`
@@ -120,13 +138,34 @@ that could be cloned, 25 publish any data file under a results-like directory, 1
 publish one whose path names a model, and 5 cover at least nine distinct models:
 phyblock (19), mmdocrag (62), atmossci_bench (26), capability (11), engdesign (9).
 
-Of those five, only capability publishes graded outcomes. The rest publish raw
+Of those five, only capability was judged to publish graded outcomes (how is
+not recorded; see the end of this section). The rest publish raw
 model responses that would have to be run through each benchmark's own grader,
 which is precisely the expensive part the organisers' curation pipeline exists to
 do. So the usable count is one in 161.
 
 Nine models is the floor for usefulness: the pooling gain at ten subjects is
 +0.004.
+
+**What the scan read.** For each GitHub `code_url` in the inventory it ran
+`git clone --filter=blob:none --depth 1`, listed the tracked files with `git
+ls-files`, matched regular expressions against the file paths (a results-like
+directory, a data-file extension, a model name), stored counts and up to three
+example paths in `results/clone_scan.csv`, and deleted the clone. The script
+opened no file's contents, but a blobless clone still checks out the default
+branch, so each repository's files were downloaded to a temporary directory
+and deleted with the clone. The inventory lists candidates for both pools, so
+these may include hidden-test benchmarks. Nothing from the scan, `clone_scan.csv`,
+`strong_repos.csv` or the inventory enters `paiec/`, `submission/` or `tools/`,
+and no per-item data from any inventory repository was kept or used. The bank
+was closed on feasibility and because the rules restrict competition-specific
+training and curation to the public pool. (`results/strong_repos.csv` has no
+producing script, and how "graded outcomes" was judged for the five is not
+recorded. That judgement needs file names or contents beyond the scan's
+counts, so an inspection of the five repositories' files (phyblock, mmdocrag,
+atmossci_bench, capability, engdesign) cannot be excluded; mmdocrag is a public
+benchmark, and the other four may be hidden-test benchmarks. Nothing from them
+was kept or used. To be confirmed by the team.)
 
 ## How fragile the pooling gain is
 
@@ -387,7 +426,7 @@ delta_sb - g_i - e_i, fitted per checkpoint from `labeled` alone: a benchmark
 level shared by every subject on it, which the Predictor does not read, an
 attribute prior on the subject, item_features group effects and an integrated
 item residual. Its prior and hyperparameters come from `paiec/prior.py`. This
-section measures it under the official protocol against the shipped Predictor
+section measures it under the official protocol against the legacy Predictor
 and the smoothed mean, on identical runs.
 
 **Leave-one-benchmark-out.** The primary line is target-LOBO: for every
@@ -580,7 +619,7 @@ section).
 
 ### Against the first real formative feedback
 
-Our first Codabench submission, the shipped Predictor of commit b68492c, was
+Our first Codabench submission, the legacy Predictor of commit b68492c, was
 scored on one formative run: ALC 0.2113 over 9 pairs, 9 distinct subjects and
 7 distinct benchmarks (two of them hold two pairs each), with 76, 50, 56, 58,
 60, 44, 53, 44 and 44 evaluated subject-item pairs. The site says the platform
@@ -596,9 +635,12 @@ picks the subjects, from a hidden pool of 2025-26 models. Brier by budget
 | p5 | E | 0.3032 | 0.2477 | 0.2479 | 0.2431 | 0.2437 | 0.2472 |
 | p6 | F | 0.1728 | 0.1670 | 0.1675 | 0.1665 | 0.1719 | 0.1678 |
 | p7 | A | 0.4771 | 0.2939 | 0.1738 | 0.1335 | 0.1285 | 0.1286 |
-| p8 | F | 0.1806 | 0.1747 | 0.1760 | 0.1827 | 0.1745 | 0.1749 |
+| p8 | F | 0.1806 | 0.1747 | 0.1761 | 0.1827 | 0.1745 | 0.1749 |
 | p9 | G | 0.2519 | 0.2653 | 0.2834 | 0.2360 | 0.2386 | 0.2366 |
 | mean | | 0.3589 | 0.2539 | 0.2043 | 0.1712 | 0.1693 | 0.1568 |
+
+(p8's B3 is 0.176050 in the organisers' table, `results/formative/run1.txt`;
+`paiec/testlike.py`'s `FEEDBACK` carries it as 0.1760.)
 
 At B0 the Predictor was confidently optimistic, with ECE up to 0.75. Its
 relative attribute standing puts a pair's level at p = 0.5 and strong 2025-26
@@ -609,9 +651,13 @@ given about 0.1996.
 Assume, for a bound, that B31 is irreducible noise alone. Then p(1 - p) = B31
 puts the pairs' rates at 0.29, 0.05, 0.26, 0.006, 0.45, 0.21, 0.15, 0.23 and
 0.38. These are the lower roots, which the large B0 errors against predictions
-near 0.75 point to. On the accuracy-logit scale that is a mean of -1.6 and an
-sd of 1.5. By the logit of each pair's evaluation rate, the public R1 pairs
-have a mean of -0.74 and an sd of 1.50 (`experiments/hier_design/levels.py`).
+near 0.75 point to. On the plain logit of the rate that is a mean of -1.6 and
+an sd of 1.5. By the plain logit of each pair appearance's evaluation rate
+(clipped at 0.005, each run weighted equally), the public R1 pairs have a mean
+of -0.74 and an sd of 1.50 (`experiments/hier_design/levels.py`, stored in
+`experiments/hier_design/levels.json`, `r1`). On the continuity-corrected
+pair logit of "Formative feedback, runs 1 and 2" the same two readings are
+-1.51 and -0.71.
 B31 includes model error, which pulls these implied rates toward 0.5, so the
 true ones are if anything more extreme.
 
@@ -627,6 +673,13 @@ mean level (mu0 -0.4 to -1.5 on its item-level scale, target-LOBO), not on
 p = 0.5, and integrates over a wide level, but nothing here measures that on
 hidden pairs. Nothing was fitted to these numbers, and no prediction was shaped
 to probe hidden labels.
+
+(Later uses of this run are listed in "Formative feedback, runs 1 and 2",
+which also records the organisers' table byte for byte in
+`results/formative/run1.txt`, with ECE, and reads it together with the second
+run. The lower-root reading above is one of three readings of these nine
+pairs; the audit's reads p6 and p8 as high-rate pairs, "What actually shipped,
+after the audit".)
 
 ### One benchmark, every pair (R2)
 
@@ -794,6 +847,10 @@ weight it sets, are provisional.
 Rasch variance components per feature key: matharena's `competition` holds
 0.50 of the item variance (27 levels), researchcodebench's `paper` 0.43 (20),
 real_webagents' `website` 0.24 (12) and multi_swebench's `lang` 0.05 (8).
+(matharena's 27 levels are those of its 1,751 items with a binary response;
+the 1,633 items of its 81 eligible pairs span 25, because imc_2025 and
+miklos_2025 occur only on subjects below the 80-item floor:
+`experiments/data_counts.py`, `results/data_counts.json`.)
 These were estimated from the labels a formative run holds (subject levels
 unknown, one or two pairs of the benchmark). Group effects gain 0.0070 ALC per
 pair on matharena, 0.0019 to 0.0038 on researchcodebench, 0.0012 to 0.0017 on
@@ -843,10 +900,18 @@ library files are the same in every pass. Every number below is in
 stored rows)
 
 The first formative feedback ("Against the first real formative feedback") put
-the hidden pairs far below the public ones and the shipped Predictor's B0 at
+the hidden pairs far below the public ones and the legacy Predictor's B0 at
 0.359, where answering 0.5 scores 0.25. This section chooses what to ship for
 that: on test-like runs (`paiec/testlike.py`), with public formative runs as a
 guard, and with the one feedback run as a sanity check only.
+
+**Naming in this section.** "The legacy Predictor" is the predictor of the
+first submission, which was shipped when this section was written. "The
+recommended config" is `mu0 -3.0, sigma_mu 2.5, attr_scale 0.25`, which this
+section argues for. It is not what ships: the audit below moved the archive to
+`mu0 -2.5, sigma_mu 2.5, attr_scale 0.5`, whose own numbers are in "Shipped
+configuration, confirmed". Every number this section gives for the recommended
+config belongs to that config only.
 
 **Runs.** The primary regime is `testlike.Regime()` at its defaults, seed 2: the
 runs of `experiments/testlike_check.py`'s check phase, whose stored Predictor
@@ -854,7 +919,7 @@ rows the harness reproduces to 5e-7 (their rounding). Configurations are
 selected on runs 0 to 99 and confirmed on runs 100 to 199. The guard is public
 R1 (`official.sample_run`, seed 0, split scope 'pair', the runs of
 `experiments/hier_eval.py`), benchmark-first and pair-uniform, runs 0 to 99 of
-each: a configuration may lose at most 0.003 ALC against the shipped Predictor
+each: a configuration may lose at most 0.003 ALC against the legacy Predictor
 on either weighting. Four sensitivity regimes (seed 3, runs 0 to 99) move one
 knob each: the level centre, which one feedback run does not identify
 (`level_mean` -1.2 and -2.0 instead of -1.6), item structure (groups merged at
@@ -876,7 +941,7 @@ smoothed mean, the Predictor, hier and a re-centred hier (`--verify`).
 
 **Candidates.**
 
-* smoothed Beta(2,2), the shipped Predictor, and hier at its target-LOBO
+* smoothed Beta(2,2), the legacy Predictor, and hier at its target-LOBO
   defaults.
 * The Predictor with a level fix, prior mean `sc * m + off` (m its attribute
   mean, accuracy-logit scale) and prior variance `va`. `va` is a constructor
@@ -885,7 +950,7 @@ smoothed mean, the Predictor, hier and a re-centred hier (`--verify`).
   update from the moved prior; the output is not wrapped. Grid: off in {-2.5,
   -2, ..., 0} x sc in {0.5, 1} x va in {2, 3, 4.5}, then off -3.5 and -3 and sc
   0 and 0.25. All variants of a run share one Evidence and IRT fit per
-  checkpoint (`PredictorGrid`); off 0, sc 1, va 2 is the shipped Predictor call
+  checkpoint (`PredictorGrid`); off 0, sc 1, va 2 is the legacy Predictor call
   for call. Each variant was also scored with `robust_fit_ab` in place of
   `fitting.fit_ab` ("Pr" rows, below).
 * hier with the level prior set for the test: mu0 and sigma_mu replace the
@@ -911,7 +976,7 @@ smoothed mean, the Predictor, hier and a re-centred hier (`--verify`).
   config.
 
 **Selection.** The best mean ALC on the selection half, among configurations
-that lose at most 0.003 against the shipped Predictor on both public weightings.
+that lose at most 0.003 against the legacy Predictor on both public weightings.
 Every Predictor variant is scored on all the public runs. hier configurations
 are screened first on benchmark-first runs 0 to 39: twenty Gaussian configs
 along the shift frontier at sigma_mu 2.5, which is the best width at every shift
@@ -921,7 +986,7 @@ reference: the two best Gaussian configs and the best EB config on the defaults.
 The best Student-t config is scored on test-like runs only, so it cannot be
 chosen.
 
-**Statistics.** Paired ALC differences against the shipped Predictor, written "±
+**Statistics.** Paired ALC differences against the legacy Predictor, written "±
 run SE / cluster SE / stratified SE". The first is over runs. The second is a
 cluster bootstrap (2,000 resamples, a ratio estimator) with (parent, subject) as
 the cluster on test-like runs, because pseudo-benchmarks of one parent overlap
@@ -944,7 +1009,7 @@ Selection half (runs 0 to 99), best of each family:
 | Predictor fix, fit_ab | off -2.5, sc 1, va 2 | 0.1562 | -0.0477 ± 0.0027 / 0.0045 / 0.0038 | +0.0329 / +0.0329 |
 | Predictor fix, robust fit | off -2.5, sc 1, va 2 | 0.1560 | -0.0480 ± 0.0027 / 0.0045 / 0.0038 | +0.0171 / +0.0192 |
 
-The shipped Predictor is the worst candidate here, worse than answering from
+The legacy Predictor is the worst candidate here, worse than answering from
 Beta(2,2). What it loses is its prior: on all 200 runs its B0 is 0.351 and its
 B1 0.264, where a moved prior scores 0.19 to 0.20 and about 0.18. Every family,
 once its level is moved, reaches 0.156 to 0.157. That plateau is flat: 14 of the
@@ -973,7 +1038,7 @@ guard, best of each family, on both test-like halves and both public weightings:
 
 | configuration | selection half | confirmation half | minus Predictor, confirmation | public, benchmark-first | public, pair-uniform |
 |---|---|---|---|---|---|
-| hier G mu0 -3.0, sigma_mu 2.5, attr_scale 0.25 (shipped, below) | 0.1578 (-0.0461) | 0.1655 ± 0.0031 | -0.0418 ± 0.0024 / 0.0047 / 0.0042 | +0.0008 ± 0.0012 / 0.0025 / 0.0022 | +0.0007 ± 0.0012 / 0.0021 / 0.0019 |
+| hier G mu0 -3.0, sigma_mu 2.5, attr_scale 0.25 (recommended, below; not what ships) | 0.1578 (-0.0461) | 0.1655 ± 0.0031 | -0.0418 ± 0.0024 / 0.0047 / 0.0042 | +0.0008 ± 0.0012 / 0.0025 / 0.0022 | +0.0007 ± 0.0012 / 0.0021 / 0.0019 |
 | hier G mu0 -3.5, sigma_mu 2.5, attr_scale 0.25 (the rule's argmax) | 0.1574 (-0.0465) | 0.1655 ± 0.0033 | -0.0418 ± 0.0026 / 0.0051 / 0.0045 | +0.0025 ± 0.0013 / 0.0029 / 0.0025 | +0.0023 ± 0.0013 / 0.0024 / 0.0021 |
 | hier EB-cs, tau 2, on G mu0 -3.0, sigma_mu 2.5, attr_scale 0.5 | 0.1580 (-0.0459) | 0.1658 ± 0.0031 | -0.0416 ± 0.0022 / 0.0043 / 0.0038 | +0.0005 ± 0.0011 / 0.0022 / 0.0019 | +0.0006 ± 0.0011 / 0.0018 / 0.0016 |
 | Predictor fix off -1.5, sc 1, va 3 | 0.1630 (-0.0410) | 0.1696 ± 0.0027 | -0.0377 ± 0.0016 / 0.0032 / 0.0029 | +0.0026 ± 0.0012 / 0.0025 / 0.0022 | +0.0028 ± 0.0011 / 0.0023 / 0.0019 |
@@ -988,7 +1053,7 @@ attr_scale 0.25 for hier and off -1.5 for the Predictor. The best Gaussian
 config of the first table, mu0 -4 at attr_scale 0.5, passed the 40-run screen
 (+0.0019) but not the full public runs (+0.0036 / +0.0032), and neither did its
 EB variants (+0.0030 to +0.0038 on one weighting or both). Under the guard hier
-leads the Predictor fix on the test-like runs: the shipped config minus the
+leads the Predictor fix on the test-like runs: the recommended config minus the
 Predictor fix is -0.0040 ± 0.0009 / 0.0016 / 0.0015 on the confirmation half and
 -0.0046 ± 0.0006 / 0.0014 / 0.0012 on all 200 runs, and -0.0019 and -0.0021
 (cluster SE 0.0010, 0.0009) on the two public weightings.
@@ -999,26 +1064,26 @@ half (paired, ± 0.0002 / 0.0004 / 0.0003: one cluster SE), level with it on the
 confirmation half (+0.0000 ± 0.0002 / 0.0004 / 0.0004) and on all 200 runs
 (+0.0002, cluster SE 0.0004). It is 0.0017 cheaper on both public weightings
 (paired cluster SE 0.0003), so it passes the guard with a margin of 0.0022
-instead of 0.0005 to 0.0007. This recommendation ships mu0 -3.0, a tie-break on
+instead of 0.0005 to 0.0007. This recommendation takes mu0 -3.0, a tie-break on
 the guard's margin that the rule as stated does not make. `SHIP` in the script
 names it, and the summary's `ship` block pairs it with the alternatives. The EB
-variant on mu0 -3.0 at attr_scale 0.5 ties it as well: the shipped config minus
+variant on mu0 -3.0 at attr_scale 0.5 ties it as well: the recommended config minus
 it is -0.0002 (cluster SE 0.0006) on the confirmation half and +0.0003 and
 +0.0001 (0.0005) on public runs. It adapts where a fixed prior cannot (below),
 but it is about 70 lines of experiment code not in the library, with a slower
 worst call. The fixed configuration changes three Hyper fields and nothing else.
 
-**Optimism.** The shipped config gains 0.0461 on the selection half and 0.0418
+**Optimism.** The recommended config gains 0.0461 on the selection half and 0.0418
 on the confirmation half; the rule's argmax 0.0465 and 0.0418. Most of that
 0.004 is the halves differing, not the selection. Every configuration that moves
 the level loses about a tenth of its gain between the halves, chosen or not:
 0.0033 for the guarded Predictor fix, 0.0039 for hier G mu0 -3.0 at attr_scale
 0.5, 0.0045 to 0.0048 for the unconstrained bests of every family. The
 Predictor's own ALC moves from 0.2039 to 0.2073. Leaving one parent out of the
-200 runs, the shipped config's gain ranges from 0.032 (multi_swebench out) to
+200 runs, the recommended config's gain ranges from 0.032 (multi_swebench out) to
 0.052 (matharena out).
 
-**By budget**, the shipped config against the Predictor on all 200 test-like
+**By budget**, the recommended config against the Predictor on all 200 test-like
 runs: -0.149 at B0, -0.080, -0.038, -0.016, -0.008 and -0.007 at B31, so Brier
 0.202, 0.183, 0.161, 0.150, 0.144 and 0.137. Its mean B0 prediction is 0.33
 against the Predictor's 0.68. Mean B0 ECE is 0.22 against 0.42, with a largest
@@ -1043,13 +1108,18 @@ runs whose Predictor budget profile is closest to the feedback's.
 | smoothed Beta(2,2) | 0.258 | 0.207 | 0.188 | 0.166 | 0.167 | 0.156 | 0.1869 | 0.1872 |
 | Predictor fix off -1.5, sc 1, va 3 | 0.218 | 0.179 | 0.171 | 0.159 | 0.165 | 0.154 | 0.1719 | 0.1731 |
 | hier EB-cs, tau 2, on G mu0 -3.0, attr_scale 0.5 | 0.216 | 0.173 | 0.166 | 0.155 | 0.162 | 0.149 | 0.1676 | 0.1692 |
-| hier G mu0 -3.0, sigma_mu 2.5, attr_scale 0.25 (shipped) | 0.210 | 0.174 | 0.167 | 0.155 | 0.162 | 0.149 | 0.1673 | 0.1685 |
+| hier G mu0 -3.0, sigma_mu 2.5, attr_scale 0.25 (recommended) | 0.210 | 0.174 | 0.167 | 0.155 | 0.162 | 0.149 | 0.1673 | 0.1685 |
 
-So the shipped config would have scored about 0.167 on the run that gave the
+So the recommended config would have scored about 0.167 on the run that gave the
 Predictor 0.2113: below the organisers' 0.1801 and well above the best entry's
 0.1172. That is an estimate from one run, not a measurement. Nothing was fitted
 to the feedback here beyond what `testlike.Regime`'s defaults already were, and
-no prediction was shaped to probe hidden labels.
+no prediction was shaped to probe hidden labels. (The audit below then read the
+run per pair and chose between two guarded configurations partly on that
+reading. That is a use of the feedback beyond the regime's defaults, though
+still of one global setting; "Formative feedback, runs 1 and 2" lists every
+use. The per-pair estimate that replaced this 0.167 is 0.178 for the
+recommended config and 0.177 to 0.183 for the shipped one.)
 
 ### Sensitivity to the regime
 
@@ -1058,7 +1128,7 @@ the Predictor's ALC in the header):
 
 | configuration | level_mean -1.2 (0.2117) | level_mean -2.0 (0.2005) | groups merged at random, no strata (0.2129) | no date shift (0.1729) |
 |---|---|---|---|---|
-| hier G mu0 -3.0, attr_scale 0.25 (shipped) | -0.0388 ± 0.0021 / 0.0044 / 0.0039 | -0.0524 ± 0.0022 / 0.0044 / 0.0039 | -0.0467 ± 0.0017 / 0.0049 / 0.0038 | -0.0139 ± 0.0014 / 0.0028 / 0.0026 |
+| hier G mu0 -3.0, attr_scale 0.25 (recommended) | -0.0388 ± 0.0021 / 0.0044 / 0.0039 | -0.0524 ± 0.0022 / 0.0044 / 0.0039 | -0.0467 ± 0.0017 / 0.0049 / 0.0038 | -0.0139 ± 0.0014 / 0.0028 / 0.0026 |
 | hier G mu0 -3.5, attr_scale 0.25 | -0.0387 | -0.0533 | -0.0471 | -0.0135 |
 | hier EB-cs, tau 2, on G mu0 -3.0, attr_scale 0.5 | -0.0380 | -0.0518 | -0.0452 | -0.0144 |
 | Predictor fix off -1.5, sc 1, va 3 | -0.0353 | -0.0446 | -0.0398 | -0.0137 |
@@ -1066,14 +1136,14 @@ the Predictor's ALC in the header):
 | smoothed Beta(2,2) | -0.0228 | -0.0281 | -0.0260 | +0.0077 |
 | hier, fitted defaults | -0.0115 | -0.0143 | -0.0080 | -0.0078 |
 
-The shipped config's gain holds wherever the hidden level sits within the range
+The recommended config's gain holds wherever the hidden level sits within the range
 one feedback run allows, and it grows as that level falls. It holds with item
 structure closer to the public benchmarks' (groups merged at random). Without
 the date shift the attribute priors are not inflated, and the Predictor's own
 ALC falls to 0.1729. Even there every moved prior still gains 0.013 to 0.014,
 nearly twice what hier's defaults gain, because the pairs are still low. The
 date shift is what reproduces the feedback's B0 optimism in this regime. For the
-shipped Predictor it is an offset on its prior's ability. hier's prior reads
+legacy Predictor it is an offset on its prior's ability. hier's prior reads
 dates through the same linear design (`paiec.subjects.design_row`), so the shift
 is an offset for it too, and attr_scale 0.25 takes most of it back. If the
 hidden subjects' optimism has another source, the no-shift column bounds what is
@@ -1103,12 +1173,12 @@ at B31) and further down on test-like ones (-3.6 at B1, -4.0 at B31). The
 estimated sigma_mu stays between 1.7 and 2.7. What EB adds is at B1 and B3. At
 B0 it is its base, and the level fixed at B0 decides most of the test-like gain.
 That is why it ties the fixed config instead of beating it. It is also why EB on
-the fitted defaults recovers only 0.013 of the 0.031 that the shipped config
+the fitted defaults recovers only 0.013 of the 0.031 that the recommended config
 adds over hier's defaults on all 200 runs.
 
 ### fit_ab diverges when the prior is far from the labels
 
-`fitting.fit_ab` (the shipped Predictor's (a, b) fit) takes full Newton steps
+`fitting.fit_ab` (the legacy Predictor's (a, b) fit) takes full Newton steps
 from the prior mean. When that mean sits far from the pair's labels, the first
 step overshoots into the flat tail of the logistic. The clipped weights vanish
 there and it stops. One test-like pair at 27 of 31, prior mean -1.88, va 3, came
@@ -1118,7 +1188,7 @@ it missed the MAP on 173. On those its log posterior was at least 20 nats below
 the maximum (246 at the median), and its prediction at z = 0 was off by 0.69 at
 the median and 0.89 at most. `robust_fit_ab` in the script finds the same MAP by
 Newton with step halving, and agrees with fit_ab to 4e-16 wherever fit_ab
-converges (summary `fit_ab`). The shipped Predictor diverges on 5 of 1,598
+converges (summary `fit_ab`). The legacy Predictor diverges on 5 of 1,598
 test-like pair appearances, costing 0.023 to 0.080 of the pair's ALC (0.0001
 overall). It diverges on 8 of 3,206 in the sensitivity regimes, none of them
 with the subjects' own dates, and on none of 1,748 public ones. A moved prior
@@ -1129,7 +1199,7 @@ fixed first. This is a library bug, reported here and not fixed
 
 ### Latency
 
-Evaluation calls of the shipped config, six processes side by side on a shared
+Evaluation calls of the recommended config, six processes side by side on a shared
 machine: 0.75 ms on average on test-like runs and 0.88 ms on public ones, the
 slowest single call 0.45 s (a checkpoint's first call, which fits). Dense runs
 (every pair of one benchmark, whole): real_webagents 2.0 ms a call and at most
@@ -1146,34 +1216,108 @@ against 8 hours.
 
 ### What actually shipped, after the audit
 
+`python experiments/level_audit.py` (the default stages `feedback`, `analyse`
+and `mild`, about 5 seconds; `--stage extra --jobs 1`, 1,414 s on one process
+plus a first pass that was stopped and resumed, peak 1.9 GB). Every number
+below is in `results/level_audit.json`. The script is the audit's own code,
+moved from session scratch (step 2b, 2026-09-26) with only its data loading
+changed, and it reproduces every number the audit recorded. Where the audit
+scored the shipped config on fresh runs, `--stage mild` reads the same runs
+from the shipped arm of `data/subject_side_rows` instead, after checking that
+the two sources agree on the 140 runs (1,147 pairs) where both hold it (at
+most 5.5e-6, the rows' rounding).
+
 The archive ships the milder guarded configuration, `mu0 -2.5, sigma_mu 2.5,
-attr_scale 0.5` (`submission/model.py` LEVEL), not the `mu0 -3.0, attr_scale
-0.25` argued for below. The audit of this section (scratch provenance:
-step2b audit) changed four readings:
+attr_scale 0.5` (`submission/model.py` LEVEL; MILD below), not the recommended
+`mu0 -3.0, attr_scale 0.25` argued for above (AGGR below). PRED is the legacy
+Predictor. The audit of this section changed four readings:
 
 * The regime's level_mean of -1.6 reads every feedback pair's B31 through the
   lower root of p(1-p). For p6 and p8 (bench F), B0 is already close to B31
-  under an optimistic prior, so they are more likely high-rate pairs (about
-  0.78), and p9 is ambiguous. The hidden levels look spread both ways, not
-  uniformly low, and the aggressive config loses on high-rate pairs (about
-  0.015 per pair on a matharena-like benchmark).
-* The per-pair matched estimate on the feedback run is about 0.178 (0.169 to
-  0.183), not 0.167; quote the expected gain as about 0.02 to 0.04, conditional
-  on the hidden levels.
+  under an optimistic prior, and 70% and 80% of their 40 nearest replica pairs
+  sit above a rate of 0.5 (p9: 55%). So they are more likely high-rate pairs,
+  and p9 is ambiguous. (The "about 0.78" first written here is the upper root
+  of p(1-p) = B31, 0.787 and 0.774, not an estimate; the neighbours' mean rates
+  are 0.62 and 0.66.) Reading each pair's level as its neighbours' mean logit
+  moves the nine pairs' mean from -1.64 (sd 1.49, lower roots) to -1.02 (sd
+  1.52); taking the upper roots for p6 and p8 gives -1.08 (sd 1.99; plain logit,
+  `results/formative_feedback.json`). The hidden levels look spread both ways,
+  not uniformly low. AGGR loses on high rates: against PRED on test-like
+  runs 0 to 199, +0.014 on pairs at rates 0.5 to 0.7 and +0.070 at 0.7 and
+  above (against -0.084 below 0.1); on public matharena, +0.0172 and +0.0150
+  (benchmark-first, pair-uniform, runs 0 to 99). The "about 0.015 per pair on a
+  matharena-like benchmark" first written here is the latter.
+* The per-pair matched estimate on the feedback run is 0.1783 (K 40) and 0.1789
+  (K 15) for AGGR, 0.1686 to 0.1830 across the pools that hold test-like runs,
+  not 0.167. The shipped MILD's own estimate, on the pool where MILD, AGGR and
+  PRED are all stored (4,955 appearances), is 0.1765 (K 15) and 0.1789 (K 40),
+  against AGGR's 0.1770 and 0.1797 there. "Formative feedback, runs 1 and 2"
+  gives the same estimator on the shipped model's own rows (0.1774, 0.1779) and
+  on the audit's screen pool (0.1812, 0.1830). Quote the expected gain as about
+  0.02 to 0.04, conditional on the hidden levels.
 * The "held-out" half redraws runs from the same catalogue of pairs, so it
-  measures redrawing, not generalisation to unseen pairs or parents; nested
-  leave-one-parent-out selection does not carry the chosen level to matharena.
-* The two configs sit on a flat plateau: the milder one gives up about 0.002 in
-  the tuned regime, gains about 0.0024 on public runs, beats the Predictor there,
-  and has no worse measured worst case. With a main effect near 0.03 and
+  measures redrawing, not generalisation to unseen pairs or parents: it repeats
+  82.2% of the selection half's pairs, 99.5% of its (parent, subject) clusters
+  and all 35 pseudo-benchmarks. Nested leave-one-parent-out selection does not
+  carry the chosen level to matharena: with matharena held out it picks mu0
+  -3.5, which costs +0.0073 there on the confirmation half (AGGR +0.0026; the
+  best guarded config in hindsight -0.0130).
+* The two configs sit on a flat plateau (MILD minus AGGR, ± run / cluster /
+  stratified SE):
+
+  | regime, runs | MILD minus AGGR | MILD minus PRED |
+  |---|---|---|
+  | test-like 0-99 (selection half) | +0.0030 ± 0.0005 / 0.0009 / 0.0007 | -0.0431 ± 0.0019 / 0.0032 / 0.0028 |
+  | test-like 100-199 (confirmation half) | +0.0022 ± 0.0005 / 0.0011 / 0.0009 | -0.0396 ± 0.0019 / 0.0037 / 0.0034 |
+  | public R1 benchmark-first 0-99 | -0.0023 ± 0.0002 / 0.0005 / 0.0004 | -0.0015 ± 0.0010 / 0.0021 / 0.0018 |
+  | public R1 pair-uniform 0-99 | -0.0024 ± 0.0002 / 0.0004 / 0.0004 | -0.0018 ± 0.0010 / 0.0017 / 0.0016 |
+  | no date shift 0-29 | -0.0005 ± 0.0005 / 0.0005 / 0.0004 | -0.0141 ± 0.0022 / 0.0026 / 0.0024 |
+  | mix/whole 0-99 (not scored by the audit) | +0.0031 ± 0.0004 / 0.0010 / 0.0008 | -0.0436 ± 0.0014 / 0.0039 / 0.0031 |
+
+  MILD gives up 0.0030 and 0.0022 in the tuned regime, gains 0.0023 and 0.0024
+  on public runs, and beats PRED there by point estimates within about one
+  cluster SE (0.7 and 1.02 cluster SEs). Its least favourable measured regime mean against PRED is -0.0015 (public
+  benchmark-first); AGGR's is +0.0008 there. With a main effect near 0.03 and
   stakes of at most 0.003 either way, robustness decides.
+
+**Two regimes nearer the per-pair reading, re-measured** (`--stage extra`:
+seed 5, 40 runs each, the date shift kept, the library at 4d2cc4f with the
+corrected floor and the floored-fit fix, so these are new measurements, not
+the audit's). The extra rows were scored under script digest 40ed9e5b. The
+file has changed twice since: the `analyse` stage's nested selections now
+choose on unrounded means, as the audit's code did, and the docstring gives
+the recorded run times. Neither change touches the extra stage, and the
+library digest (8b96ccb4) is the same (`experiments/script_revisions.py`,
+which rebuilds 40ed9e5b from the committed file and a log of the edits;
+`results/script_revisions.json`).
+Minus PRED, ± run / cluster / stratified SE:
+
+| regime (realised pair logit; PRED ALC) | AGGR | mu0 -3.5 | MILD (shipped) | EB on mu0 -3.0, attr_scale 0.5 | Predictor fix off -1.5 | smoothed | MILD minus AGGR (run / cluster SE) |
+|---|---|---|---|---|---|---|---|
+| level_mean -0.8 (-0.77; 0.2153) | -0.0283 ± 0.0033 / 0.0049 / 0.0044 | -0.0273 | -0.0286 ± 0.0026 / 0.0039 / 0.0035 | -0.0286 | -0.0275 | -0.0183 | -0.0003 ± 0.0008 / 0.0011 |
+| no level tilt (-0.59; 0.1958) | -0.0196 ± 0.0033 / 0.0063 / 0.0055 | -0.0177 | -0.0222 ± 0.0025 / 0.0049 / 0.0043 | -0.0213 | -0.0232 | -0.0119 | -0.0026 ± 0.0008 / 0.0014 |
+
+So "no worse measured worst case" holds on every regime measured, and the
+shipped config's gain shrinks as the hidden level rises toward the public
+centre: 0.029 at a realised level of -0.77 and 0.022 at -0.59, against 0.042
+at the tuned regime's -1.29. Without a level tilt the Predictor with a moved
+prior does as well as any hier config. The level_mean -2.0 regime, where AGGR
+should do best, has never been scored for MILD, and nor has level_mean -1.2.
 
 attr_scale below 1 is a bet that the attribute prior is inflated for hidden
 subjects (the regime reproduces the feedback's B0 optimism with a synthetic date
-shift). The next feedback should be read per pair, pooled with the first run's
-nine pairs, before refitting the level distribution once.
+shift). The audit asked for the next feedback to be read per pair, pooled with
+the first run's nine pairs, before refitting the level distribution once. That
+reading was made after run 2, under a decision rule written and hash-locked
+before it was computed (though after both feedback tables had been seen), and
+left LEVEL unchanged ("Formative feedback, runs 1 and 2").
 
 ### Verdict: ship hier with the level moved down
+
+(The level in this verdict was superseded before the archive was built: it
+ships mu0 -2.5, sigma_mu 2.5, attr_scale 0.5, "What actually shipped, after the
+audit". The numbers below are the recommended config's. The shipped config's
+own are in "Shipped configuration, confirmed".)
 
 Ship `paiec.hier.HierPredictor(prior, replace(hyper, mu0=-3.0, sigma_mu=2.5,
 attr_scale=0.25))`, where `prior, hyper = prior.build(pairs, ())` is fitted on
@@ -1182,7 +1326,7 @@ level is Gaussian (nu_mu 0), all Flags stay at their defaults, and the rest of
 the Hyper stays as fitted (sigma_theta 0.1, sigma_delta 2.382, sigma_attr 1.018,
 sigma_d 2.671, sigma_g 1.542, slip 0.01, guess 0.5). The evaluation fitted those
 fields leaving each parent out, so the shipped fit on all five is close to what
-was measured but not identical to it. Against the shipped Predictor this gives:
+was measured but not identical to it. Against the legacy Predictor this gives:
 
 * test-like: -0.0418 ± 0.0024 / 0.0047 / 0.0042 on the held-out half (ALC 0.1655
   ± 0.0031 against 0.2073), -0.0440 ± 0.0017 / 0.0041 / 0.0036 on all 200 runs
@@ -1204,10 +1348,10 @@ The earlier caveats still hold, and two become blocking:
   the purity tests and a latency check.
 * Single-subject benchmarks are excluded from test-like runs by default
   (swe_rebench), where step 2 found hier losing 0.006 to 0.009 to the Predictor.
-  The public guard holds it (in most benchmark-first runs), and the shipped
+  The public guard holds it (in most benchmark-first runs), and the recommended
   config passes with it in, but its own difference on that benchmark was not
   broken out here.
-* The regime was tuned to the feedback's B0 and B1 on the shipped Predictor, so
+* The regime was tuned to the feedback's B0 and B1 on the legacy Predictor, so
   the size of the gain rests on that tuning. The level knob is not identified,
   and the sensitivities bound it. The gain comes mostly from B0 and B1 (0.031 of
   0.044), which the next formative feedback will show directly.
@@ -1580,8 +1724,11 @@ stratified SE".
 
 * **Acceptance passes.** The in-sample oracle, transferred and forced from B1,
   gives -0.0439 test-like and -0.0558 mix/whole, against the heads study's
-  -0.0437 and -0.0557 (tolerance 0.003). The legacy rows, with the old floor
-  and solver, gave -0.0440 and -0.0558.
+  -0.0437 and -0.0557 (tolerance 0.003). The target now has a committed
+  source: `experiments/heads_eval.py` reproduces it as -0.04371 and -0.05566
+  (`results/heads_eval.json`, `rows.legacy.configs.lopo_oracle`; "Meta-learned
+  heads on frozen embeddings"). The legacy rows, with the old floor and
+  solver, gave -0.0440 and -0.0558.
 * **About 18% of the in-sample oracle is leak.** The honest oracle gives
   -0.0360 against -0.0439 (17.9%).
 * **Near-duplicate subjects do not leak.** Folds by canonical model name put
@@ -1661,8 +1808,9 @@ pass if the term were switched on:
 The in-sample table (5 draws per cell; the heads study's curve) sits 16 to 21%
 above the honest one. Its transferred line gives -0.0030 at r = 0.3 (5 of 5
 draws pass) and -0.0089 at r = 0.5; the heads study's single forced draws gave
--0.0024 and -0.0080. Its per-pair line passes from r = 0.5, as on the honest
-base.
+-0.0024 and -0.0080 (-0.00239 and -0.00799, `results/heads_eval.json`,
+`lopo_oracle_r0.3` and `lopo_oracle_r0.5`). Its per-pair line passes from
+r = 0.5, as on the honest base.
 
 ### What changed in the audit
 
@@ -1761,9 +1909,11 @@ base.
   74 of 150 mix/whole, 81 of 100 benchmark-first and 97 of 100 pair-uniform
   runs, by up to 0.25. Every run that differs holds a matharena pair; the change
   reaches that run's other pairs through hier's joint fit.
-* **Against the heads study.** Its scratch rows were computed with the old
-  library. The new rows differ from them on the same 157 test-like and 74
-  mix/whole runs, by up to 0.15. The unlabeled-item probe still matches hier
+* **Against the heads study.** Its rows, from session scratch, were computed
+  with the old library and are byte-identical to `data/harness_rows_legacy`
+  (0 of 450 runs differ; checked by `experiments/heads_eval.py`). The new rows
+  differ from them on the same 157 test-like and 74 mix/whole runs, by up to
+  0.15. The unlabeled-item probe still matches hier
   exactly on 784 items nobody labeled.
 * **The table** ran in three passes. The first (script digest 4a5526b8f6a7b4c1)
   wrote the acceptance and both tables; the second (9b45355fb2edd4df, with
@@ -1875,7 +2025,8 @@ each unit is left out. No candidate passes, and most could not:
   units' mean on none, because researchcodebench's -0.43 outweighs the rest.
 
 Formats parse cleanly on matharena: 231 proofs (IMO, USAMO, IMC, Putnam,
-Miklós), 338 multiple choice (Kangaroo), 944 short answers, and 242 items whose
+Miklós), 338 multiple choice (the 336 Kangaroo items and two prompt variants
+of apex_2025::7), 944 short answers, and 242 items whose
 content is only a system prompt. On matharena, "proof +0.93 against integer
 -0.48" was mostly a difference between competitions: within competition the
 format's correlation is +0.07. Every candidate therefore gets only the
@@ -1986,10 +2137,19 @@ says what a benchmark is about, not which fields its items carry. The title scan
 * no multiple-choice benchmark;
 * 60 (37%) on images, video, charts, documents or 3D.
 
-The step-2 classification of the same 161 benchmarks (scratch provenance:
-rethink2 methodology-critic `c_inventory_meta.json`, 95% category agreement
-with 80 hand labels) gives text QA 39%, images 30%, agents 15%, code 6.5%, video
-4.6%, math 2.8% and audio 2.8%. Read by class:
+The step-2 classification of the same 161 titles (`python
+experiments/inventory_classes.py`, seconds, no network; `results/inventory_classes.json`
+and `.csv`; moved from session scratch and reproducing it exactly) sorts titles
+only, by keyword rules: no description, paper, repository or item is read. It
+classes 108 of the 161 (67%) as evaluations of AI systems. Of those 108 it gives
+text QA 39%, images 30%, agents 15%, code 6.5%, video 4.6%, math 2.8% and audio
+2.8% (of all 161: 26%, 20%, 9.9%, 4.3%, 3.1%, 1.9% and 1.9%, and 33% not an
+evaluation). It was checked against 80 labels on a random sample of the
+organisers' full 1,261-row sheet (`results/inventory_hand_labels.csv`; 14 of the
+80 fall among the 161). Those labels were assigned by an AI agent reading each
+title, not by a person. The rules agree with them on evaluation or not for 66
+of 80 (82.5%), and on the category for 38 of the 40 titles both call
+evaluations (95%). Read by class:
 
 * **Ordinal fields.** Public item_features hold grouping metadata (competition,
   lang, website, paper) plus one index, and nothing difficulty-named on any of
@@ -2373,7 +2533,9 @@ hypothesis, and it fails the parent and guard gates.
 
 The next formative feedback, read per pair together with the first run's nine
 pairs (as "What actually shipped, after the audit" already asks), is where to
-look. The question is whether hier's B0 excess over B31 (0.054 on the second
+look. (That reading is now in "Formative feedback, runs 1 and 2". Run 2's B0
+excess sits on both sides of a rate of 0.5, and by the preregistration that
+observation changes nothing.) The question is whether hier's B0 excess over B31 (0.054 on the second
 run) sits on low-rate pairs, where an optimistic subject prior would put it. If
 it does, damping the date term is worth testing again. That would be a global
 change to one hyperparameter, attr_scale or a date clip, not a per-benchmark
@@ -3730,7 +3892,8 @@ only language-model job on the machine. Every number below is in
 
 The frozen embedding carried nothing to an unseen benchmark ("Neural embeddings
 do not carry difficulty to an unseen benchmark"). Every frozen-feature head
-since was switched off by nested selection. What was left untested is training
+since was switched off by nested selection ("Meta-learned heads on frozen
+embeddings": 0 of 4 folds for every head, on both row sets). What was left untested is training
 the encoder itself, with a loss that asks only for the order of items inside a
 benchmark. This is that test, run once. The plan's gate was declared before any
 result: GO only if held-out r >= 0.3 on at least 3 of the 4 parents AND a
@@ -3998,3 +4161,498 @@ not escalate to a 4B GCM-style LoRA classifier.
   never read an outer fold, and the chosen setting was the one declared first.
 * **MPS nondeterminism.** A resumed epoch reuses the same batches but not
   bit-identical arithmetic.
+
+## Meta-learned heads on frozen embeddings
+
+`python experiments/heads_eval.py --rows legacy` (3,223 s on one process with
+two torch threads, at most 1.07 GB, beside an unrelated five-core job), then
+`--rows current` (3,134 s). Every number below is in `results/heads_eval.json`.
+The study ran in session scratch on 2026-09-26 (`rethink2/fine-tuning/heads.py`
+and its queue scripts). The script is that code with only its data loading
+changed: it reads `experiments/harness.py`'s stored rows. The committed legacy
+rows (`data/harness_rows_legacy`, the old floor and the solver before the
+floored-fit fix) equal the study's own scratch rows exactly: 0 of 300
+test-like and 0 of 150 mix/whole runs differ, over 2,135,316 evaluated
+response-budget cells. On them the script reproduces all 21 of the study's
+result files bit for bit. The current rows (`data/harness_rows`, library
+3f75a549673aae6a, with the corrected floor and the floored-fit fix) were run
+as well. The legacy pass ran script digest 60cfb012, which differs from the
+committed file (6ad7190a) only in how the results file is saved.
+
+**What it is.** Heads trained on episodes sit on frozen Qwen3-Embedding-0.6B
+features (PCA 64, whitened on the training parents, plus log length) and add a
+capped logit offset to the shipped hier's prediction:
+
+* `diff`, a meta-learned difficulty direction, centred on labeled items;
+* `kern`, a learned-metric few-shot kernel on hier's residuals;
+* `ass`, `diff` plus a rank-2 subject × item term from provider, reasoning flag
+  and release year;
+* `all`, the three together.
+
+λ is chosen from {0.01, 0.1, 1} or "off" by nested leave-one-parent-out, and a
+head is used on the held-out parent only if its inner mean is below 0.
+Training uses test-like and mix/whole episodes of the three training parents.
+Scoring uses the held-out parent's appearances on 300 test-like runs (seed 2)
+and 150 mix/whole runs (seed 3). The controls are the same form with the
+parent's in-sample Rasch difficulty (`oracle`), that oracle degraded to
+correlation r, the heads forced on without selection, the heads within
+benchmarks already seen (subject folds), and PCA 16 and 256.
+
+ALC difference against hier, ± run SE / (parent, subject) cluster SE,
+test-like (mix/whole in brackets):
+
+| configuration | legacy rows (the study as it ran) | current rows |
+|---|---|---|
+| nested `diff`, `kern`, `ass`, `all`; PCA 16 and 256 | off in 4 of 4 folds for every head: exactly 0 | the same |
+| smallest inner mean over folds and λ | +0.000007 (`ass`, matharena held out) | +0.000007 |
+| `all` forced, λ 0.01 / 0.1 / 1 | +0.00064 ± 0.00011 / 0.00023; +0.00054; +0.00020 | +0.00064; +0.00053; +0.00019 |
+| oracle (in-sample Rasch difficulty) | -0.04371 ± 0.00116 / 0.00374 [-0.05566, cluster SE 0.00620] | -0.04360 ± 0.00116 / 0.00373 [-0.05561] |
+| oracle per held-out parent | matharena -0.0488, multi_swebench -0.0342, real_webagents -0.0508, researchcodebench -0.0509 | -0.0482, -0.0343, -0.0507, -0.0509 |
+| degraded oracle, r 0.1 / 0.2 / 0.3 / 0.5 / 0.7 | -0.00009 / -0.00086 / -0.00239 / -0.00799 / -0.01765 | -0.00009 / -0.00087 / -0.00239 / -0.00798 / -0.01763 |
+| benchmarks seen: `diff` λ 0.001; `all` PCA 256 | -0.00051 ± 0.00027 / 0.00084; -0.00169 ± 0.00035 / 0.00080 [-0.00243; -0.00457] | -0.00048; -0.00139 [-0.00239; -0.00426] |
+
+**Verdict: no gain.** Nested selection switches every head off in every fold,
+on both row sets. Forced on, the heads cost +0.0002 to +0.0006. They do learn
+something where the benchmark has been seen (-0.0005 to -0.0017 test-like,
+-0.0024 to -0.0046 mix/whole), and none of it reaches a held-out parent. The
+oracle row is the acceptance target of "Acceptance harness", and the degraded
+oracles at r = 0.3 and 0.5 are the forced draws that section compares with.
+Nothing ships; `experiments/heads_eval.py` stays research-only.
+
+**Caveat.** `experiments/harness.py --stage verify --scratch` still expects the
+study's scratch row format. `data/harness_rows_legacy` holds the same
+predictions in another format, so it cannot stand in without a code change.
+
+## Shipped configuration, confirmed
+
+`python experiments/ship_confirm.py` (about 5 seconds on one process, about
+560 MB; it runs no model). Every number below is in `results/ship_confirm.json`;
+`tests/test_ship_confirm.py` covers the script.
+
+The archive ships `mu0 -2.5, sigma_mu 2.5, attr_scale 0.5` ("What actually
+shipped, after the audit"), but "Calibrating for the hidden test" confirmed and
+guarded the recommended `mu0 -3.0, attr_scale 0.25`. This section gives the
+shipped configuration's own numbers. It reads the shipped arm ('ship') of
+`experiments/subject_side.py`'s stored rows (`data/subject_side_rows/`,
+gitignored) and pairs it, pair by pair on identical runs, with comparators
+already stored:
+
+* **the legacy Predictor** (the first submission): `results/testlike_check.json`
+  on test-like runs, `results/hier_eval.json` on public runs, and
+  `results/level_calibration.json` on the two sensitivity regimes;
+* **smoothed Beta(2,2)**: `results/level_calibration.json` on test-like runs 0
+  to 199 and the sensitivity runs, `results/hier_eval.json` on public runs;
+* **the organisers' empirical mean**: `results/testlike_check.json`.
+
+Each comparator run is checked before use: field by field where the stored
+rows carry ids, prediction by prediction where they do not. A run that
+disagrees stops the script, and a run that cannot be matched is left out.
+Where rows do not exist, nothing is filled in (`not_stored` in the file):
+smoothed on test-like runs 200 to 299 and mix/whole 100 to 199, the legacy
+Predictor on mix/whole 100 to 199, and the empirical mean on pair-uniform,
+mix/whole and no-shift runs.
+
+150 consistency checks pass. Among them: the selection half of
+`level_calibration.json` (0.1608 against 0.2039, -0.0431 with the same run,
+cluster and stratified SEs and leave-one-parent-out values); the guard's
+Predictor ALCs (0.2068, 0.2038); both sensitivity regimes matched to
+`level_calibration.json` on 100 of 100 runs; four other records of the same
+rows (`subject_side.json`'s summary, `level_calibration.json`'s own rows of the
+shipped config, `mcq_floor.json`'s old-floor arm, `official_baselines.json`'s
+per-run smoothed and empirical means); and every number an internal review had
+recomputed from these rows.
+
+**Statistics** are those of `experiments/level_calibration.py`: ± run SE /
+cluster SE ((parent, subject) on test-like runs, (benchmark, subject) on
+public ones; 2,000 resamples) / the same stratified by parent. New here is the
+**parent-level** mean ± SE: the mean and SE of the four multi-subject parents'
+appearance-weighted means. It is the only SE here that sees variation between
+benchmarks.
+
+**Which code the rows are.** `paiec/hier.py` 70a3a81a with the old
+multiple-choice floor: the library of formative run 2's archive (ee5085a),
+before the corrected floor (f7e7d87) and the floored-fit fix (4d2cc4f).
+(`paiec/prior.py` and `paiec/subjects.py` are at their f7e7d87 versions, whose
+new terms are off by default and leave the prior and predictions unchanged
+there, "Subject side at budgets 0 and 1".) The gap to the archive now selected
+was measured on runs 0 to 199 and is not added to any number below: the
+corrected floor moves ALC by -0.00026 (test-like), -0.00027 (benchmark-first)
+and -0.00045 (pair-uniform) ("The multiple-choice floor, corrected"), the
+floored-fit fix by 0, -0.0000002 and -0.000008 ("Floored fits").
+
+### Against the legacy Predictor
+
+| regime, runs | shipped ALC | legacy ALC | shipped minus legacy | parent-level | parents (range) | runs won |
+|---|---|---|---|---|---|---|
+| test-like, 0-99 (selection half) | 0.1608 | 0.2039 | -0.0431 ± 0.0019 / 0.0032 / 0.0028 | -0.0378 ± 0.0095 | -0.059 to -0.014 | 99% |
+| test-like, 100-199 (confirmation half) | 0.1677 | 0.2073 | -0.0396 ± 0.0019 / 0.0037 / 0.0034 | -0.0350 ± 0.0107 | -0.058 to -0.007 | 97% |
+| test-like, 200-299 (never used to choose the level) | 0.1687 | 0.2107 | -0.0419 ± 0.0017 / 0.0037 / 0.0034 | -0.0378 ± 0.0075 | -0.057 to -0.021 | 100% |
+| test-like, 0-299 | 0.1658 | 0.2073 | -0.0415 ± 0.0011 / 0.0034 / 0.0031 | -0.0369 ± 0.0091 | -0.058 to -0.014 | 98.7% |
+| mix/whole (seed 3), 0-99 | 0.1694 | 0.2129 | -0.0436 ± 0.0014 / 0.0039 / 0.0031 | -0.0293 ± 0.0123 | -0.065 to -0.010 | 100% |
+| no date shift (seed 3), 0-99 | 0.1585 | 0.1729 | -0.0144 ± 0.0012 / 0.0024 / 0.0022 | -0.0119 ± 0.0049 | -0.024 to -0.000 | 87% |
+| public R1 benchmark-first, 0-99 | 0.2053 | 0.2068 | -0.0015 ± 0.0010 / 0.0021 / 0.0018 | -0.0025 ± 0.0050 | -0.013 to +0.011 | 62% |
+| public R1 benchmark-first, 0-149 | 0.2051 | 0.2068 | -0.0017 ± 0.0008 / 0.0021 / 0.0018 | -0.0029 ± 0.0049 | -0.013 to +0.010 | 61% |
+| public R1 pair-uniform, 0-99 | 0.2020 | 0.2038 | -0.0018 ± 0.0010 / 0.0017 / 0.0016 | -0.0020 ± 0.0053 | -0.015 to +0.009 | 64% |
+
+Leaving one parent out of test-like runs 0 to 299 gives -0.047 to -0.032.
+
+**Where the test-like gain sits.** By budget on runs 0 to 299 (cluster SE in
+brackets): -0.135 (0.011) at B0, -0.076 (0.007) at B1, -0.037 (0.003) at B3,
+-0.016 (0.001) at B7, -0.008 (0.001) at B15 and -0.008 (0.001) at B31. B0 and
+B1 carry 0.029 of the 0.042. By parent: matharena -0.014 ± 0.009, real_webagents
+-0.033 ± 0.007, researchcodebench -0.042 ± 0.005 and multi_swebench -0.058 ±
+0.004 (cluster SEs). The parent-level SE (0.009) is about 2.7 times the
+cluster SE (0.0034): with four parents, the between-benchmark uncertainty of
+the headline is larger than the cluster SEs say.
+
+**Public runs.** The shipped config is level with the legacy Predictor: its
+point estimates are 0.0015 to 0.0018 better, within about one cluster SE
+(0.81 cluster SEs benchmark-first over runs 0 to 149, 1.02 pair-uniform). It loses at
+B0 (+0.0049, cluster SE 0.0065, benchmark-first; +0.0140, 0.0072,
+pair-uniform) and B1 (+0.0019, +0.0015) and gains from B7 on (-0.004 to
+-0.008 a budget). By parent it loses on matharena (+0.0101 ± 0.0031
+benchmark-first, +0.0094 ± 0.0023 pair-uniform) and on the single-subject
+swe_rebench pair (+0.0099 over 130 benchmark-first appearances, +0.0114 over
+7 pair-uniform ones; one subject, so no cluster SE), and gains most on
+multi_swebench (-0.0134, -0.0154).
+
+### Against the smoothed mean and the empirical mean
+
+| regime, runs | minus smoothed Beta(2,2) | parent-level | minus empirical mean |
+|---|---|---|---|
+| test-like, 0-99 | -0.0180 ± 0.0010 / 0.0021 / 0.0020 | -0.0159 ± 0.0034 | -0.0270 ± 0.0014 / 0.0028 / 0.0027 |
+| test-like, 100-199 | -0.0159 ± 0.0009 / 0.0021 / 0.0020 | -0.0139 ± 0.0044 | -0.0304 ± 0.0014 / 0.0030 / 0.0029 |
+| test-like, 200-299 | not stored | | -0.0335 ± 0.0016 / 0.0035 / 0.0033 |
+| test-like, 0-199 | -0.0169 ± 0.0007 / 0.0020 / 0.0019 | -0.0148 ± 0.0039 | |
+| test-like, 0-299 | | | -0.0303 ± 0.0009 / 0.0030 / 0.0028 |
+| mix/whole, 0-99 | -0.0176 ± 0.0008 / 0.0022 / 0.0019 | -0.0119 ± 0.0050 | not stored |
+| no date shift, 0-99 | -0.0220 ± 0.0014 / 0.0030 / 0.0028 | -0.0189 ± 0.0060 | not stored |
+| public R1 benchmark-first, 0-149 | -0.0086 ± 0.0010 / 0.0030 / 0.0021 | -0.0108 ± 0.0062 | -0.0447 ± 0.0012 / 0.0028 / 0.0024 |
+| public R1 pair-uniform, 0-99 | -0.0093 ± 0.0011 / 0.0021 / 0.0019 | -0.0101 ± 0.0062 | not stored |
+
+The smoothed mean has no level prior to tune, so this is the comparison the
+test-like regime's construction does not favour. The shipped config beats it
+on every test-like parent (-0.006 to -0.024 on runs 0 to 199), by more without
+the date shift than with it, and on public runs by 0.009. On public runs it
+loses to it on matharena (+0.0060 benchmark-first, +0.0043 pair-uniform) and
+on the swe_rebench pair (+0.0127, +0.0141). By budget on public
+benchmark-first runs it gains at every budget (-0.015 at B0 to -0.012 at B31).
+
+### Formative run 2 against these regimes
+
+Run 2 (the shipped model's archive at ee5085a, 8 pairs, ALC 0.192623; "Formative
+feedback, runs 1 and 2") is one draw. Its distance from each regime's mean, in
+the shipped model's single-run sds over runs that redraw one catalogue of
+pairs:
+
+| regime (runs) | mean ALC | single-run sd | run 2's z | share of runs ≥ run 2 | z by budget, B0..B31 |
+|---|---|---|---|---|---|
+| test-like (300) | 0.1658 | 0.0318 | +0.84 | 0.20 | +0.98 +0.15 +0.86 +0.89 +0.98 +1.40 |
+| test-like, mix/whole (200) | 0.1711 | 0.0329 | +0.65 | 0.245 | +1.12 +0.05 +0.72 +0.70 +0.72 +1.15 |
+| test-like, no date shift (100) | 0.1585 | 0.0335 | +1.02 | 0.18 | +1.00 +0.45 +0.89 +1.11 +1.20 +1.67 |
+| public R1 benchmark-first (150) | 0.2051 | 0.0285 | -0.44 | 0.67 | +0.06 -0.78 -0.49 -0.46 -0.27 +0.23 |
+| public R1 pair-uniform (100) | 0.2020 | 0.0261 | -0.36 | 0.68 | -0.24 -0.67 -0.37 -0.32 -0.13 +0.50 |
+
+(The budget z values use run 2's budgets rounded to three decimals.) One run
+cannot tell these regimes apart. Its profile is at least as close to the
+public runs as to the tuned regime: every budget is within 0.8 sd of public
+R1, while its B31 is 1.4 sd above the test-like mean.
+
+Single-run sds of the shipped model by budget (B0..B31 | ALC): test-like
+0.021, 0.039, 0.037, 0.035, 0.034, 0.032 | 0.032; mix/whole 0.017, 0.040,
+0.037, 0.036, 0.035, 0.033 | 0.033; no date shift 0.042, 0.042, 0.038, 0.033,
+0.031, 0.029 | 0.033; benchmark-first 0.033, 0.037, 0.035, 0.029, 0.026,
+0.025 | 0.029; pair-uniform 0.030, 0.039, 0.030, 0.028, 0.026, 0.024 | 0.026.
+
+### What this changes
+
+* No number of the recommended config stands for the shipped one. The
+  shipped config's held-out gains over the legacy Predictor are -0.0396 and
+  -0.0419 (confirmation half; runs never used to choose the level), against
+  the recommended config's -0.0418 on the confirmation half.
+* The gain is conditional on the regime: 0.040 to 0.044 in the tuned regime
+  and its mix/whole variant, 0.014 without the date shift, and 0.022 to 0.029
+  in the two regimes nearer the per-pair feedback reading ("What actually
+  shipped, after the audit"). The level_mean -1.2 and -2.0 sensitivities were
+  never scored for the shipped config.
+* Against the smoothed mean the gain is 0.017 in the tuned regime and 0.009 on
+  public runs.
+* The single-subject case (open since "Verdict: ship hier with the level moved
+  down"): the shipped config loses about 0.010 to 0.011 against the legacy
+  Predictor on the one public single-subject pair and 0.013 to 0.014 against
+  the smoothed mean, from one subject.
+
+**What was not done.** No model was run, so nothing here is new data: the rows
+were scored by `experiments/subject_side.py` and the comparators by the
+scripts named above. The code gap to the current archive is recorded, not
+added.
+
+## Formative feedback, runs 1 and 2
+
+`python experiments/formative_feedback.py --stage record`, `--stage prereg`,
+then `--stage read` (seconds each on one process, at most 0.3 GB; no model is
+run). Every number below is in `results/formative_feedback.json`, whose
+`passes` log every stage with its time and code digests.
+`tests/test_formative_feedback.py` (11 tests) covers it, including that the
+stored preregistration is the script's text and was written before the first
+reading. `record` verifies the two archives only when given them (`--archive1
+PATH --rebuild1 PATH --run1-how TEXT --archive2 PATH --rebuild2 PATH
+--run2-how TEXT`; the paths used are in `passes` and point into session
+scratch, which is not durable). Without them it keeps the `archives` already
+stored, so the hashes in the results file are the lasting record, and
+re-verifying needs the archives themselves. The inputs are `results/formative/run1.txt` and `run2.txt`: the
+organisers' per-pair tables as Codabench returned them, byte for byte, with
+only the surrounding chat text removed.
+
+**Two submissions have been scored.**
+
+| run | scored | model | pairs | benchmarks | subjects | evaluated subject-item pairs | ALC |
+|---|---|---|---|---|---|---|---|
+| 1 | 2026-09-25 | legacy Predictor, commit b68492c | 9 (2, 2, 1, 1, 1, 1, 1 per benchmark) | 7 | 9 | 485 (44 to 76 a pair) | 0.2113 |
+| 2 | 2026-09-26 | hier, LEVEL mu0 -2.5 / sigma_mu 2.5 / attr_scale 0.5, commit ee5085a (old multiple-choice floor, solver before the floored-fit fix) | 8 (2, 1, 1, 1, 1, 1, 1) | 7 | 8 | 492 (44 to 113) | 0.192623 |
+
+**The score.** The platform's ALC is the unweighted mean over pairs of each
+pair's 0.1 B0 + 0.2 (B1 + B3 + B7 + B15) + 0.1 B31. That gives 0.2112999889
+and 0.1926232375, which round to the reported 0.2113 and 0.192623. Weighting
+pairs by their evaluated items would give 0.2147 and 0.1988, so the platform
+does not. Per-pair ALC and ECE recomputed from the budget tables match the
+tables' own summary rows to within 6e-7.
+
+**Run 2, per pair.** Letters relabel the anonymous benchmark ids, the same
+letter in both runs (run 1's table is in "Against the first real formative
+feedback"). They are for recording only; no model input is keyed on them.
+
+| pair | benchmark | n | B0 | B1 | B3 | B7 | B15 | B31 | ALC | ECE (ALC-weighted) | ECE at B0 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| q1 | D | 58 | 0.2555 | 0.1939 | 0.1840 | 0.1931 | 0.1868 | 0.1857 | 0.1957 | 0.091 | 0.269 |
+| q2 | G | 44 | 0.2706 | 0.1635 | 0.1790 | 0.1500 | 0.1458 | 0.1490 | 0.1696 | 0.136 | 0.357 |
+| q3 | C | 113 | 0.2593 | 0.2469 | 0.2408 | 0.2437 | 0.2418 | 0.2524 | 0.2458 | 0.045 | 0.120 |
+| q4 | G | 44 | 0.2576 | 0.2406 | 0.2559 | 0.2311 | 0.2315 | 0.2161 | 0.2392 | 0.093 | 0.147 |
+| q5 | F | 44 | 0.2256 | 0.2300 | 0.2553 | 0.2329 | 0.2228 | 0.2392 | 0.2347 | 0.104 | 0.043 |
+| q6 | E | 60 | 0.2366 | 0.1973 | 0.1989 | 0.1961 | 0.1950 | 0.1983 | 0.2009 | 0.068 | 0.207 |
+| q7 | A | 75 | 0.2333 | 0.2126 | 0.2282 | 0.2119 | 0.2008 | 0.2240 | 0.2164 | 0.104 | 0.144 |
+| q8 | B | 54 | 0.1562 | 0.0729 | 0.0283 | 0.0098 | 0.0034 | 0.0014 | 0.0386 | 0.160 | 0.395 |
+| mean | | | 0.2368 | 0.1947 | 0.1963 | 0.1836 | 0.1785 | 0.1833 | 0.1926 | 0.100 | 0.210 |
+
+Run 1's per-pair ALC is 0.2568, 0.1682, 0.2558, 0.1636, 0.2515, 0.1686,
+0.2065, 0.1771 and 0.2535 (p1 to p9), and its ECE-ALC 0.171, 0.288, 0.264,
+0.344, 0.073, 0.038, 0.204, 0.042 and 0.103.
+
+| budget | B0 | B1 | B3 | B7 | B15 | B31 |
+|---|---|---|---|---|---|---|
+| run 1, mean ECE | 0.381 | 0.253 | 0.195 | 0.097 | 0.090 | 0.047 |
+| run 2, mean ECE | 0.210 | 0.098 | 0.118 | 0.084 | 0.057 | 0.076 |
+
+The largest pair ECE at B0 is 0.753 in run 1 and 0.395 in run 2, and the mean
+ECE-ALC 0.170 and 0.100. The mean B0 excess over B31 is 0.202 and 0.054.
+
+**Overlap.** No subject appears in both runs (9 and 8 distinct subjects), so
+no (subject, benchmark) pair recurs and there is no paired platform comparison
+of the two predictors. All 7 benchmark ids are shared: both runs drew from the
+same 7 hidden benchmarks, with different subjects. Weighting the 7 benchmarks
+equally gives 0.2139 for run 1 and 0.1909 for run 2; the subjects differ, so
+that is descriptive only.
+
+**What two runs can and cannot measure.** They pin the scoring rule, and they
+give a rough reading of the global level of the hidden benchmarks (7
+benchmarks, SE about 0.5 logit, below). They cannot measure the gain from the
+legacy Predictor to hier: the subjects differ, and the difference of two
+independent runs has an sd of about 0.04 (single-run sds 0.029 to 0.032),
+against the observed 0.019.
+
+**Archives.**
+
+* **Run 2** was the archive with sha256
+  `2c64eaada491cbf85bd54ae190cdbb28f9d0a13870df0dc77a3a850f90cf661f`, kept in
+  session scratch. Every tracked member is byte-identical to ee5085a, and its
+  prior.json (sha256 `c7ce3b84…`) is byte-identical to today's
+  `submission/prior.json`. Rebuilding ee5085a from `git archive` with that
+  tree's own `tools/build_submission.py`, default BLAS threading, gives the
+  same bytes (validator OK, run check bit-identical). With OpenBLAS, OMP and
+  vecLib held to one thread, prior.json differs in its last bits (worst
+  relative difference 2.1e-11) and the archive hash becomes `660020de…`: a
+  byte-identical rebuild needs the same BLAS and thread count as the build
+  machine (an 8-core M1 Pro with OpenBLAS 0.3.23.dev, default threading); it
+  was not tried elsewhere.
+* **Run 1** was most likely `8e28d930d45b16aee351bfbbc75531a6d12079667793232d4bd74a17f9d47b9f`:
+  the deterministic build of b68492c, byte-identical to a copy written on
+  2026-09-24 before the upload, with every tracked member equal to b68492c.
+  No record says the uploaded file had these bytes.
+* **The archive now selected** (a planned run 3) is `4a882cc7…`, built at
+  4d2cc4f with the corrected floor and the floored-fit fix. Its run is planned
+  as a regression and latency check only; its score is not to select or tune
+  anything.
+
+**Uses of the feedback, all of them.** Run 1 set the test-like regime's
+defaults (its lower-root B31 reading gave level_mean -1.6 and sd 1.5; the
+1.25-year date shift is the grid point whose legacy-Predictor B0 and B1 are
+closest to it; its shape motivated `repeat` 0.25, set by hand, and its
+evaluated counts the off-by-default `split_after_cut`). Its composition (5
+pairs alone on their benchmark, 4 sharing one) weighted the first verdict of
+"Hierarchical model". The level calibration chose mu0, sigma_mu and attr_scale
+on runs of that regime and added each candidate's paired difference to run 1's
+budgets as a sanity estimate. The audit then read run 1 per pair and moved the
+shipped level from the recommended config to the milder one ("What actually
+shipped, after the audit"): the only per-pair reading behind a shipped choice,
+and a choice of global hyperparameters only. Run 2 motivated the subject-side
+study, which shipped nothing, and this reading, which changed nothing. The
+leaderboard (organisers' entry 0.1801, best 0.1172, read 2026-09-24) is used
+for placement only. Nothing is keyed on an anonymous benchmark or subject id,
+and no prediction was shaped to probe hidden labels.
+
+### Q2: the shipped config's own matched estimate on run 1
+
+The estimator is the audit's per-pair matched estimate, ported unchanged from
+session scratch: each run-1 pair is matched to its K nearest replica pair
+appearances by the Euclidean distance of their six per-budget Brier values
+under the legacy Predictor, each standardised by its sd over the pool, and a
+candidate's estimate is run 1's per-pair Brier plus its mean paired difference
+over those neighbours. On the audit's own inputs the port reproduces the
+audit's recorded values to within 7.6e-6.
+
+| pool, K | shipped (mu0 -2.5, attr_scale 0.5) | recommended (mu0 -3.0, attr_scale 0.25) | smoothed | hier defaults |
+|---|---|---|---|---|
+| where the shipped config is scored in `level_calibration.json` (test-like 0-99, public benchmark-first 0-39), K 15 | 0.1812 | 0.1824 | 0.1908 | 0.1988 |
+| the same, K 40 | 0.1830 | 0.1839 | 0.1925 | 0.1983 |
+| the shipped model's own rows (6,215 appearances with both rows), K 15 | 0.1774 | | | |
+| the same, K 40 | 0.1779 | | | |
+
+On its own rows the K 15 estimate by budget is 0.245, 0.190, 0.176, 0.162,
+0.162 and 0.150. Across the robustness variants (K 25; six budgets or B0 and
+B31 only; all pools or test-like only) it ranges from 0.1766 to 0.1824.
+Pools of public runs alone give 0.205, but their matches lie about five times
+further away (median distance 2.74 against 0.56). `experiments/level_audit.py`
+gives 0.1765 and 0.1789 on the pool where the shipped config, the recommended
+config and the Predictor are all stored (4,955 appearances), which agrees.
+So the 0.178 that replaced 0.167 in "What actually shipped, after the audit"
+belongs to the recommended config; the shipped config's own estimate is 0.177
+to 0.183.
+
+**As a prediction for run 2.** Run 2's pairs are not run 1's, so this is a
+prediction for a like-sized draw. Observed minus the K 15 estimate on the
+shipped rows, by budget: -0.008, +0.004, +0.021, +0.022, +0.017, +0.034, and
++0.015 in ALC. In the shipped model's single-run test-like sds that is -0.38,
++0.11, +0.56, +0.61, +0.50, +1.06 and +0.48 (public benchmark-first: +0.53 in
+ALC, +1.34 at B31). B0 came out better than predicted; the excess is in the
+late budgets. Run 2's pairs sit nearer a rate of 0.5 than run 1's (mean B31
+0.183 against 0.157). A new proxy that reweights the shipped model's test-like
+rows to a target level distribution (bins of pair logit, width 0.5; it moves
+the level only, not the attribute optimism the date shift carries) predicts
+0.177 at the audit's reading of run 1, 0.184 and 0.183 at the pooled 17-pair
+readings below, and 0.168 at the tuned regime's level.
+
+### The pooled reading, under a rule fixed in advance
+
+**The preregistration** was written into the results file at 05:06:59 UTC on
+2026-09-28 (sha256 `0de18448…`), before any matching of run 2's pairs, the
+pooled reading or the shipped config's estimate on run 1 was computed; the
+first reading ran at 05:13:48. It fixes the rule, not what had been seen:
+both feedback tables, run 2's per-pair Brier included (the `record` stage had
+parsed it at 05:04:42), and the audit's scratch outputs for run 1 were known
+when it was written. It fixed:
+
+* **What may change:** one global hyperparameter only, the level distribution
+  of a new benchmark (mu0 and sigma_mu of LEVEL). Not attr_scale, not the item
+  or subject side, nothing keyed on an id.
+* **The reading:** a pair's rate is the root of p(1-p) = B31 on the side where
+  most of its K neighbours' rates sit (upper if more than half exceed 0.5).
+  Run 1 is matched on the legacy Predictor's profiles, run 2 on the shipped
+  hier's. Its level is the continuity-corrected logit at the pair's n, the
+  convention of the regimes' realised pair logits. Uncertainty comes from
+  2,000 draws that resample the 7 benchmark ids as clusters and take each
+  pair's upper root with its neighbour share.
+* **The comparator:** the tuned regime's realised pair logit, mean -1.290 and
+  sd 1.696 (`results/testlike_check.json`).
+* **The rule:** propose mu0 (or sigma_mu) only if, for both K = 15 and 40, the
+  17-pair mean (or sd) differs from the comparator by more than 2 bootstrap SEs
+  in the same direction, and only if a guard finds no bias from the root
+  reading itself (applied to the replica's own pairs, weighted 9:8). A proposed
+  candidate would still have to be scored on fresh test-like runs set to the
+  reading and pass: at least 0.002 better than the shipped LEVEL with no parent
+  above +0.002, at most +0.001 against it on both public weightings, at most
+  +0.003 against the legacy Predictor on both, and at most +0.002 against it
+  on the default test-like regime. Nothing ships from the reading alone.
+  Everything else it reports is descriptive and changes nothing.
+
+**The reading** (continuity-corrected pair logit; SEs resample the 7
+benchmarks):
+
+| reading | pairs | mean (SE) | sd (SE) | plain logit, mean / sd |
+|---|---|---|---|---|
+| both runs, K 15 | 17 | -0.65 (0.51; 90% -1.70 to -0.02) | 1.80 (0.36) | -0.83 / 2.23 |
+| both runs, K 40 | 17 | -0.78 (0.51) | 1.75 (0.34) | -0.96 / 2.17 |
+| run 1 alone (p6, p8 and p9 read as high-rate at both K) | 9 | -0.86 (0.62) | 1.81 (0.41) | -0.98 / 2.05 |
+| run 2 alone, K 15 / K 40 | 8 | -0.41 / -0.68 (0.67 / 0.65) | 1.88 / 1.79 | -0.66 / -0.94 |
+| tuned test-like regime, realised | | -1.29 (cluster SE 0.16) | 1.70 | |
+| public R1, realised | | -0.71 (0.12) | 1.42 | |
+
+For run 1 the three readings are, on the plain logit: all lower roots -1.64 /
+1.49 (the regime's default), p6 and p8 upper -1.08 / 1.99 (the audit's), p6,
+p8 and p9 upper -0.98 / 2.05 (this reading). Run 2's q1 reads as high-rate at
+K 15 and low-rate at K 40; run 2's q3 (B31 above 0.25) has no real root and
+reads as 0.5.
+
+**Against the shipped LEVEL.** On the pair-logit scale at attribute score 0,
+LEVEL implies a mean of -1.15, a between-benchmark sd of 1.15 and a within sd
+of 1.10 (factor 0.46 for the item variance 9.51). The 17 pairs split into a
+between-benchmark sd of 1.20 (K 15) or 1.49 (K 40), with a 90% interval from 0
+to about 1.7, and a within sd of 1.40 or 1.01. That is consistent with LEVEL.
+
+**Two components are not supported.** A two-component normal fit beats one by
+0.68 and 0.38 in BIC (the rule's bar is 2) and is preferred in 0% and 0.4% of
+bootstrap draws. The only structure is two pairs near a zero rate (a
+component of weight 0.12 at -4.4).
+
+**Decision: no candidate; LEVEL stays.** The pooled mean is +1.24 (K 15) and
++1.00 (K 40) SEs above the regime's, and the sd +0.29 and +0.14 SEs. The bias
+guard did not trip (the reading shifts the replica's mean by +0.036 and its sd
+by -0.131). The pooled level is more central than the tuned regime's, about
+as central as public R1's, but within 1.0 to 1.2 SEs of the regime.
+
+**Run 2's B0 excess by side** (descriptive): at K 15, the 4 pairs read below a
+rate of 0.5 have a mean B0 minus B31 of 0.047, the 3 read above it 0.078, and
+the unidentified q3 0.007 (K 40: 5 below, 0.052; 2 above, 0.082). The largest
+single excess, 0.155, is the pair near a zero rate (q8). The excess does not
+sit mainly on low-rate pairs, where an optimistic subject prior would put it.
+
+**The read stage ran four times.** It ran at 05:13:48, 05:15:57, 05:19:08 and
+05:20:19 under three script versions (digests 5099ef81, 321c189e and
+93cb6a84, the committed file); the stored reading is the last. The rule's
+text was byte-identical throughout, since `read` refuses to run when the
+stored rule and the script's differ. What changed:
+
+* between the preregistration (d3fe28fd) and the first reading, the `record`
+  stage learned to compare a rebuilt archive with the uploaded one; the read
+  stage was untouched;
+* after the first reading (05:15:31), the descriptive split of run 2's B0
+  excess was extended from K 15 to both K and now keeps q3, whose B31 has no
+  real root, apart; the first version split the pairs 4 and 4 at K 15 (0.047
+  below a rate of 0.5, 0.060 at or above it, q3 counted above). Four
+  explanatory notes were added;
+* after the second reading (05:18:45), each robustness variant of the shipped
+  config's estimate on run 1 also reports its neighbours' match distance.
+
+`python experiments/script_revisions.py --stage replay` rebuilds every
+version from the committed file and a log of these edits
+(`experiments/script_edits.json`, recovered from the session log of the lane
+that made them) and checks each against the digest in `passes`; `--stage
+reread` re-runs the read stage under each earlier version. The
+preregistration's version and both earlier reading versions give the stored
+decision exactly (z_mean, z_sd, the bias guard, the outcome), and the same
+value in every field they share with the stored reading: 1,502 fields for
+d3fe28fd and 5099ef81, 1,559 for 321c189e, none differing
+(`results/script_revisions.json`). The rest are the descriptive fields the
+edits added or reshaped. `tests/test_script_revisions.py` checks the replay
+and the stored re-reads.
+
+**What this cannot settle.** The 17 pairs sit on 7 benchmark ids, so the level
+mean has an SE of about 0.5 logit and the between-benchmark sd is barely
+identified. The reading-bias guard reads roots on the true side; how often the
+neighbour rule picks the wrong side is not measured (q1 flips between K 15
+and K 40, and run 1's p9 has neighbour shares of 0.73 and 0.55). The real test
+of the audit's reasoning is to score the shipped config, the recommended one,
+the EB level, a calibrated smoothed mean and the legacy Predictor in a regime
+with level_mean near -0.7 to -1.1 and level_sd near 1.8; the two regimes of
+"What actually shipped, after the audit" come close, and that experiment was
+not run. The archive paths and rebuild trees in the results file point into
+session scratch, which is not durable; the hashes are the lasting record.

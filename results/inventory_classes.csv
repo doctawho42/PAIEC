@@ -1,0 +1,162 @@
+benchmark_name_slug,title,llm_eval,cat,a6_class,a6_llm_title
+phyblock,PhyBlock: A Progressive Benchmark for Physical Understanding and Planning via 3D Block Assembly,1,agent,agentic,0
+ineqmath,Solving Inequality Proofs with Large Language Models,1,math,math,1
+questbench,QuestBench: Can LLMs ask the right question to acquire information in reasoning tasks?,1,text_qa,qa_reason,1
+mm_opera,MM-OPERA: Benchmarking Open-ended Association Reasoning for Large Vision-Language Models,1,mm_image,multimodal,1
+nvbench_2_0,nvBench 2.0: Resolving Ambiguity in Text-to-Visualization through Stepwise Reasoning,1,mm_image,multimodal,0
+correctbench,Can LLMs Correct Themselves? A Benchmark of Self-Correction in LLMs,1,text_qa,other,1
+abstentionbench,AbstentionBench: Reasoning LLMs Fail on Unanswerable Questions,1,text_qa,qa_reason,1
+nora,When No Paths Lead to Rome: Benchmarking Systematic Neural Relational Reasoning,1,text_qa,qa_reason,0
+surds,SURDS: Benchmarking Spatial Understanding and Reasoning in Driving Scenarios with Vision Language Models,1,mm_image,multimodal,1
+clinbench,ClinBench: A Standardized Multi-Domain Framework for Evaluating Large Language Models in Clinical Information Extraction,1,text_qa,qa_reason,1
+mineanybuild,MineAnyBuild: Benchmarking Spatial Planning for Open-world AI Agents,1,agent,agentic,1
+kris_bench,KRIS-Bench: Benchmarking Next-Level Intelligent Image Editing Models,1,mm_image,multimodal,0
+archpower,ArchPower: Dataset for Architecture-Level Power Modeling of Modern CPU Design,0,,other,0
+writingbench,WritingBench: A Comprehensive Benchmark for Generative Writing,1,text_qa,other,0
+big_ann_neurips23,Results of the Big ANN: NeurIPS'23 competition,0,,other,0
+step,STEP: A Unified Spiking Transformer Evaluation Platform for Fair and Reproducible Benchmarking,1,text_qa,other,0
+convis_bench,ConViS-Bench: Estimating Video Similarity  Through Semantic Concepts,1,mm_video,multimodal,0
+chemcotbench,Beyond Chemical QA: Evaluating LLM's Chemical Reasoning with Modular Chemical Operations,1,text_qa,qa_reason,1
+traffident,TraffiDent: A  Dataset for Understanding the Interplay Between Traffic Dynamics and Incidents,0,,qa_reason,0
+molvision,MolVision: Molecular Property Prediction with Vision Language Models,1,mm_image,multimodal,1
+influx,InFlux: A Benchmark for Self-Calibration of Dynamic Intrinsics of Video Cameras,1,mm_video,multimodal,0
+mergebench,MergeBench: A Benchmark for Merging Domain-Specialized LLMs,1,text_qa,other,1
+algotune,AlgoTune: Can Language Models Speed Up General-Purpose Numerical Programs?,1,code,code,1
+urbaning_v2x,"UrbanIng-V2X: A Large-Scale Multi-Vehicle, Multi-Infrastructure Dataset Across Multiple Intersections for Cooperative Perception",0,,other,0
+bountybench,BountyBench: Dollar Impact of AI Agent Attackers and Defenders on Real-World Cybersecurity Systems,1,agent,agentic,1
+medagentboard,MedAgentBoard: Benchmarking Multi-Agent Collaboration with Conventional Methods for Diverse Medical Tasks,1,agent,agentic,1
+boom,BOOM: Benchmarking Out-Of-distribution Molecular Property Predictions of Machine Learning Models,1,text_qa,other,0
+hyperphantasia,Hyperphantasia: A Benchmark for Evaluating the Mental Visualization Capabilities of Multimodal LLMs,1,mm_image,multimodal,1
+decompile_bench,Decompile-Bench: Million-Scale Binary-Source Function Pairs for Real-World Binary Decompilation,1,code,other,0
+radar,RADAR: Benchmarking Language Models on Imperfect Tabular Data,1,text_qa,other,1
+ho_cap,HO-Cap: A Capture System and Dataset for 3D Reconstruction and Pose Tracking of Hand-Object Interaction,0,,multimodal,0
+agent_red_teaming,Security Challenges in AI Agent Deployment: Insights from a Large Scale Public Competition,1,agent,agentic,1
+msd,Disentanglement Beyond Static vs. Dynamic: A Benchmark and Evaluation Framework for Multi-Factor Sequential Representations,1,text_qa,qa_reason,0
+aigibench,Is Artificial Intelligence Generated Image Detection a Solved Problem?,0,,multimodal,0
+cares,CARES: Comprehensive Evaluation of Safety and Adversarial Robustness in Medical LLMs,1,text_qa,qa_reason,1
+coralvqa,CoralVQA: A Large-Scale Visual Question Answering Dataset for Coral Reef Image Understanding,1,mm_image,multimodal,0
+ml4cfd,ML4CFD Competition: Results and Retrospective Analysis,0,,other,0
+theagentcompany,TheAgentCompany: Benchmarking LLM Agents on Consequential Real World Tasks,1,agent,agentic,1
+multi_swe_bench,Multi-SWE-bench: A Multilingual Benchmark for Issue Resolving,1,code,code,0
+svrpbench,SVRPBench: A Realistic Benchmark for Stochastic Vehicle Routing Problem,1,text_qa,other,0
+vimed_pet,Toward a Vision-Language Foundation Model for Medical Data: Multimodal Dataset and Benchmarks for Vietnamese PET/CT Report Generation,1,mm_image,multimodal,1
+libribrain,LibriBrain: Over 50 Hours of Within-Subject MEG to Improve Speech Decoding Methods at Scale,1,code,multimodal,0
+animal_in_motion,Web-Scale Collection of Video Data for 4D Animal Reconstruction,0,,agentic,0
+neurorenderedfake,NeuroRenderedFake: A Challenging Benchmark to Detect Fake Images Generated by Advanced Neural Rendering Methods,0,,multimodal,0
+emergenttts_eval,"EmergentTTS-Eval: Evaluating TTS Models on Complex Prosodic, Expressiveness, and Linguistic Challenges Using Model-as-a-Judge",0,,other,0
+averimatec,AVerImaTeC: A Dataset for Automatic Verification of Image-Text Claims with Evidence from the Web,0,,agentic,0
+kgqagen_10k,Diagnosing and Addressing Pitfalls in KG-RAG Datasets: Toward More Reliable Benchmarking,1,text_qa,other,0
+talkcuts,TalkCuts: A Large-Scale Dataset for Multi-Shot Human Speech Video Generation,0,,multimodal,0
+taiwanvqa,TaiwanVQA: Benchmarking and Enhancing Cultural Understanding in Vision-Language Models,1,mm_image,multimodal,1
+robo2vlm,Robo2VLM: Improving Visual Question Answering using Large-Scale Robot Manipulation Data,1,mm_image,agentic,0
+ocrbench_v2,OCRBench v2: An Improved Benchmark for Evaluating Large Multimodal Models on Visual Text Localization and Reasoning,1,mm_image,multimodal,0
+industryeqa,IndustryEQA: Pushing the Frontiers of Embodied Question Answering in Industrial Scenarios,1,agent,agentic,0
+raguard,Worse than Zero-shot? A Fact-Checking Dataset for Evaluating the Robustness of RAG Against Misleading Retrievals,0,,qa_reason,0
+dermacon_in,DermaCon-IN: A Multiconcept-Annotated Dermatological Image Dataset of Indian Skin Disorders for Clinical AI Research,0,,multimodal,1
+star,STAR: A Benchmark for Astronomical Star Fields Super-Resolution,1,text_qa,other,0
+hi3dbench,Hi3DEval: Advancing 3D Generation Evaluation with Hierarchical Validity,1,mm_image,multimodal,0
+engibench,EngiBench: A Framework for Data-Driven Engineering Design Research,1,text_qa,other,0
+engdesign,Toward Engineering AGI: Benchmarking the Engineering Design Capabilities of LLMs,1,text_qa,other,1
+uve_bench,UVE: Are MLLMs Unified Evaluators for AI-Generated Videos?,1,mm_video,multimodal,1
+mllm_isu,MLLM-ISU: The First-Ever Comprehensive Benchmark for Multimodal Large Language Models based Intrusion Scene Understanding,1,mm_image,multimodal,1
+capability,CAPability: A Comprehensive Visual Caption Benchmark for Evaluating Both Correctness and Thoroughness,1,mm_image,multimodal,0
+swe_bench_live,SWE-bench Goes Live!,1,code,code,0
+transferbench,TransferBench: Benchmarking Ensemble-based Black-box Transfer Attacks,1,text_qa,other,0
+agmmu,AgMMU: A Comprehensive Agricultural Multimodal Understanding Benchmark,1,mm_image,multimodal,0
+semantic_kg,Semantic-KG: Using Knowledge Graphs to Construct Benchmarks for Measuring Semantic Similarity,1,text_qa,qa_reason,0
+deepmoirefake,Through the Lens: Benchmarking Deepfake Detectors Against Moiré-Induced Distortions,0,,other,0
+deepfund,Time Travel is Cheating: Going Live with DeepFund for Real-Time Fund Investment Benchmarking,1,text_qa,other,0
+patientsim,PatientSim: A Persona-Driven Simulator for Realistic Doctor-Patient Interactions,0,,other,0
+rdb2g_bench,RDB2G-Bench: A Comprehensive Benchmark for Automatic Graph Modeling of Relational Databases,1,text_qa,other,0
+knotgym,Knot So Simple: A Minimalistic Environment for Spatial Reasoning,1,agent,agentic,0
+korean_universal_testset,CoreaSpeech: Korean Speech Corpus via JAMO-based Coreset Selection for Efficient and Robust Korean Speech Generation,0,,multimodal,0
+houselayout3d,HouseLayout3D: A Benchmark and Training-free Baseline for 3D Layout Estimation in the Wild,1,mm_image,multimodal,0
+ctx_bandits_mcmc_showdown,Feel-Good Thompson Sampling for Contextual Bandits: a Markov Chain Monte Carlo Showdown,0,,other,0
+cellverse,CellVerse: Do Large Language Models Really Understand Cell Biology?,1,text_qa,qa_reason,1
+uav_flow,UAV-Flow Colosseo: A Real-World Benchmark for Flying-on-a-Word UAV Imitation Learning,0,,other,0
+reobench,REOBench: Benchmarking Robustness of Earth Observation Foundation Models,1,text_qa,other,1
+uniedit,UniEdit: A Unified Knowledge Editing Benchmark for Large Language Models,1,text_qa,qa_reason,1
+brace,BRACE: A Benchmark for Robust Audio Caption Quality Evaluation,1,audio,multimodal,0
+perturbench,PerturBench: Benchmarking Machine Learning Models for Cellular Perturbation Analysis,1,text_qa,other,0
+tabarena,TabArena: A Living Benchmark for Machine Learning on Tabular Data,0,,other,0
+situat3dchange,Situat3DChange: Situated 3D Change Understanding Dataset for Multimodal Large Language Model,1,mm_image,multimodal,1
+metre_crmse,All that structure matches does not glitter,0,,other,0
+refed,REFED: A Subject Real-time Dynamic Labeled EEG-fNIRS Synchronized Recorded Emotion Dataset,0,,other,0
+mtbbench,MTBBench: A Multimodal Sequential Clinical Decision-Making Benchmark in Oncology,1,mm_image,multimodal,0
+blink_twice,"BLINK-Twice: You see, but do you observe?  A Reasoning Benchmark on Visual Perception",1,mm_image,multimodal,0
+orbit,ORBIT - Open Recommendation Benchmark for Reproducible Research with Hidden Tests,1,text_qa,other,0
+econgym,EconGym: A Scalable AI Testbed with Diverse Economic Tasks,0,,other,1
+indego,IndEgo: A Dataset of Industrial Scenarios and Collaborative Work for Egocentric Assistants,0,,multimodal,0
+mirage,MIRAGE: A Benchmark for Multimodal Information-Seeking and Reasoning in Agricultural Expert-Guided Conversations,1,mm_image,multimodal,0
+volleybots,VolleyBots: A Testbed for Multi-Drone Volleyball Game Combining Motion Control and Strategic Play,0,,agentic,0
+chasm,CHASM: Unveiling Covert Advertisements on Chinese Social Media,0,,other,0
+pac_bench,PAC Bench: Do Foundation Models Understand Prerequisites for Executing Manipulation Policies?,1,text_qa,qa_reason,1
+moe_cap,"MoE-CAP: Benchmarking Cost, Accuracy and Performance of Sparse Mixture-of-Experts Systems",1,text_qa,other,0
+opens2v_eval,OpenS2V-Nexus: A Detailed Benchmark and Million-Scale Dataset for Subject-to-Video Generation,0,,multimodal,0
+mimeqa,MimeQA: Towards Socially-Intelligent Nonverbal Foundation Models,1,text_qa,other,1
+pring,PRING: Rethinking Protein-Protein Interaction Prediction from Pairs to Graphs,0,,other,0
+finegrain,FineGRAIN: Evaluating Failure Modes of Text-to-Image Models with Vision Language Model Judges,1,mm_image,multimodal,1
+mj_bench,MJ-Bench: Is Your Multimodal Reward Model Really a Good Judge for Text-to-Image Generation?,0,,multimodal,0
+noboom,NoBOOM: Chemical Process Datasets for Industrial Anomaly Detection,0,,qa_reason,0
+edbench,EDBench: Large-Scale Electron Density Data for Molecular Modeling,0,,other,0
+swe_rebench,SWE-rebench: An Automated Pipeline for Task Collection and Decontaminated Evaluation of Software Engineering Agents,1,agent,agentic,1
+ms_bench,MS-Bench: Evaluating LMMs in Ancient Manuscript Study through a Dunhuang Case Study,1,mm_image,other,1
+forensichub,ForensicHub: A Unified Benchmark & Codebase for All-Domain Fake Image Detection and Localization,0,,multimodal,0
+atmossci_bench,AtmosSci-Bench: Evaluating the Recent Advance of Large Language Model for Atmospheric Science,1,text_qa,qa_reason,1
+parallelprompt,PARALLELPROMPT: Extracting Parallelism from Large Language Model Queries,1,text_qa,other,1
+fgbench,FGBench: A Dataset and Benchmark for Molecular Property Reasoning at Functional Group-Level in Large Language Models,1,text_qa,qa_reason,1
+lexicon,LexiCon: a Benchmark for Planning under Temporal Constraints in Natural Language,1,agent,agentic,0
+physics,Scaling Physical Reasoning with the PHYSICS Dataset,1,math,qa_reason,0
+bmmr,BMMR: A Large-Scale Bilingual Multimodal Multi-Discipline Reasoning Dataset,1,mm_image,multimodal,0
+mlr_bench,MLR-Bench: Evaluating AI Agents on Open-Ended Machine Learning Research,1,agent,agentic,1
+smokeviz,SmokeViz: A Large-Scale Satellite Dataset for Wildfire Smoke Detection and Segmentation,0,,other,0
+ssrb,SSRB: Direct Natural Language Querying to Massive Heterogeneous Semi-Structured Data,0,,other,0
+dvl_bench,DynamicVL: Benchmarking Multimodal Large Language Models for Dynamic City Understanding,1,mm_image,multimodal,1
+accelerated_mri_evaluation_suite,Improving Deep Learning for Accelerated MRI With Data Filtering,0,,other,0
+care_pd,Care-PD: A Multi-Site Anonymized Clinical Dataset for Parkinson's Disease Gait Assessment,0,,qa_reason,0
+seasonbench_ea,SeasonBench-EA: A Multi-Source Benchmark for Seasonal Prediction and Numerical Model Post-Processing in East Asia,1,text_qa,math,0
+impromptu_vla,Impromptu VLA: Open Weights and Open Data for Driving Vision-Language-Action Models,1,mm_image,multimodal,0
+3d_rad,3D-RAD: A Comprehensive 3D Radiology Med-VQA Dataset with Multi-Temporal Analysis and Diverse Diagnostic Tasks,1,mm_image,multimodal,0
+3eed,3EED: Ground Everything Everywhere in 3D,0,,multimodal,0
+absencebench,Absence Bench: Language Models Can't See What's Missing,1,text_qa,other,1
+mmperspective,"MMPerspective: Do MLLMs Understand Perspective? A Comprehensive Benchmark for Perspective Perception, Reasoning, and Robustness",1,mm_image,multimodal,1
+a2seek,A2Seek: Towards Reasoning-Centric Benchmark for Aerial Anomaly Understanding,1,text_qa,qa_reason,0
+autoopt_11k,AutoOpt: A Dataset and a Unified Framework for Automating Optimization Problem Solving,0,,other,0
+flarex,FlareX: A Physics-Informed Dataset for Lens Flare Removal via 2D Synthesis and 3D Rendering,0,,multimodal,0
+exact,ExAct: A Video-Language Benchmark for Expert Action Analysis,1,mm_video,multimodal,0
+treefinder,TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery,0,,multimodal,0
+mvu_eval,MVU-Eval: Towards Multi-Video Understanding Evaluation for Multimodal LLMs,1,mm_video,multimodal,1
+escape,A Standardized Benchmark for Multilabel Antimicrobial Peptide Classification,1,text_qa,other,0
+drivaerstar,DrivAerStar: An Industrial-Grade CFD Dataset for Vehicle Aerodynamic Optimization,0,,other,0
+phybench,PHYBench: Holistic Evaluation of Physical Perception and Reasoning in Large Language Models,1,text_qa,qa_reason,1
+phantom,PHANTOM: A Benchmark for Hallucination Detection in Financial Long-Context QA,1,text_qa,qa_reason,0
+burstdeflicker,BurstDeflicker: A Benchmark Dataset for Flicker Removal in Dynamic Scenes,0,,multimodal,0
+flip,FLiP: Towards Comprehensive and Reliable Evaluation of Federated Prompt Learning,1,text_qa,other,0
+webgen_bench,WebGen-Bench: Evaluating LLMs on Generating Interactive and Functional Websites from Scratch,1,agent,agentic,1
+polypsense3d,PolypSense3D: A Multi-Source Benchmark Dataset for Depth-Aware Polyp Size Measurement in Endoscopy,0,,other,0
+cogphys,CogPhys: Assessing Cognitive Load via Multimodal Remote and Contact-based Physiological Sensing,0,,multimodal,0
+parrot,PARROT: A Benchmark for Evaluating LLMs in Cross-System SQL Translation,1,code,code,1
+t1,T1: A Tool-Oriented Conversational Dataset for Multi-Turn Agentic Planning,1,agent,agentic,0
+dave,DAVE: Diagnostic benchmark for Audio Visual Evaluation,1,audio,multimodal,0
+c3_cross_view_cross_modality_correspondence,C3Po: Cross-View Cross-Modality Correspondence by Pointmap Prediction,0,,other,0
+monitrs,MONITRS: Multimodal Observations of Natural Incidents Through Remote Sensing,0,,multimodal,0
+disasterm3,DisasterM3: A Remote Sensing Vision-Language Dataset for Disaster Damage Assessment and Response,1,mm_image,multimodal,0
+physgym,PhysGym: Benchmarking LLMs in Interactive Physics Discovery with Controlled Priors,1,agent,agentic,1
+mmoral_bench,Towards Better Dental AI: A Multimodal Benchmark and Instruction Dataset for Panoramic X-ray Analysis,1,mm_image,multimodal,1
+sat4cryptobench,Bridging Crypto with ML-based Solvers: the SAT Formulation and Benchmarks,1,text_qa,other,0
+effibench_x,EffiBench-X: A Multi-Language Benchmark for Measuring Efficiency of LLM-Generated Code,1,code,code,1
+chartmuseum,ChartMuseum: Testing Visual Reasoning Capabilities of Large Vision-Language Models,1,mm_image,multimodal,1
+camerabench,Towards Understanding Camera Motions in Any Video,0,,multimodal,0
+cmm,"The Curse of Multi-Modalities: Evaluating Hallucinations of Large Multimodal Models across Language, Visual, and Audio",1,audio,multimodal,0
+vivabench,Simulating Viva Voce Examinations to Evaluate Clinical Reasoning in Large Language Models,1,agent,qa_reason,1
+os_harm,OS-Harm: A Benchmark for Measuring Safety of Computer Use Agents,1,agent,agentic,1
+clear,CLEAR: Command Level Annotated Dataset for Ransomware Detection,0,,other,0
+mmig_bench,MMIG-Bench: Towards Comprehensive and Explainable Evaluation of Multi-Modal Image Generation Models,0,,multimodal,0
+matharena,MathArena: Evaluating LLMs on Uncontaminated Math Competitions,1,math,math,1
+videocad,VideoCAD: A Dataset and Model for Learning Long‑Horizon 3D CAD UI Interactions from Video,0,,multimodal,0
+dgcbench,DGCBench:  A Deep Graph Clustering Benchmark,1,text_qa,other,0
+mmdocrag,Benchmarking Retrieval-Augmented Multimomal Generation for Document Question Answering,1,mm_image,multimodal,0
+factorio_learning_environment,Factorio Learning Environment,0,,agentic,0
+mmla,Can Large Language Models Help Multimodal Language Analysis? MMLA: A Comprehensive Benchmark,1,mm_image,multimodal,1
+world_central_banks,Words That Unite The World: A Unified Framework for Deciphering Central Bank Communications,0,,other,0
+lcdb_1_1,LCDB 1.1: A Database Illustrating Learning Curves Are More Ill-Behaved Than Previously Thought,0,,other,0
