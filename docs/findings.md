@@ -118,8 +118,10 @@ control ratings are hard-coded in `experiments/llm_rating/ratings_main.py` and
 the repository in its first commit (165b4c0, 2026-09-23), co-authored by Claude
 Opus 5 in a Claude Code web session, and have not changed since. The rating
 model, its version, the prompt, the date, the sampling settings and how the
-rater was kept from the targets are recorded nowhere. The most likely rater is
-Claude Opus 5 inside that coding session, an inference only. "Blind" means the
+rater was kept from the targets are recorded nowhere. The team confirmed on
+2026-09-28 that the rater was the Claude model of that coding session (the
+commit's trailer names Claude Opus 5); the prompt, date and settings remain
+unrecorded. "Blind" means the
 difficulty was withheld: the item ids carry the benchmark and the texts name
 their domain. The main texts are 63 to 700 characters (median 450) and the
 control texts 274 to 4,000 (median 1,030), so the control's "full text" was
@@ -4859,10 +4861,11 @@ against the observed 0.019.
   byte-identical rebuild needs the same BLAS and thread count as the build
   machine (an 8-core M1 Pro with OpenBLAS 0.3.23.dev, default threading); it
   was not tried elsewhere.
-* **Run 1** was most likely `8e28d930d45b16aee351bfbbc75531a6d12079667793232d4bd74a17f9d47b9f`:
-  the deterministic build of b68492c, byte-identical to a copy written on
-  2026-09-24 before the upload, with every tracked member equal to b68492c.
-  No record says the uploaded file had these bytes.
+* **Run 1** was `8e28d930d45b16aee351bfbbc75531a6d12079667793232d4bd74a17f9d47b9f`:
+  the file downloaded back from the platform's submission page on 2026-09-28
+  has these bytes. It is the deterministic build of b68492c, byte-identical to
+  a copy written on 2026-09-24 before the upload, with every tracked member
+  equal to b68492c (`record` stage, `archives.run1`).
 * **The archive now selected** (a planned run 3) is `4a882cc7…`, built at
   4d2cc4f with the corrected floor and the floored-fit fix. Its run is planned
   as a regression and latency check only; its score is not to select or tune

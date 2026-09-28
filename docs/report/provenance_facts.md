@@ -79,7 +79,7 @@ These are facts for the writer, not report prose. They were gathered on 2026-09-
   - Candidate archive: sha256 `8e28d930d45b16aee351bfbbc75531a6d12079667793232d4bd74a17f9d47b9f`, built 2026-09-24 13:26 +0300 (`scratch/mine/staged.zip`). Identical copies are `scratch/verify_sub/paiec.zip` and `verify_sub/r2/paiec2.zip`.
   - Every code member (`model.py`, 6 `paiec_rt` modules, `requirements.txt`) is byte-identical to `b68492c`, and to `bba726c`, which did not touch them. `prior.json` is the legacy `{coef, spec}` bundle (541 bytes).
   - A variant with `labeling.py` (`verify_sub/r2/paiec_lab.zip`, `0084a247…`) also exists. The draft says the submission ships no `labeling.py`, which points to `8e28d930…`.
-  - Nothing records which file was uploaded.
+  - The file the team downloaded back from the platform's submission page on 2026-09-28 has sha256 `8e28d930…`, so this is the uploaded file (`results/formative_feedback.json`, `archives.run1`).
 - **Run 2** (2026-09-26, ALC 0.192623). The archive is `scratch/step5/wrapup/old/paiec.zip`, sha256 `2c64eaada491cbf85bd54ae190cdbb28f9d0a13870df0dc77a3a850f90cf661f`. The file the team downloaded back from the platform's submission page on 2026-09-28 has the same sha256, so this is the uploaded file (`results/formative_feedback.json`, `archives.run2`).
   - File time 2026-09-26 09:20 +0300, two minutes before commit `ee5085a` (09:22:17 +0300).
   - Every code member is byte-identical to `ee5085a`: `model.py` = `submission/model.py`, the eight `paiec_rt/*.py` = `paiec/*.py`, and `requirements.txt`.
@@ -318,7 +318,7 @@ This session's scratch starts on 2026-09-24, after the ratings existed, and the 
 **Indirect evidence only:**
 - The commit that added the ratings is co-authored by Claude Opus 5 in a Claude Code web session.
 - This session's 2026-09-26 notes (`scratch/rethink2/all.json`) call it "the blind frontier-LLM rating".
-- The most likely rater is therefore Claude Opus 5 inside that coding session. This is an inference. **The user must confirm the model, prompt and date, or the report must say they are undocumented.**
+- The most likely rater is therefore Claude Opus 5 inside that coding session. **The team confirmed on 2026-09-28 that the rater was the Claude model of that session; the prompt and date remain undocumented.**
 
 **Blindness:**
 - **Benchmark identity was not hidden.** The uids carry the benchmark (`ma`, `mu`, `re`, `sw` prefixes; `re` is real_webagents), and the texts name their domain. "Blind" can only mean the difficulty was withheld.
