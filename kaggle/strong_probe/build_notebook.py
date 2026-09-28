@@ -26,7 +26,7 @@ NOTEBOOK = os.path.join(HERE, "paiec_strong_probe.ipynb")
 TARGET = "/tmp/strong_probe.py"          # not /kaggle/working: that directory is the notebook's output
 
 INTRO = """\
-# PAIEC K1: более сильная модель на Kaggle — рубрики и попытки решения
+# PAIEC K1: более сильная модель на Kaggle — рубрики, попытки решения и энтропия рассуждения
 
 Ноутбук сгенерирован из `kaggle/strong_probe/strong_probe.py` скриптом `build_notebook.py`; правьте скрипт, а не ноутбук.
 
@@ -35,7 +35,7 @@ INTRO = """\
 2. Settings → Internet: **On**.
 3. Add-ons → Secrets: секрет **`HF_TOKEN`** (read-токен Hugging Face аккаунта, принявшего условия `aims-foundations/measurement-db`), галочка «attached» у этого ноутбука.
 4. Запуск: **Save Version → Save & Run All (Commit)**, не интерактивный прогон: файлы интерактивной сессии не сохраняются как Output версии, а сама сессия умирает при простое или закрытой вкладке. Коммит идёт в фоне, браузер можно закрыть. Сразу после запуска коммита остановите GPU-сессию редактора (кнопка питания / Stop session), иначе она тоже тратит недельную квоту.
-5. **Один кусок работы на коммит**, с явными `ARGS` в ячейке ниже: `["--jobs", "rubric"]`, затем `["--jobs", "attempts", "--attempt-scope", "probe"]`, затем `["--jobs", "attempts", "--attempt-scope", "rest"]` (README, «Сессии»). Output сохраняется, только если коммит завершился: отменённый, упавший или превысивший 12 ч коммит не сохраняет ничего. Падение самого скрипта теряет только шард в работе: ячейка запуска перезапускает его в той же сессии. Скрипт сам останавливается до 11 ч.
+5. **Один кусок работы на коммит**, с явными `ARGS` в ячейке ниже: `["--jobs", "rubric"]`, затем `["--jobs", "attempts", "--attempt-scope", "probe"]`, затем `["--jobs", "attempts", "--attempt-scope", "rest"]` (README, «Сессии»); коммит D, энтропия на всех четырёх бенчмарках: `["--jobs", "entropy", "--no-prefix-caching"]` (README, «Коммит D»). Перед Save & Run All проверьте Settings → Quota: осталось ли столько GPU-часов, сколько `plan` пишет в строке `Settings -> Quota shows at least ...` (для D ≈ 10.5); `plan` не видит часов, уже потраченных на этой неделе, а коммит, остановленный квотой, не сохраняет ничего. Output сохраняется, только если коммит завершился: отменённый, упавший или превысивший 12 ч коммит не сохраняет ничего. Падение самого скрипта теряет только шард в работе: ячейка запуска перезапускает его в той же сессии. Скрипт сам останавливается до 11 ч.
 
 **Продолжение после остановки**: Add Input → Your Work → Output предыдущей версии этого ноутбука (в панели Input проверьте, что прикреплена **последняя** версия: прикреплённый Output закреплён на той версии, которую выбрали при добавлении), затем снова Save & Run All. В логе строка `to do:` должна показать меньше задач, чем в прошлый раз. Если Kaggle не даёт прикрепить Output самого ноутбука, сделайте его копию и прикрепите к копии Output оригинала: подойдёт любой `/kaggle/input/**/strong_probe`.
 
@@ -71,6 +71,7 @@ import collections, signal, threading
 SCRIPT = "{target}"
 # Options for every command: one piece of work per commit (README, "Сессии"), e.g. ["--jobs", "rubric"], then
 # ["--jobs", "attempts", "--attempt-scope", "probe"], then ["--jobs", "attempts", "--attempt-scope", "rest"];
+# commit D (README, "Коммит D"): ["--jobs", "entropy", "--no-prefix-caching"];
 # or ["--model", "Qwen/Qwen3-32B-AWQ", "--jobs", "rubric"], ["--backend", "hf"] (rubric only, no vLLM).
 ARGS = []
 LOG_TAIL = []                     # the last lines of the latest command's output (the RUN cell reads them)
@@ -239,8 +240,8 @@ print(f"/kaggle/working holds {n} files and directories; Kaggle saves at most 50
 OUTRO = """\
 ## Дальше
 
-Скачайте Output (вкладка Output или `kaggle kernels output <user>/paiec-strong-probe -p ./kaggle_out`) и положите содержимое `strong_probe/<модель>/export/` в `data/features/kaggle/` репозитория, затем локально:
-`python experiments/strong_llm_eval.py --stage check-schema` и остальные стадии (см. README.md); для `experiments/harness.py` признаки по одному файлу даёт `python kaggle/strong_probe/strong_probe.py split-harness --export-dir data/features/kaggle`."""
+Скачайте Output (вкладка Output или `kaggle kernels output <user>/paiec-strong-probe -p ./kaggle_out`) и положите содержимое `strong_probe/<модель>/export/` в `data/features/kaggle/` репозитория (экспорт коммита D с `entropy/` — в отдельную `data/features/kaggle_d/`, см. README «Коммит D»), весь Output — в `data/features/kaggle_raw/<run>/`, затем локально:
+`python experiments/strong_llm_eval.py --stage check-schema` и остальные стадии (см. README.md); для `experiments/harness.py` признаки по одному файлу даёт `python kaggle/strong_probe/strong_probe.py split-harness --export-dir data/features/kaggle`. Признаки энтропии (`entropy_*`) `split-harness` не раскладывает: их читает только `strong_llm_eval.py --job entropy` по правилу `ENTROPY_RULE` (README, «Коммит D»)."""
 
 
 def _pin(src, name):

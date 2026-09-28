@@ -64,15 +64,42 @@ Jobs
             attempt's canonical answer only as a hash (canon_sha): the model's own
             answers are in the output, but nothing there says which of them is
             right (LEAK_COLS; the local side grades against items.parquet).
+  entropy   the 14B's reasoning entropy on all four parents, cheaply (commit D in README):
+            the rubric's units (the same unique items of the same parents,
+            --entropy-benchmarks; swe_rebench left out as there), round-robin over the
+            benchmarks (each benchmark's units in the rubric's fixed hash order, then one of
+            each benchmark in turn), so any prefix covers the four evenly. One generic prompt
+            for every benchmark, thinking ON, no system prompt: the task text (item_content,
+            cut to --task-tokens by head and tail around MARKER exactly as the rubric cuts
+            it), a blank line and ENTROPY_INSTRUCTION, a neutral request to think through how
+            to solve it (no answer format, no benchmark wording; the template ENTROPY_USER is
+            in the job config). One sample per unit with the attempts' sampling
+            (ATTEMPT_SAMPLING, presence penalty included), at most ENTROPY_MAX_TOKENS (1024)
+            new tokens, a fixed seed per unit (entropy_seed), RawRecorder on, no forced
+            readout. Per unit: ent_first256 / ent_first1024, the mean raw full-vocabulary
+            entropy over the first 256 / 1024 generated tokens (all of them if fewer), and
+            lp_first256 / lp_first1024, the mean raw log-prob of the sampled tokens over
+            the same windows (the attempts' columns of the same names, defined the same
+            way, so matharena's values are comparable with theirs); the length, whether the
+            thinking closed within the cap, a degenerate-text flag, the prompt's and the
+            task's token counts. Each shard also sends one greedy request of
+            ENTROPY_CHECK_TOKENS (32) tokens on its first prompt, whose engine log-probs are
+            raw: the recorder check, as the attempts' forced readouts give it
+            (RECORDER_TOL). Shards are cut by count (--entropy-shard, at most
+            --max-num-seqs) and by KV tokens (prompt + ENTROPY_MAX_TOKENS summed, at most
+            --entropy-shard-tokens and 0.9 of the estimated KV cache), so V0 never
+            preempts. The job's config carries its own ENTROPY_VERSION instead of VERSION,
+            so the rubric's and the attempts' config hashes (and their shards) are
+            untouched by it.
 
 Token statistics (tok_entropy, tok_lp and their spans, lp_boxed, lp_answer) are
 those of the RAW model distribution, as the attempt probe's D2 lead measured them
 (experiments/attempt_probe.Recorder): vLLM's V0 engine (0.9.x on a T4) returns
 logprobs only after the presence penalty, temperature and top-k/top-p (the penalty
 depends on the tokens generated so far, so their entropy drifts with position), so
-every attempt and forced request carries a V0 per-request logits processor
-(RawRecorder) that records, from the raw logits row, the full-vocabulary entropy
-and the sampled token's log-prob. A greedy request's engine logprobs are raw too;
+every attempt, forced and entropy request carries a V0 per-request logits
+processor (RawRecorder) that records, from the raw logits row, the
+full-vocabulary entropy and the sampled token's log-prob. A greedy request's engine logprobs are raw too;
 every shard compares the two on the forced readouts (recorder_check in the
 manifest). Without the recorder (vLLM V1, >= 0.11) the export falls back to the
 engine's top-5 logprobs, the remaining mass as one bucket (a lower bound), and the
@@ -105,13 +132,15 @@ as an input, and `kaggle kernels output` lists at most 500, so a shard is not a
 file: every run process appends its shards to one segment per kind, rewritten
 atomically after each shard and rotated at SEG_BYTES, and compaction merges
 segments into few files (at the start and end of `run`, and before any shard once
-the saved output holds MAX_FILES entries; FileGuard). A full run leaves about 20
-files; the tests drive the worst case (a file per shard, several sessions, retries,
-new configs) and require the count to stay under the guard.
+the saved output holds MAX_FILES entries; FileGuard). A full run of the three jobs
+leaves about 25 entries; the tests drive the worst case (a file per shard, several
+sessions, retries, new configs) and require the count to stay under the guard.
   <model>/rubric/items-<run>-<nnn>.parquet     one row per unique item (unit)
   <model>/attempts/items-<run>-<nnn>.parquet   one row per unique text
   <model>/attempts/samples-<run>-<nnn>.parquet one row per attempt, with its text
                                                and per-token sequences
+  <model>/entropy/items-<run>-<nnn>.parquet    one row per unit, with its text and the
+                                               raw per-token sequences
       (<run>: the process's run id, c<run><n> for a compacted segment; the k1.2
       layout's items_NNNNN / samples_NNNNN.parquet, one file per shard, is read
       the same way and compacted into this one at the start of `run`)
@@ -124,16 +153,25 @@ new configs) and require the count to stay under the guard.
                                (sha256 of item_content + "\\n" + item_features, as
                                paiec.llmfeat.item_text) and the features
     attempts/attempts.parquet  one row per (benchmark, item_id, attempt)
-    _keys.parquet      (benchmark, item_id) -> key, text_key (paiec.predict.
+    entropy/entropy.parquet    one row per (benchmark, item_id): content_sha256, the four
+                               features (ent_first256, ent_first1024, lp_first256,
+                               lp_first1024) and the ent_* diagnostics (ENTROPY_DIAG: named
+                               apart from the rubric's prompt_tokens / task_tokens, which the
+                               local side merges with them by column name)
+    _keys.parquet      (job, benchmark, item_id) -> key, text_key (paiec.predict.
                        item_key as paiec.llmfeat stores them), content_sha,
                        the dataset's content_hash
     _detail/           the unit tables (digit probabilities, aggregated attempt
-                       features) and every attempt's text and token sequences
+                       features, entropy units) and every attempt's and entropy
+                       sample's text and token sequences
     _harness.json      {<job>_<feature>: {item_id: x}}, + = harder; split-harness
                        writes one _harness/<name>.json per feature for
-                       python experiments/harness.py --stage eval --cov ...
+                       python experiments/harness.py --stage eval --cov ...,
+                       except the entropy job's (SPLIT_SKIP: read only through
+                       experiments/strong_llm_eval.py --job entropy)
   manifest.json      config, engine, versions, progress, throughput, file counts,
-                     and the segment files compaction merged away (`absorbed`)
+                     every job config by its hash (`job_configs`), and the segment
+                     files compaction merged away (`absorbed`)
 
 Resuming. Work is cut into shards; a unit counts as done when an items row with
 the same job config hash holds it, so a crash of the script (an exception, the
@@ -151,13 +189,17 @@ finish by --session-hours, a watchdog kills the process at the hard limit (exit
 `run` exits 75 when it stopped with work left. Self-checks stop a run whose output
 would be useless (exit 77, not retried: the rubric's first shard parses under
 RUBRIC_MIN_PARSE; the attempts' first shard fails the recorder check, is mostly
-degenerate text, or yields no answer at all); setup errors exit 78.
+degenerate text, or yields no answer at all; the entropy job's first shard fails
+its recorder check or has none (status n/a), carries a sample whose token statistics
+are not the raw full-vocabulary ones, is mostly degenerate text, or generated
+nothing); setup errors exit 78.
 
 Commands
-  python strong_probe.py plan    [--jobs rubric,attempts] ...  data, items, prompts, budget (CPU)
-  python strong_probe.py run     [--jobs rubric,attempts] ...  generate (GPU), resumable
+  python strong_probe.py plan    [--jobs rubric,attempts,entropy] ...  data, items, prompts, budget (CPU)
+  python strong_probe.py run     [--jobs rubric,attempts,entropy] ...  generate (GPU), resumable
   python strong_probe.py export                                 rebuild export/ from the shards
-  python strong_probe.py split-harness --export-dir DIR         _harness.json -> _harness/<name>.json (local)
+  python strong_probe.py split-harness --export-dir DIR         _harness.json -> _harness/<name>.json (local;
+                                                                not the entropy_* features)
 
 Local check (no GPU, no download): python -m pytest -q tests/test_kaggle_probe.py
 runs the whole pipeline on real local items with a mock backend.
@@ -191,7 +233,8 @@ HASH_DEF = ("sha256 hex of utf-8(item_content + '\\n' + item_features), both as 
 DATA_REPO = "aims-foundations/measurement-db"
 PARENTS = ("matharena", "multi_swebench", "real_webagents", "researchcodebench")
 BENCHES = PARENTS + ("swe_rebench",)
-TABLES = ("items", "response", "subjects", "benchmarks")
+JOBS = ("rubric", "attempts", "entropy")
+TABLES =("items", "response", "subjects", "benchmarks")
 ITEM_FIELDS = ("item_content", "item_features", "interactors", "benchmark_id")
 ON_KAGGLE = os.path.isdir("/kaggle/working")
 DEFAULT_OUT = "/kaggle/working/strong_probe" if ON_KAGGLE else os.path.join(os.getcwd(), "strong_probe_out")
@@ -207,11 +250,19 @@ TRANSFORMERS_PIN = "4.53.2"
 
 #: repo -> revision (commit sha), size and shape from HfApi().model_info (2026-09-27),
 #: and the throughput assumed on 2x T4 before a run measures its own (tokens/s,
-#: aggregate: prefill; decode of long attempts; decode of the rubric's short answers)
+#: aggregate: prefill; decode of long attempts; decode of the rubric's short answers).
+#: The 14B's prefill_nocache and decode_entropy are set from its first commit (README,
+#: "Измерено на первом коммите"): the rubric prefilled 999 prompt tokens/s without prefix
+#: caching; the attempts generated 138 tokens/s (forced readouts' time included; 138-160
+#: over shards) at 20 concurrent sequences of ~4.2k tokens. decode_entropy assumes 180
+#: (about 1.2x) for the entropy job's up to 48 concurrent sequences of ~1.5k tokens; its
+#: slow case (ENTROPY_SLOW) is 135, no gain from the concurrency at all. Other models:
+#: prefill_nocache = prefill, decode_entropy = decode (unmeasured).
 MODELS = {
     "Qwen/Qwen3-14B-AWQ": dict(revision="31c69efc29464b6bb0aee1398b5a7b50a99340c3", quantization="awq",
                                weights_gb=9.98, layers=40, kv_heads=8, head_dim=128,
-                               prefill=1200, decode=300, decode_short=600),
+                               prefill=1200, decode=300, decode_short=600,
+                               prefill_nocache=1000, decode_entropy=180),
     "Qwen/Qwen3-32B-AWQ": dict(revision="0499c3ac83fdef8810b907a23894ba91e95eddd8", quantization="awq",
                                weights_gb=19.33, layers=64, kv_heads=8, head_dim=128,
                                prefill=500, decode=110, decode_short=250),
@@ -227,6 +278,10 @@ HF_FALLBACK_MODEL = "Qwen/Qwen3-8B"
 WEEKLY_GPU_H = 30.0
 SESSION_OVERHEAD_H = 0.4         # per commit: install, model download and load, export
 SMOKE_H = 0.7                    # the smoke run (README step 6), in the quota arithmetic
+#: what one commit may take of the weekly quota beyond its planning figure (slow case plus start-up): a retried
+#: engine start (the prefix-caching retry, the init watchdog) and a slower tail; the plan prints the sum as the
+#: quota Kaggle must still show (Settings -> Quota) before Save & Run All, since it cannot see the hours already used
+QUOTA_MARGIN_H = 0.8
 #: exit codes: stopped at the session deadline with work left; the engine did not start (init watchdog);
 #: a self-check stopped the run; a setup error (no GPU, no token, a failed download). The RUN cell retries
 #: only other failures (and 76).
@@ -365,6 +420,54 @@ STATS_DEF = {STATS_RAW: "the raw model distribution (before penalties, temperatu
                              "token's raw log-prob; entropy a lower bound, the remaining mass as one outcome",
              STATS_PROC: "the engine's top-5 logprobs AFTER penalties, temperature and top-k/top-p (vLLM "
                          "V0 without the recorder): not comparable with D2"}
+# --- the entropy job ---------------------------------------------------------------------------
+
+#: what the entropy job computes (prompt, window, readout): in its job config in place of VERSION, so
+#: changing either never touches the other jobs' config hashes
+ENTROPY_VERSION = "e1.0"
+ENTROPY_INSTRUCTION = "Think through how you would solve this task."
+#: the user message (no system prompt, thinking on): the task text as the rubric cuts it, then the instruction
+ENTROPY_USER = TASK_PH + "\n\n" + ENTROPY_INSTRUCTION
+ENTROPY_MAX_TOKENS = 1024
+ENTROPY_WINDOWS = (256, 1024)
+ENTROPY_LOGPROBS = 1             # engine logprobs of the sampled requests: only the *_engine diagnostics
+ENTROPY_CHECK_TOKENS = 32        # the recorder check: one greedy request of this many tokens per shard
+#: the first shard's self-check: the share of its samples (those that generated a token) whose statistics must be
+#: the raw full-vocabulary ones; the local side reads the features only when every unit's are (logprobs 'raw')
+ENTROPY_MIN_RAW = 1.0
+#: shard defaults: units per generate call (and at most --max-num-seqs), and prompt + ENTROPY_MAX_TOKENS
+#: summed over them (and at most 0.9 of the estimated KV cache: the first commit measured 100,672 tokens at
+#: --gpu-mem 0.9, 6,292 blocks of 16), so V0 never preempts a sequence by recompute
+ENTROPY_SHARD, ENTROPY_SHARD_TOKENS = 48, 80_000
+#: budget: every unit generates ENTROPY_MAX_TOKENS (thinking at 1,024 tokens almost never closes: the
+#: attempts closed 6% of the time at 4,096); prefill always uncached (prefix caching fails on sm75, and the
+#: prompts share no prefix beyond the chat header); the slow case decodes at ENTROPY_SLOW of the assumed
+#: rate; each shard's check request prefills one prompt and decodes ENTROPY_CHECK_TOKENS steps alone
+ENTROPY_GEN_FRAC = 1.0
+ENTROPY_SLOW = 0.75
+ENTROPY_CHECK_STEP_S = 0.15      # s per step of a lone greedy sequence (the attempts' step at 20 was ~0.145)
+#: exported feature -> (declared sign against difficulty, + = harder; definition)
+ENTROPY_EXPORT = {
+    "ent_first256": (1, "mean raw full-vocabulary next-token entropy (nats) over the first 256 generated tokens "
+                        "(all of them if fewer)"),
+    "ent_first1024": (1, "mean raw full-vocabulary next-token entropy (nats) over the first 1024 generated tokens "
+                         "(all of them if fewer)"),
+    "lp_first256": (-1, "mean raw log-prob of the sampled tokens over the first 256 generated tokens"),
+    "lp_first1024": (-1, "mean raw log-prob of the sampled tokens over the first 1024 generated tokens"),
+}
+#: the one feature named before any output existed: the attempts' fixed window (their ent_first1024 gave
+#: within-competition rho 0.30-0.37), and the whole of a 1,024-token sample
+ENTROPY_PRIMARY = "ent_first1024"
+#: exported diagnostics (no sign) -> (dtype, definition); `ent_` keeps them apart from the rubric's columns
+ENTROPY_DIAG = {
+    "ent_n_tokens": ("int64", "generated tokens (at most 1024)"),
+    "ent_closed": ("bool", "the thinking closed (</think>) within the 1024 tokens"),
+    "ent_degenerate": ("bool", "one character is most of the text (fp16 overflow's '!!!!')"),
+    "ent_prompt_tokens": ("int64", "prompt tokens, chat template included"),
+    "ent_task_tokens": ("int64", "the task text's tokens before the cut"),
+    "ent_truncated": ("bool", "the task text was cut to --task-tokens"),
+}
+
 #: the attempt probe's 160 matharena items (attempt-signal design a7; 147 unique texts)
 PROBE_IDS = frozenset("""
 676126bc9dd5e0fa 98b1be1d26b06e39 190a332a629869f9 3ef28cfdfcaa878b a4da728a82994f33 6fabe6323b98e041
@@ -582,30 +685,48 @@ def item_dict(row) -> dict:
             "interactors": "", "benchmark_id": _clean(row.benchmark_id)}
 
 
+def unique_items(data_dir: str, bench: str) -> list[dict]:
+    """The unique items of one benchmark (by predict.item_key, as
+    experiments/llm_features.unique_items), each with every item_id it stands for,
+    in a fixed hash order."""
+    it = read_items(data_dir, bench)
+    by = {}
+    for row in it.itertuples(index=False):
+        item = item_dict(row)
+        k = item_key_hex(item)
+        u = by.get(k)
+        if u is None:
+            u = by[k] = dict(unit=k, benchmark=bench, key=k, text_key=text_key_hex(item),
+                             content=item["item_content"], features=item["item_features"],
+                             content_sha256=content_sha256(item), content_sha=sha(item["item_content"], 16),
+                             content_hash=_clean(row.content_hash), item_ids=[])
+        u["item_ids"].append(str(row.item_id))
+    us = sorted(by.values(), key=lambda u: order_hash(bench, u["key"]))
+    for u in us:
+        u["item_ids"].sort()
+    return us
+
+
 def rubric_units(data_dir: str, benches, limit: int | None = None) -> list[dict]:
-    """The unique items of each benchmark (by predict.item_key, as
-    experiments/llm_features.unique_items), each with every item_id it stands for;
-    interleaved over benchmarks in a fixed hash order (limit: per benchmark)."""
+    """The unique items of each benchmark (unique_items), interleaved over
+    benchmarks in a fixed hash order (limit: per benchmark)."""
     out = []
     for b in benches:
-        it = read_items(data_dir, b)
-        by = {}
-        for row in it.itertuples(index=False):
-            item = item_dict(row)
-            k = item_key_hex(item)
-            u = by.get(k)
-            if u is None:
-                u = by[k] = dict(unit=k, benchmark=b, key=k, text_key=text_key_hex(item),
-                                 content=item["item_content"], features=item["item_features"],
-                                 content_sha256=content_sha256(item), content_sha=sha(item["item_content"], 16),
-                                 content_hash=_clean(row.content_hash), item_ids=[])
-            u["item_ids"].append(str(row.item_id))
-        us = sorted(by.values(), key=lambda u: order_hash(b, u["key"]))
-        for u in us:
-            u["item_ids"].sort()
+        us = unique_items(data_dir, b)
         out += us[:limit] if limit else us
-        del it, by
     return sorted(out, key=lambda u: order_hash("rubric", u["key"]))
+
+
+def entropy_units(data_dir: str, benches, limit: int | None = None) -> list[dict]:
+    """The rubric's units (unique_items of the same benchmarks, the same limit per
+    benchmark), round-robin: the first unit of each benchmark in the order given,
+    then the second of each, and so on (a benchmark that runs out drops out), so
+    any prefix covers the benchmarks evenly."""
+    per = []
+    for b in benches:
+        us = unique_items(data_dir, b)
+        per.append(us[:limit] if limit else us)
+    return [p[i] for i in range(max(map(len, per), default=0)) for p in per if i < len(p)]
 
 
 def reference_answer(gc):
@@ -772,6 +893,12 @@ def attempt_prompt(tok, max_task_tokens):
 
 def attempt_task(content: str) -> str:
     return content if "\\boxed" in content else f"{content}\n\n{BOXED_INSTRUCTION}"
+
+
+def entropy_prompt(tok, max_task_tokens):
+    """ENTROPY_USER, thinking on: the task (item_content) is cut by head_tail to
+    max_task_tokens around MARKER, token for token as the rubric's prompt cuts it."""
+    return ChatPrompt(tok, None, ENTROPY_USER, enable_thinking=True, max_task_tokens=max_task_tokens)
 
 
 # --- generation --------------------------------------------------------------------------------
@@ -1347,6 +1474,63 @@ def attempt_aggregate(recs: list[dict], golds) -> dict:
         correct=correct, canons=can)
 
 
+def entropy_features(s: Sample) -> dict:
+    """One entropy sample: the token statistics (the raw distribution's where
+    recorded: Sample.stats) over the first ENTROPY_WINDOWS tokens (all of them if
+    fewer; NaN for an empty sample), over everything, the engine's as
+    diagnostics, and the text, its length, whether the thinking closed and
+    whether it is degenerate, with the per-token sequences (float16)."""
+    lp, ent, source = s.stats()
+    lp_e, ent_e = np.asarray(s.lp, np.float64), np.asarray(s.ent, np.float64)
+    closed, n_think, _ = think_split(s)
+    text = s.text
+    out = dict(n_tokens=len(s.token_ids), finish_reason=s.finish_reason, capped=s.finish_reason == "length",
+               closed=bool(closed), n_think=int(n_think), degenerate=bool(degenerate(text)))
+    for w in ENTROPY_WINDOWS:
+        out[f"ent_first{w}"] = _mean(ent[:w])
+        out[f"lp_first{w}"] = _mean(lp[:w])
+    out.update(tok_entropy=_mean(ent), tok_lp=_mean(lp), stats_source=source, tok_entropy_engine=_mean(ent_e),
+               tok_lp_engine=_mean(lp_e), engine_logprobs=s.engine_logprobs, text=text, lp_seq=f16(lp),
+               ent_seq=f16(ent))
+    return out
+
+
+def entropy_seed(unit: str, seed: int) -> int:
+    """The entropy sample's seed: fixed per unit (and --seed), unlike any attempt's."""
+    return int(hashlib.sha256(f"entropy|{unit}|{seed}".encode()).hexdigest()[:8], 16) % (2 ** 31 - 1)
+
+
+def entropy_self_check(recs: list[dict], recorder_status: str) -> list:
+    """What is wrong with a first entropy shard, if anything: the recorder check
+    failed, or did not run (no greedy token compared: status 'n/a', e.g. vLLM V1
+    or a recorder that never ran, so the raw statistics are unverified); a
+    sample's token statistics are not the raw full-vocabulary ones (fewer than
+    ENTROPY_MIN_RAW of the samples that generated a token: the local side reads
+    the features only when every unit's are, logprobs 'raw'); most texts are
+    degenerate (fp16 overflow); or nothing was generated. The job exists for the
+    raw statistics, so a run without them stops here (exit 77) instead of
+    spending the commit on features nobody reads."""
+    bad = []
+    if recorder_status == "FAILED":
+        bad.append("the recorder check failed (raw log-probs misaligned with the engine's on greedy tokens)")
+    elif recorder_status != "ok":
+        bad.append(f"the recorder check did not run (status {recorder_status!r}: no greedy token compared, e.g. vLLM "
+                   "V1 or a recorder that never ran), so the raw statistics are unverified")
+    gen = [r for r in recs if r["n_tokens"]]
+    src = Counter(r.get("stats_source") for r in gen)
+    raw = src.get(STATS_RAW, 0) / len(gen) if gen else 1.0
+    if raw < ENTROPY_MIN_RAW:
+        bad.append(f"{1 - raw:.0%} of the samples' token statistics are not the raw full-vocabulary ones "
+                   f"({dict(src)}): strong_llm_eval reads the entropy features only when every unit's are "
+                   "(logprobs 'raw')")
+    deg = float(np.mean([r["degenerate"] for r in recs])) if recs else 0.0
+    if deg >= MAX_DEGENERATE:
+        bad.append(f"{deg:.0%} of the texts are degenerate (one character most of the text)")
+    if recs and not any(r["n_tokens"] for r in recs):
+        bad.append("no unit generated a token")
+    return bad
+
+
 # --- shards, restore, manifest ---------------------------------------------------------------------
 
 #: Kaggle saves at most 500 files of a notebook's output, mounts at most 500 of an output attached as an
@@ -1365,7 +1549,7 @@ KAGGLE_WORKING = "/kaggle/working"
 #: items-<run>-<nnn>.parquet
 SEG_NAME_RE = re.compile(r"^(items|samples)(?:_\d{5}|-[a-z0-9]+-\d{3,})\.parquet$")
 LEGACY_NAME_RE = re.compile(r"^(items|samples)_\d{5}\.parquet$")
-SHARD_RE = re.compile(r"^[^/]+/(rubric|attempts)/((items|samples)(?:_\d{5}|-[a-z0-9]+-\d{3,})\.parquet)$")
+SHARD_RE = re.compile(r"^[^/]+/(%s)/((items|samples)(?:_\d{5}|-[a-z0-9]+-\d{3,})\.parquet)$" % "|".join(JOBS))
 #: columns that, next to the model's answers, would reveal the reference answer: never written, and dropped
 #: from anything read back (a k1.2 store wrote them)
 LEAK_COLS = ("correct", "canon", "graded", "graded_natural", "top_correct")
@@ -1480,7 +1664,7 @@ class Store:
 
 def job_dirs(out_root: str) -> list:
     return sorted(d for d in glob.glob(os.path.join(out_root, "*", "*"))
-                  if os.path.isdir(d) and os.path.basename(d) in ("rubric", "attempts"))
+                  if os.path.isdir(d) and os.path.basename(d) in JOBS)
 
 
 def note_absorbed(out_root: str, names) -> None:
@@ -1564,7 +1748,8 @@ def merge_manifest(out_root: str, src_manifest: str) -> None:
     """Carry an earlier output's history into this one's manifest, which may exist
     already (plan writes it first): the sessions of both without exact duplicates,
     in start order, wall_s_total over them, and the union of `absorbed`; for
-    models / plan / anything else this output's own entries win."""
+    models / plan / job_configs (per key) and anything else this output's own
+    entries win."""
     src = read_json(src_manifest)
     if not src:
         return
@@ -1578,7 +1763,7 @@ def merge_manifest(out_root: str, src_manifest: str) -> None:
             sessions.append(s)
     sessions.sort(key=lambda s: float(s.get("t0") or 0.0) if isinstance(s, dict) else 0.0)
     merged = {**src, **here}
-    for k in ("models", "plan"):
+    for k in ("models", "plan", "job_configs"):
         if isinstance(src.get(k), dict) or isinstance(here.get(k), dict):
             merged[k] = {**(src.get(k) or {}), **(here.get(k) or {})}
     merged["sessions"] = sessions
@@ -1640,8 +1825,21 @@ def model_slug(model: str, backend: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "__", model) + ("__hf" if backend == "hf" else "")
 
 
+def entropy_sampling(args) -> dict:
+    return {**ATTEMPT_SAMPLING, "presence_penalty": args.presence_penalty}
+
+
 def job_cfg(args, job: str) -> dict:
-    """What changes a job's results (its hash marks the shards)."""
+    """What changes a job's results (its hash marks the shards). The entropy job
+    carries ENTROPY_VERSION, not VERSION: the rubric's and the attempts' configs
+    (and so their shards' hashes) are what they were before it existed."""
+    if job == "entropy":
+        return dict(entropy_version=ENTROPY_VERSION, job=job, model=args.model, revision=args.revision,
+                    backend=args.backend, quantization=args.quantization, task_tokens=args.task_tokens,
+                    marker=MARKER, system=None, user=ENTROPY_USER, instruction=ENTROPY_INSTRUCTION, thinking=True,
+                    max_tokens=ENTROPY_MAX_TOKENS, n=1, sampling=entropy_sampling(args), logprobs=ENTROPY_LOGPROBS,
+                    record_raw=True, force=False, windows=list(ENTROPY_WINDOWS), seed=args.seed,
+                    seed_rule="sha256('entropy|<unit>|<seed>')[:8] as int mod 2^31-1")
     base = dict(version=VERSION, job=job, model=args.model, revision=args.revision, backend=args.backend,
                 quantization=args.quantization, task_tokens=args.task_tokens)
     if job == "rubric":
@@ -1656,9 +1854,14 @@ def job_cfg(args, job: str) -> dict:
 
 
 def rates(args) -> dict:
+    """Tokens/s assumed: prefill (with prefix caching's help where the job has a
+    shared prefix), decode of long attempts, of the rubric's short answers; the
+    entropy job's uncached prefill and its decode (MODELS)."""
     m = MODELS.get(args.model, dict(prefill=1000, decode=250, decode_short=500))
     return {"prefill": args.prefill_rate or m["prefill"], "decode": args.decode_rate or m["decode"],
-            "decode_short": args.decode_rate_short or m["decode_short"]}
+            "decode_short": args.decode_rate_short or m["decode_short"],
+            "prefill_nocache": args.prefill_rate or m.get("prefill_nocache", m["prefill"]),
+            "decode_entropy": args.decode_rate_entropy or m.get("decode_entropy", m["decode"])}
 
 
 # --- budget ---------------------------------------------------------------------------------------
@@ -1692,20 +1895,112 @@ def kv_tokens(args) -> float | None:
     return max(per_gpu, 0) / per_tok
 
 
+def entropy_shard_limits(args) -> tuple:
+    """(units, KV tokens) per entropy shard: --entropy-shard units, at most
+    --max-num-seqs (all of a shard's sequences run at once), and prompt +
+    ENTROPY_MAX_TOKENS summed at most --entropy-shard-tokens and 0.9 of the
+    estimated KV cache (which a retry's smaller --gpu-mem shrinks)."""
+    kv = kv_tokens(args)
+    budget = int(args.entropy_shard_tokens)
+    if kv:
+        budget = min(budget, int(0.9 * kv))
+    return max(1, min(args.entropy_shard, args.max_num_seqs)), max(budget, 1)
+
+
+def entropy_shards(units, build, max_units: int, budget: int, gen: int = ENTROPY_MAX_TOKENS):
+    """(units, built prompts) per shard, in order: a shard closes before the unit
+    that would take it past max_units or past `budget` tokens (its prompts plus
+    `gen` each); a unit larger than the budget alone is a shard of its own."""
+    shard, built, used = [], [], 0
+    for u in units:
+        b = build(u)
+        need = len(b[0]) + gen
+        if shard and (len(shard) >= max_units or used + need > budget):
+            yield shard, built
+            shard, built, used = [], [], 0
+        shard.append(u)
+        built.append(b)
+        used += need
+    if shard:
+        yield shard, built
+
+
+def entropy_secs(prompt_tokens: float, n_units: int, n_shards: int, r: dict, decode: float,
+                 check_prompt_tokens: float | None = None, step_s: float = ENTROPY_CHECK_STEP_S) -> float:
+    """The entropy job's seconds: every prompt prefilled uncached, every unit
+    generating ENTROPY_MAX_TOKENS * ENTROPY_GEN_FRAC at `decode` tokens/s, and per
+    shard a check request (one prompt's prefill, by default the mean prompt, and
+    ENTROPY_CHECK_TOKENS lone steps of step_s)."""
+    cp = prompt_tokens / max(n_units, 1) if check_prompt_tokens is None else check_prompt_tokens
+    return ((prompt_tokens + n_shards * cp) / r["prefill_nocache"]
+            + n_units * ENTROPY_MAX_TOKENS * ENTROPY_GEN_FRAC / decode
+            + n_shards * ENTROPY_CHECK_TOKENS * step_s)
+
+
 #: the recommended split into commits (README, "Сессии"): each piece its own commit, so a lost commit (cancelled,
 #: died, past 12 h: it saves nothing) costs one piece; the probe's result decides whether the rest is worth it
 SESSION_PIECES = (("rubric", ["--jobs", "rubric"]),
                   ("probe", ["--jobs", "attempts", "--attempt-scope", "probe"]),
-                  ("rest", ["--jobs", "attempts", "--attempt-scope", "rest"]))
+                  ("rest", ["--jobs", "attempts", "--attempt-scope", "rest"]),
+                  ("entropy", ["--jobs", "entropy", "--no-prefix-caching"]))
+ENTROPY_ASSUMPTION = (
+    "prefill uncached at prefill_nocache (the 14B's rubric: 999 prompt tok/s without prefix caching); decode at "
+    "decode_entropy, assumed about 1.2x the attempts' measured 138-160 generated tok/s (20 sequences of ~4.2k "
+    "tokens; the entropy job runs up to 48 of ~1.5k); slow case at ENTROPY_SLOW of it, i.e. no gain from the "
+    "concurrency (below the attempts' measured floor); every unit at the 1024-token cap; each shard's check: one "
+    "prompt's prefill and 32 lone greedy steps")
 
 
-def plan_budget(args, tok, units_r, units_a) -> dict:
+def plan_entropy(args, tok, units_e, usable: float) -> dict:
+    """The entropy job's budget: exact prompt tokens (the model's tokenizer),
+    shards as entropy_shards cuts them, hours at the assumed decode rate and in
+    the slow case, and whether a commit (usable hours) holds it; if not, how
+    many units one commit covers."""
+    r = rates(args)
+    p = entropy_prompt(tok, args.task_tokens)
+    lens, trunc, per_b, task_tok = [], 0, Counter(), 0
+    for u in units_e:
+        ids, info = p.build(u["content"])
+        lens.append(len(ids))
+        trunc += info["truncated"]
+        task_tok += info["task_tokens"]
+        per_b[u["benchmark"]] += 1
+    max_units, budget = entropy_shard_limits(args)
+    sizes = [len(s) for s, _ in entropy_shards(range(len(lens)), lambda i: (range(lens[i]), None),
+                                               max_units, budget)]
+    n, pt = len(lens), float(sum(lens))
+    dec, dec_slow = r["decode_entropy"], r["decode_entropy"] * ENTROPY_SLOW
+    step_slow = ENTROPY_CHECK_STEP_S / ENTROPY_SLOW
+    secs = entropy_secs(pt, n, len(sizes), r, dec)
+    secs_slow = entropy_secs(pt, n, len(sizes), r, dec_slow, step_s=step_slow)
+    per_unit_slow = secs_slow / max(n, 1)
+    fits = secs_slow / 3600 <= usable
+    return {"units": n, "item_ids": sum(len(u["item_ids"]) for u in units_e), "per_benchmark": dict(per_b),
+            "truncated": trunc, "task_tokens": int(task_tok), "prompt_tokens": int(pt),
+            "mean_prompt": round(pt / max(n, 1), 1), "max_prompt": max(lens) if lens else 0,
+            "over_max_model_len": int(sum(x + ENTROPY_MAX_TOKENS > args.max_model_len for x in lens)),
+            "gen_tokens_est": int(n * ENTROPY_MAX_TOKENS * ENTROPY_GEN_FRAC), "shards_est": len(sizes),
+            "shard_limits": {"units": max_units, "kv_tokens": budget},
+            "mean_units_per_shard": round(n / max(len(sizes), 1), 1),
+            "rates_tok_s": {"prefill_nocache": r["prefill_nocache"], "decode": dec, "decode_slow": dec_slow,
+                            "check_step_s": ENTROPY_CHECK_STEP_S, "check_step_s_slow": step_slow},
+            "assumption": ENTROPY_ASSUMPTION, "prefix_caching": False,
+            "hours_est": round(secs / 3600, 2), "hours_est_slow": round(secs_slow / 3600, 2),
+            "commit_usable_hours": round(usable, 2), "fits_one_commit": secs / 3600 <= usable,
+            "fits_one_commit_slow": fits,
+            "units_per_commit_slow": n if fits else int(usable * 3600 / per_unit_slow),
+            "units_per_commit": n if secs / 3600 <= usable else int(usable * 3600 / (secs / max(n, 1)))}
+
+
+def plan_budget(args, tok, units_r, units_a, units_e=None) -> dict:
     """Prompt tokens (exact with the model's tokenizer), expected generated tokens
     and hours per job at the assumed rates and in the slow case (decode at
-    SLOW_DECODE of them: the planning figure), the recommended commits and the
-    weekly quota with the smoke run and each commit's start-up."""
+    SLOW_DECODE of them, ENTROPY_SLOW for the entropy job: the planning figure),
+    the recommended commits and the weekly quota with the smoke run and each
+    commit's start-up."""
     r = rates(args)
     rs = {**r, "decode": r["decode"] * SLOW_DECODE, "decode_short": r["decode_short"] * SLOW_DECODE}
+    usable = max(args.session_hours - SESSION_OVERHEAD_H, 1.0)
     kv = kv_tokens(args)
     out = {"rates_tok_s": r, "kv_cache_tokens_est": kv, "max_model_len": args.max_model_len}
     total = slow = 0.0
@@ -1762,7 +2057,11 @@ def plan_budget(args, tok, units_r, units_a) -> dict:
         for name, sel in (("probe", probe), ("rest", rest)):
             if sel:
                 pieces[name] = (hours(sel, r), hours(sel, rs))
-    usable = max(args.session_hours - SESSION_OVERHEAD_H, 1.0)
+    if units_e is not None:
+        e = out["entropy"] = plan_entropy(args, tok, units_e, usable)
+        total += e["hours_est"]
+        slow += e["hours_est_slow"]
+        pieces["entropy"] = (e["hours_est"], e["hours_est_slow"])
     out["total_hours_est"] = round(total, 2)
     out["sessions_est"] = int(math.ceil(total / usable)) if total else 0
     out["weekly_quota_h"] = WEEKLY_GPU_H
@@ -1778,12 +2077,21 @@ def plan_budget(args, tok, units_r, units_a) -> dict:
         n, n_fast = max(1, math.ceil(hs / usable)), max(1, math.ceil(h / usable))
         plan.append({"piece": name, "args": piece_args, "hours_est": round(h, 2), "hours_est_slow": round(hs, 2),
                      "commits_slow": n, "gpu_h_slow": round(hs + n * SESSION_OVERHEAD_H, 2)})
+        if name == "entropy":
+            plan[-1]["units_per_commit_slow"] = out["entropy"]["units_per_commit_slow"]
         slow_h += hs + n * SESSION_OVERHEAD_H
         fast_h += h + n_fast * SESSION_OVERHEAD_H
     out["session_plan"] = plan
+    # one commit's need: its piece's planning figure and QUOTA_MARGIN_H, at most the session's hard limit (the
+    # watchdog kills it 15 min past --session-hours); a piece of several commits runs each to the limit
+    hard = args.session_hours + 0.25
+    need = max((min(p_["gpu_h_slow"] + QUOTA_MARGIN_H, hard) if p_["commits_slow"] == 1 else hard for p_ in plan),
+               default=0.0)
     out["quota"] = {"smoke_h": SMOKE_H, "overhead_per_commit_h": SESSION_OVERHEAD_H,
                     "gpu_h_planning": round(slow_h, 2), "gpu_h_optimistic": round(fast_h, 2),
-                    "weekly_quota_h": WEEKLY_GPU_H, "fits": slow_h <= WEEKLY_GPU_H}
+                    "weekly_quota_h": WEEKLY_GPU_H, "fits": slow_h <= WEEKLY_GPU_H,
+                    "commit_need_h": round(need, 1), "margin_h": QUOTA_MARGIN_H,
+                    "counts_hours_used": False}
     return out
 
 
@@ -1983,6 +2291,94 @@ def run_attempts(args, backend, units, store: Store, clock: Clock, stats: dict, 
     return "done"
 
 
+def entropy_params(args) -> GenParams:
+    return GenParams(max_tokens=ENTROPY_MAX_TOKENS, logprobs=ENTROPY_LOGPROBS, keep_top=False, record_raw=True,
+                     **entropy_sampling(args))
+
+
+ENTROPY_CHECK_PARAMS = GenParams(temperature=0.0, max_tokens=ENTROPY_CHECK_TOKENS, logprobs=1, record_raw=True)
+
+
+def run_entropy(args, backend, units, store: Store, clock: Clock, stats: dict, guard: FileGuard | None = None) -> str:
+    """Returns 'done', 'deadline', 'files' or 'check_failed' (entropy_self_check on
+    the first shard). A shard is one generate call of its units' sampled requests
+    (one per unit, its own seed), then one greedy check request on its first
+    prompt: the recorder's raw log-probs against the engine's, which are raw for
+    a greedy request (check_gap and check_n on the shard's first unit's row)."""
+    p = entropy_prompt(backend.tok, args.task_tokens)
+    done = store.done()
+    todo = [u for u in units if u["unit"] not in done]
+    per_b = dict(Counter(u["benchmark"] for u in todo))
+    log(f"[entropy] {len(units)} units, {len(done & {u['unit'] for u in units})} done, {len(todo)} to go "
+        f"{per_b}; max_tokens={ENTROPY_MAX_TOKENS}")
+    r = rates(args)
+    params = entropy_params(args)
+    max_units, budget = entropy_shard_limits(args)
+    t_all, n_done, shards, gen_all, ptok_all = 0.0, 0, 0, 0, 0
+    sources, gap_max, gap_n, n_checked = Counter(), float("nan"), 0, 0
+    for shard, built in entropy_shards(todo, lambda u: p.build(u["content"]), max_units, budget):
+        ptok = sum(len(b[0]) for b in built)
+        est = (t_all / n_done * len(shard)) if n_done else entropy_secs(ptok, len(shard), 1, r, r["decode_entropy"])
+        if (args.max_shards and shards >= args.max_shards) or clock.left() < 1.25 * est + 60:
+            log(f"[entropy] stopping with {len(todo) - n_done} units left "
+                f"(session left {clock.left() / 3600:.2f} h, next shard ~{est / 60:.1f} min)")
+            return "deadline"
+        if guard is not None and not guard.check():
+            return "files"
+        t = time.time()
+        seeds = [entropy_seed(u["unit"], args.seed) for u in shard]
+        outs = [o[0] for o in backend.generate([b[0] for b in built], params, seeds)]
+        chk = backend.generate([built[0][0]], ENTROPY_CHECK_PARAMS)[0][0]
+        secs = time.time() - t
+        g, gn = recorder_gap(chk)
+        if gn:
+            gap_n += gn
+            n_checked += 1
+            gap_max = g if not np.isfinite(gap_max) else max(gap_max, g)
+        t_shard = time.time()
+        rows, recs = [], []
+        for i, (u, (ids, info), s) in enumerate(zip(shard, built, outs)):
+            f = entropy_features(s)
+            recs.append(f)
+            sources[f["stats_source"]] += 1
+            rows.append({"unit": u["unit"], "cfg": store.cfg, "benchmark": u["benchmark"], "key": u["key"],
+                         "text_key": u["text_key"], "item_ids": u["item_ids"], "content_sha256": u["content_sha256"],
+                         "content_sha": u["content_sha"], "content_hash": u["content_hash"],
+                         "prompt_tokens": len(ids), "task_tokens": info["task_tokens"],
+                         "truncated": bool(info["truncated"]), "seed": seeds[i], **f,
+                         "check_gap": g if i == 0 else float("nan"), "check_n": gn if i == 0 else 0, "t": t_shard})
+        store.write(pd.DataFrame(rows))
+        gen = sum(x["n_tokens"] for x in recs)
+        t_all += secs
+        n_done += len(shard)
+        shards += 1
+        gen_all += gen
+        ptok_all += ptok
+        check = ("ok" if gap_n and gap_max <= RECORDER_TOL else "FAILED" if gap_n else "n/a")
+        stats["entropy"] = {"units_done_session": n_done, "shards": shards, "secs": round(t_all, 1),
+                            "gen_tokens": gen_all, "prompt_tokens": ptok_all,
+                            "gen_tok_s": round(gen_all / max(t_all, 1e-9), 1), "stats_source": dict(sources),
+                            "recorder_check": {"status": check, "max_abs_gap": None if not gap_n else gap_max,
+                                               "tokens": gap_n, "shards_checked": n_checked, "tol": RECORDER_TOL}}
+        if shards == 1 or check == "FAILED":
+            log(f"[entropy] token statistics: {dict(sources)}; recorder check {check} (max |raw - engine| "
+                f"log-prob {gap_max:.2e} over {gap_n} greedy tokens, tol {RECORDER_TOL})"
+                + (" -- WARNING: the raw log-probs are misaligned; see README" if check == "FAILED" else ""))
+        log(f"[entropy] {n_done}/{len(todo)} units this session: shard of {len(shard)} in {secs:.0f}s, "
+            f"{ptok} prompt + {gen} gen tokens ({gen / max(secs, 1e-9):.0f} tok/s), closed "
+            f"{np.mean([x['closed'] for x in recs]):.2f}, degenerate {np.mean([x['degenerate'] for x in recs]):.2f}, "
+            f"ent_first1024 {_mean([x['ent_first1024'] for x in recs]):.3f} | eta "
+            f"{_eta(n_done, t_all, len(todo) - n_done) / 3600:.2f} h, session left {clock.left() / 3600:.2f} h")
+        if shards == 1 and not args.no_self_check:
+            bad = entropy_self_check(recs, check)
+            if bad:
+                stats["entropy"]["self_check"] = {"status": "FAILED", "why": bad}
+                log("[entropy] self-check FAILED on the first shard: " + "; ".join(bad) + ". Stopping (exit 77; "
+                    "the shard is kept for a look, see README)")
+                return "check_failed"
+    return "done"
+
+
 # --- export ---------------------------------------------------------------------------------------
 
 RUBRIC_DIAG = [f"rubric_{s}_{d}" for s in SCALES for d in ("entropy", "mass")] + \
@@ -2042,6 +2438,49 @@ def attempt_export_rows(units: pd.DataFrame, samples: pd.DataFrame) -> pd.DataFr
                       "refuse": bool, "forced": bool, "closed": bool})
 
 
+#: the entropy export's columns in order (after the key columns) and their dtypes
+ENTROPY_COLS = {**{f: "float64" for f in ENTROPY_EXPORT}, **{c: t for c, (t, _) in ENTROPY_DIAG.items()}}
+#: store column -> exported diagnostic
+ENTROPY_DIAG_SRC = {"ent_n_tokens": "n_tokens", "ent_closed": "closed", "ent_degenerate": "degenerate",
+                    "ent_prompt_tokens": "prompt_tokens", "ent_task_tokens": "task_tokens",
+                    "ent_truncated": "truncated"}
+
+
+def entropy_export_rows(units: pd.DataFrame) -> pd.DataFrame:
+    """One row per (benchmark, item_id) of the entropy units: the key columns, the
+    ENTROPY_EXPORT features and the ENTROPY_DIAG diagnostics (ENTROPY_COLS)."""
+    rows = []
+    for r in units.to_dict("records"):
+        vals = {**{f: float(r[f]) for f in ENTROPY_EXPORT}, **{c: r[src] for c, src in ENTROPY_DIAG_SRC.items()}}
+        for iid in r["item_ids"]:
+            rows.append({"benchmark": r["benchmark"], "item_id": str(iid), "content_sha256": r["content_sha256"],
+                         **vals})
+    df = pd.DataFrame(rows, columns=["benchmark", "item_id", "content_sha256"] + list(ENTROPY_COLS))
+    return df.astype(ENTROPY_COLS)
+
+
+def entropy_token_stats(eu: pd.DataFrame) -> dict:
+    """The entropy units' token-statistics provenance and recorder check (each
+    shard's greedy check request, on its first unit's row). A unit that generated
+    no token has no statistics (its features are NaN), so its source label does
+    not count (empty_units)."""
+    gen = eu[eu["n_tokens"] > 0] if "n_tokens" in eu.columns else eu
+    src = Counter(gen["stats_source"])
+    gap = eu["check_gap"].to_numpy(float)
+    gap = gap[np.isfinite(gap)]
+    n = int(eu["check_n"].sum())
+    kind = logprobs_kind(src)
+    return {"logprobs": kind, "sources": {k: int(v) for k, v in src.items()}, "empty_units": int(len(eu) - len(gen)),
+            "definitions": {k: STATS_DEF[k] for k in src if k in STATS_DEF},
+            "recorder_check": {"status": ("ok" if gap.size and gap.max() <= RECORDER_TOL else
+                                          "FAILED" if gap.size else "n/a"),
+                               "max_abs_gap": float(gap.max()) if gap.size else None, "tokens": n,
+                               "shards_checked": int(gap.size), "tol": RECORDER_TOL,
+                               "what": f"max |recorder - engine| log-prob over each shard's greedy check request "
+                                       f"({ENTROPY_CHECK_TOKENS} tokens on the shard's first prompt), where the "
+                                       f"engine's logprobs are raw"}}
+
+
 def logprobs_kind(sources) -> str:
     """The export manifest's `logprobs`: 'raw' when every attempt's token
     statistics are the raw distribution's full-vocabulary ones (D2's definition;
@@ -2077,7 +2516,7 @@ def export(out_root: str) -> list:
     man = read_json(os.path.join(out_root, "manifest.json"))
     dirs = []
     for mdir in sorted(glob.glob(os.path.join(out_root, "*"))):
-        if not os.path.isdir(mdir) or not any(os.path.isdir(os.path.join(mdir, j)) for j in ("rubric", "attempts")):
+        if not os.path.isdir(mdir) or not any(os.path.isdir(os.path.join(mdir, j)) for j in JOBS):
             continue
         slug = os.path.basename(mdir)
         minfo = (man.get("models") or {}).get(slug, {})
@@ -2085,7 +2524,8 @@ def export(out_root: str) -> list:
         if os.path.isdir(ex):
             shutil.rmtree(ex)
         os.makedirs(ex)
-        shards, kinds, keys, summary, harness, tstats = [], {}, [], {"model": slug}, {}, None
+        shards, kinds, keys, summary, harness, tstats, etstats = [], {}, [], {"model": slug}, {}, None, None
+        configs = man.get("job_configs") or {}
         ru = Store(os.path.join(mdir, "rubric"), "").read("items")
         if len(ru):
             cfg = _majority_cfg(ru)
@@ -2170,6 +2610,58 @@ def export(out_root: str) -> list:
                                    "closed_rate": float(au.closed_rate.mean()),
                                    "trunc_rate": float(au.trunc_rate.mean()), "forced_rate": float(au.forced_rate.mean()),
                                    "mean_len": float(au.mean_len.mean())}
+        eu = Store(os.path.join(mdir, "entropy"), "").read("items")
+        if len(eu):
+            cfg = _majority_cfg(eu)
+            eu = eu[eu.cfg == cfg].reset_index(drop=True)
+            flat = entropy_export_rows(eu)
+            path = os.path.join(ex, "entropy", "entropy.parquet")
+            write_parquet(flat, path)
+            shards.append({"path": "entropy/entropy.parquet", "rows": int(len(flat)), "sha256": file_sha256(path)})
+            write_parquet(eu, os.path.join(ex, "_detail", "entropy_units.parquet"))
+            etstats = entropy_token_stats(eu)
+            if etstats["recorder_check"]["status"] == "FAILED":
+                log(f"export: WARNING entropy recorder check failed: {etstats['recorder_check']}")
+            conf = configs.get(cfg)             # the job config by its hash (the root manifest's job_configs)
+            kinds["entropy"] = {
+                "version": (conf or {}).get("entropy_version"), "cfg": cfg, "cfg_hash": cfg, "config": conf,
+                "prompt": {"system": None,
+                           "template": (conf or {}).get("user", ENTROPY_USER).replace(TASK_PH, "{task}"),
+                           "instruction": (conf or {}).get("instruction", ENTROPY_INSTRUCTION),
+                           "thinking": True, "marker": MARKER,
+                           "task": "item_content, cut to task_tokens by head and tail around the marker, as the "
+                                   "rubric cuts it",
+                           "task_tokens": (conf or {}).get("task_tokens"), "rendered": minfo.get("entropy_rendered")},
+                "sampling": (conf or {}).get("sampling"), "n": 1, "max_new_tokens": ENTROPY_MAX_TOKENS,
+                "seeds": (conf or {}).get("seed_rule"), "forced": "none",
+                "readout": ("one sample per unit, thinking on; the per-token raw full-vocabulary entropy and the raw "
+                            "log-prob of each sampled token (RawRecorder); ent_first<N> / lp_first<N> their means "
+                            "over the first N generated tokens, or over all of them if fewer (the attempts' columns "
+                            "of the same names, defined the same way)"),
+                "features": {f: d for f, (_, d) in ENTROPY_EXPORT.items()},
+                "diagnostics": {c: d for c, (_, d) in ENTROPY_DIAG.items()},
+                "dtypes": dict(ENTROPY_COLS), "primary": ENTROPY_PRIMARY,
+                "signs": {**{f: sg for f, (sg, _) in ENTROPY_EXPORT.items()}, **{c: 0 for c in ENTROPY_DIAG}},
+                "token_stats": etstats, "logprobs": etstats["logprobs"],
+                "check": {"tokens": ENTROPY_CHECK_TOKENS, "greedy": True, "on": "each shard's first prompt"},
+                "units": int(len(eu)), "per_benchmark_units": eu.benchmark.value_counts().to_dict()}
+            for r in eu.to_dict("records"):
+                for iid in r["item_ids"]:
+                    keys.append({"job": "entropy", "benchmark": r["benchmark"], "item_id": str(iid),
+                                 "key": r["key"], "text_key": r["text_key"], "content_sha": r["content_sha"],
+                                 "content_hash": r["content_hash"]})
+            for f, (sign, _) in ENTROPY_EXPORT.items():
+                harness[f"entropy_{f}"] = {str(i): sign * float(v) for i, v in zip(flat.item_id, flat[f])
+                                           if np.isfinite(v)}
+            summary["entropy"] = {"units": int(len(eu)), "item_rows": int(len(flat)),
+                                  "per_benchmark": flat.benchmark.value_counts().to_dict(),
+                                  "logprobs": etstats["logprobs"],
+                                  "recorder_check": etstats["recorder_check"]["status"],
+                                  "closed_rate": float(eu.closed.mean()),
+                                  "degenerate_rate": float(eu.degenerate.mean()),
+                                  "mean_n_tokens": float(eu.n_tokens.mean()),
+                                  "means": {f: {b: float(v) for b, v in flat.groupby("benchmark")[f].mean().items()}
+                                            for f in ENTROPY_EXPORT}}
         if len(ru):
             write_parquet(ru, os.path.join(ex, "_detail", "rubric_units.parquet"))
         write_parquet(pd.DataFrame(keys, columns=["job", "benchmark", "item_id", "key", "text_key", "content_sha",
@@ -2182,7 +2674,7 @@ def export(out_root: str) -> list:
                     "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "wall_s": man.get("wall_s_total"),
                     "sessions": len(man.get("sessions") or []),
                     "gpu": minfo.get("gpus"), "notebook_digest": man.get("script_sha256"),
-                    "logprobs": tstats["logprobs"] if tstats else "raw",
+                    "logprobs": tstats["logprobs"] if tstats else etstats["logprobs"] if etstats else "raw",
                     "logprobs_engine": minfo.get("logprobs"), "slug": slug}
         write_json(os.path.join(ex, "manifest.json"), manifest)
         write_json(os.path.join(ex, "_summary.json"), summary)
@@ -2196,17 +2688,29 @@ def export(out_root: str) -> list:
     return dirs
 
 
+#: _harness.json entries split-harness leaves out: the entropy job's features are read only through
+#: experiments/strong_llm_eval.py --job entropy, under its ENTROPY_RULE (the declared primary, the gate, the
+#: sign prong), never covariate by covariate before its verdict
+SPLIT_SKIP = ("entropy_",)
+
+
 def split_harness(export_dir: str) -> list:
     """Local: _harness.json ({name: {item_id: x}}) -> _harness/<name>.json, the
-    one-covariate files python experiments/harness.py --stage eval --cov reads."""
+    one-covariate files python experiments/harness.py --stage eval --cov reads;
+    not the entropy job's (SPLIT_SKIP)."""
     h = read_json(os.path.join(export_dir, "_harness.json"))
     if not h:
         raise ConfigError(f"no _harness.json in {export_dir}")
-    paths = []
+    paths, skipped = [], []
     for name, m in sorted(h.items()):
+        if name.startswith(SPLIT_SKIP):
+            skipped.append(name)
+            continue
         paths.append(os.path.join(export_dir, "_harness", f"{name}.json"))
         write_json(paths[-1], m)
-    log(f"split-harness: {len(paths)} files in {os.path.join(export_dir, '_harness')}")
+    log(f"split-harness: {len(paths)} files in {os.path.join(export_dir, '_harness')}"
+        + (f"; {len(skipped)} entropy features left out: they are read only through experiments/"
+           "strong_llm_eval.py --job entropy (its ENTROPY_RULE; README, Коммит D)" if skipped else ""))
     return paths
 
 
@@ -2283,12 +2787,12 @@ def gpu_check(tp: int) -> list:
 # --- commands --------------------------------------------------------------------------------------
 
 def parse_args(argv):
-    ap = argparse.ArgumentParser(description="PAIEC K1: rubric and attempts with a stronger model on Kaggle")
+    ap = argparse.ArgumentParser(description="PAIEC K1: rubric, attempts and entropy with a stronger model on Kaggle")
     ap.add_argument("command", choices=("plan", "run", "export", "split-harness"))
     ap.add_argument("--data-dir", default=DEFAULT_DATA)
     ap.add_argument("--download", default=",".join(BENCHES), help="benchmarks whose core tables to fetch")
     ap.add_argument("--out", default=DEFAULT_OUT)
-    ap.add_argument("--jobs", default="rubric,attempts")
+    ap.add_argument("--jobs", default="rubric,attempts", help=f"comma-separated, of {','.join(JOBS)}")
     ap.add_argument("--backend", default="vllm", choices=("vllm", "hf"))
     ap.add_argument("--model", default=None, help=f"default {DEFAULT_MODEL} (hf backend: {HF_FALLBACK_MODEL})")
     ap.add_argument("--revision", default=None, help="commit sha (default: the pinned one of MODELS)")
@@ -2316,7 +2820,15 @@ def parse_args(argv):
                          "Part of the job config: changing it after attempts started starts them over")
     ap.add_argument("--k", type=int, default=4)
     ap.add_argument("--max-tokens", type=int, default=4096)
-    ap.add_argument("--presence-penalty", type=float, default=ATTEMPT_SAMPLING["presence_penalty"])
+    ap.add_argument("--presence-penalty", type=float, default=ATTEMPT_SAMPLING["presence_penalty"],
+                    help="the attempts' and the entropy job's (part of both configs)")
+    ap.add_argument("--entropy-benchmarks", default=",".join(PARENTS), help="the entropy job's benchmarks")
+    ap.add_argument("--entropy-limit", type=int, default=0, help="entropy units per benchmark (0: all)")
+    ap.add_argument("--entropy-shard", type=int, default=ENTROPY_SHARD,
+                    help="entropy units per generate call (at most --max-num-seqs)")
+    ap.add_argument("--entropy-shard-tokens", type=int, default=ENTROPY_SHARD_TOKENS,
+                    help="an entropy shard's prompts + 1024 new tokens each, summed (also at most 0.9 of the "
+                         "estimated KV cache)")
     ap.add_argument("--no-force", action="store_true", help="no forced answer after a truncated attempt")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--session-hours", type=float, default=11.0, help="from SP_T0 (the notebook's first cell)")
@@ -2330,6 +2842,7 @@ def parse_args(argv):
     ap.add_argument("--prefill-rate", type=float, default=0.0)
     ap.add_argument("--decode-rate", type=float, default=0.0)
     ap.add_argument("--decode-rate-short", type=float, default=0.0)
+    ap.add_argument("--decode-rate-entropy", type=float, default=0.0)
     a = ap.parse_args(argv)
     if a.model is None:
         a.model = HF_FALLBACK_MODEL if a.backend == "hf" else DEFAULT_MODEL
@@ -2338,13 +2851,14 @@ def parse_args(argv):
     if a.quantization is None:
         a.quantization = None if a.backend == "hf" else m.get("quantization")
     a.jobs = [j.strip() for j in a.jobs.split(",") if j.strip()]
-    bad = [j for j in a.jobs if j not in ("rubric", "attempts")]
+    bad = [j for j in a.jobs if j not in JOBS]
     if bad:
         ap.error(f"unknown jobs {bad}")
-    if a.backend == "hf" and "attempts" in a.jobs:
-        log("hf backend: the attempts job needs vLLM, running the rubric only")
+    if a.backend == "hf" and set(a.jobs) - {"rubric"}:
+        log("hf backend: the attempts and entropy jobs need vLLM (sampling, RawRecorder), running the rubric only")
         a.jobs = [j for j in a.jobs if j == "rubric"]
     a.rubric_benchmarks = [b.strip() for b in a.rubric_benchmarks.split(",") if b.strip()]
+    a.entropy_benchmarks = [b.strip() for b in a.entropy_benchmarks.split(",") if b.strip()]
     a.download = [b.strip() for b in a.download.split(",") if b.strip()]
     if a.t0 is None:
         a.t0 = float(os.environ.get("SP_T0") or time.time())
@@ -2363,14 +2877,25 @@ def load_units(args):
     return ur, ua
 
 
+def load_entropy_units(args):
+    """The entropy job's units (entropy_units), or None when it is not among the jobs."""
+    if "entropy" not in args.jobs:
+        return None
+    ue = entropy_units(args.data_dir, args.entropy_benchmarks, args.entropy_limit or None)
+    log(f"entropy: {len(ue)} units standing for {sum(len(u['item_ids']) for u in ue)} item_ids "
+        f"{dict(Counter(u['benchmark'] for u in ue))}")
+    return ue
+
+
 def needed_benches(args) -> list:
     """--download (the five binary benchmarks by default) and whatever the jobs read."""
     need = set(args.download) | (set(args.rubric_benchmarks) if "rubric" in args.jobs else set())
+    need |= set(args.entropy_benchmarks) if "entropy" in args.jobs else set()
     return sorted(need | ({"matharena"} if "attempts" in args.jobs else set()))
 
 
 def check_prompts_agnostic():
-    text = (SYSTEM_RUBRIC + USER_RUBRIC + RUBRIC_PREFILL + BOXED_INSTRUCTION + FORCE_OPEN).lower()
+    text = (SYSTEM_RUBRIC + USER_RUBRIC + RUBRIC_PREFILL + BOXED_INSTRUCTION + FORCE_OPEN + ENTROPY_USER).lower()
     hit = [b for b in BENCHES + ("mmdocrag", "measurement-db") if b in text]
     if hit:
         raise AssertionError(f"benchmark names in a prompt template: {hit}")
@@ -2380,26 +2905,43 @@ def cmd_plan(args, tok=None, token_getter=None, downloader=None) -> int:
     check_prompts_agnostic()
     download_data(args.data_dir, needed_benches(args), token_getter=token_getter, downloader=downloader)
     ur, ua = load_units(args)
+    ue = load_entropy_units(args)
     if tok is None:
         from transformers import AutoTokenizer
         tok = HFTok(AutoTokenizer.from_pretrained(args.model, revision=args.revision))
-    b = plan_budget(args, tok, ur, ua)
+    b = plan_budget(args, tok, ur, ua, ue)
     log("budget: " + json.dumps(b, indent=1))
-    for job in ("rubric", "attempts"):
+    for job in JOBS:
         if job in b and b[job].get("over_max_model_len"):
             log(f"WARNING: {b[job]['over_max_model_len']} {job} prompts exceed --max-model-len {args.max_model_len}")
     if "attempts" in b and not b["attempts"]["shard_fits_kv"]:
         log(f"WARNING: an attempt shard at full length ({b['attempts']['shard_kv_tokens']} tokens) exceeds the "
             f"estimated KV cache ({b['kv_cache_tokens_est']:.0f}): V0 will preempt; lower --attempt-shard")
+    if "entropy" in b:
+        e = b["entropy"]
+        log(f"entropy: {e['units']} units, {e['prompt_tokens']} prompt tokens (uncached), {e['gen_tokens_est']} "
+            f"generated, {e['shards_est']} shards; {e['hours_est_slow']} h in the slow case (decode "
+            f"{e['rates_tok_s']['decode_slow']:g} tok/s), {e['hours_est']} h at the assumed "
+            f"{e['rates_tok_s']['decode']:g}; "
+            + (f"fits one commit ({e['commit_usable_hours']} h usable) even in the slow case"
+               if e["fits_one_commit_slow"] else
+               f"does NOT fit one commit in the slow case: a commit covers about {e['units_per_commit_slow']} units, "
+               f"run it again with the output attached"))
     sc, q = b["slow_case"], b["quota"]
-    log(f"budget, planning figure (decode at {SLOW_DECODE:g}x the assumed rate): {sc['total_hours_est']} h of "
-        f"generation; optimistic (the assumed rates) {b['total_hours_est']} h")
+    log(f"budget, planning figure (decode at {SLOW_DECODE:g}x the assumed rate; the entropy job's at "
+        f"{ENTROPY_SLOW:g}x): {sc['total_hours_est']} h of generation; optimistic (the assumed rates) "
+        f"{b['total_hours_est']} h")
     for piece in b["session_plan"]:
         log(f"  commit(s) {piece['piece']}: ARGS = {piece['args']}: {piece['hours_est_slow']} h planning "
             f"({piece['hours_est']} h optimistic), {piece['commits_slow']} commit(s), {piece['gpu_h_slow']} GPU-h")
     log(f"  weekly quota: smoke run {SMOKE_H} h + the commits, each with {SESSION_OVERHEAD_H} h of start-up = "
         f"{q['gpu_h_planning']} GPU-h planning ({q['gpu_h_optimistic']} optimistic) of {WEEKLY_GPU_H:.0f}: "
         + ("fits" if q["fits"] else "does NOT fit: run the probe, read it locally, then decide on the rest"))
+    log(f"  the quota line counts only this plan, not the GPU hours already used this week: before Save & Run All "
+        f"check that Settings -> Quota shows at least {q['commit_need_h']} GPU-h left for one commit of it (its "
+        f"planning figure + {QUOTA_MARGIN_H} h). If it does not, wait for the weekly reset, or cap the commit "
+        f"(--entropy-limit, --attempt-limit, a shorter --session-hours) so that it ends with exit 75 and saves its "
+        f"Output: a commit stopped by the quota saves nothing")
     update_manifest(args.out, plan={model_slug(args.model, args.backend): b})
     return 0
 
@@ -2416,17 +2958,19 @@ def cmd_run(args, backend=None, token_getter=None, downloader=None, now=time.tim
     if src:
         log(f"restored {restore(args.out, src, run)} store files from {src}")
     ur, ua = load_units(args)
+    ue = load_entropy_units(args)
     slug = model_slug(args.model, args.backend)
     mroot = os.path.join(args.out, slug)
     cfgs = {j: job_cfg(args, j) for j in args.jobs}
     stores = {j: Store(os.path.join(mroot, j), digest(cfgs[j]), run) for j in args.jobs}
+    update_manifest(args.out, job_configs={stores[j].cfg: cfgs[j] for j in args.jobs})   # the export reads them
     n = compact_all(args.out, stores.values(), run, only_needed=True)
     if n:
         log(f"compacted {n} store files (the k1.2 layout, or more than {SEGS_PER_KIND} files of a kind)")
     guard = FileGuard(args.out, stores.values(), run)
     log(f"output: {guard.count()} files and directories under {guard.root} (guard {MAX_FILES}, "
         f"Kaggle's cap {KAGGLE_FILE_CAP})")
-    units = {"rubric": ur, "attempts": ua}
+    units = {"rubric": ur, "attempts": ua, "entropy": ue}
     left = {j: len({u["unit"] for u in units[j]} - stores[j].done()) for j in args.jobs}
     log("to do: " + ", ".join(f"{j} {n}" for j, n in left.items()))
     if not any(left.values()):
@@ -2456,15 +3000,22 @@ def cmd_run(args, backend=None, token_getter=None, downloader=None, now=time.tim
         wd.init_done()
         log(f"engine up in {time.time() - t:.0f}s: {backend.info}")
     info = dict(getattr(backend, "info", {}) or {})
-    minfo = {"model": args.model, "revision": args.revision, "quantization": args.quantization,
+    # this model's entry of an earlier session (a restored output) stays, but for what this one runs: a commit of
+    # one job must not blank another job's rendered prompt or attempt settings, which the export reads
+    prev = dict((read_json(os.path.join(args.out, "manifest.json")).get("models") or {}).get(slug) or {})
+    minfo = {**prev, "model": args.model, "revision": args.revision, "quantization": args.quantization,
              "backend": args.backend, "tp": args.tp, "max_model_len": args.max_model_len,
-             "gpu_mem": args.gpu_mem, "cfg": {j: stores[j].cfg for j in args.jobs},
-             "max_tokens": args.max_tokens, "k": args.k, "attempt_logprobs": args.attempt_logprobs,
-             "attempt_sampling": {**ATTEMPT_SAMPLING, "presence_penalty": args.presence_penalty}, **info}
+             "gpu_mem": args.gpu_mem, "cfg": {**(prev.get("cfg") or {}), **{j: stores[j].cfg for j in args.jobs}},
+             **info}
     if "rubric" in args.jobs:
         minfo["rubric_rendered"] = rubric_prompt(backend.tok, args.task_tokens).rendered
     if "attempts" in args.jobs:
-        minfo["attempt_rendered"] = attempt_prompt(backend.tok, args.task_tokens).rendered
+        minfo.update(max_tokens=args.max_tokens, k=args.k, attempt_logprobs=args.attempt_logprobs,
+                     attempt_sampling={**ATTEMPT_SAMPLING, "presence_penalty": args.presence_penalty},
+                     attempt_rendered=attempt_prompt(backend.tok, args.task_tokens).rendered)
+    if "entropy" in args.jobs:
+        minfo.update(entropy_sampling=entropy_sampling(args),
+                     entropy_rendered=entropy_prompt(backend.tok, args.task_tokens).rendered)
     try:
         with open(os.path.abspath(__file__), "rb") as fh:
             script_sha = hashlib.sha256(fh.read()).hexdigest()
@@ -2477,7 +3028,7 @@ def cmd_run(args, backend=None, token_getter=None, downloader=None, now=time.tim
         if not left[j]:
             status[j] = "done"
             continue
-        runner = run_rubric if j == "rubric" else run_attempts
+        runner = {"rubric": run_rubric, "attempts": run_attempts, "entropy": run_entropy}[j]
         status[j] = runner(args, backend, units[j], stores[j], clock, stats, guard)
         if status[j] != "done":
             break

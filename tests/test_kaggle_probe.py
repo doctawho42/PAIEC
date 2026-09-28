@@ -17,6 +17,7 @@ import subprocess
 import sys
 import textwrap
 import time
+from collections import Counter
 
 import numpy as np
 import pandas as pd
@@ -83,9 +84,11 @@ RAW_LP, RAW_ENT = -0.7, 2.5
 class MockBackend:
     """Canned completions by prompt kind: a rubric JSON with known digit
     distributions, attempts that close the thinking with an answer or run out of
-    tokens inside it (by seed), and forced answers. With raw=True (vLLM V0 with
-    RawRecorder) record_raw requests also carry the raw distribution's per-token
-    log-prob and entropy, distinct from the engine's processed ones."""
+    tokens inside it (by seed), forced answers, entropy samples (a short one that
+    closes its thinking or a long one cut at max_tokens, by seed) and the entropy
+    shards' greedy check. With raw=True (vLLM V0 with RawRecorder) record_raw
+    requests also carry the raw distribution's per-token log-prob and entropy,
+    distinct from the engine's processed ones."""
 
     def __init__(self, raw=True):
         self.tok = MockTok()
@@ -93,6 +96,7 @@ class MockBackend:
         self.info = {"backend": "mock", "engine": "mock 0", "logprobs": "mock", "gpus": []}
         self.calls = []
         self.rubric_prompts, self.forced_prompts = [], []
+        self.entropy_prompts, self.check_prompts = [], []
 
     def generate(self, prompts, params, seeds=None):
         self.calls.append({"n": len(prompts), "params": dataclasses.asdict(params),
@@ -110,6 +114,17 @@ class MockBackend:
                 assert params.temperature == 0 and params.record_raw
                 self.forced_prompts.append(text)
                 s = self.forced()
+            elif SP.ENTROPY_INSTRUCTION in text:
+                # thinking on, the neutral instruction last, nothing after it
+                assert text.endswith(SP.ENTROPY_INSTRUCTION + "<|im_end|>\n<|im_start|>assistant\n")
+                if params.temperature <= 0:              # the shard's recorder check: greedy, one prompt, no seed
+                    assert seeds is None and len(prompts) == 1 and params.record_raw
+                    assert params.max_tokens == SP.ENTROPY_CHECK_TOKENS and not params.presence_penalty
+                    self.check_prompts.append(text)
+                    s = self.entropy_check()
+                else:
+                    self.entropy_prompts.append(text)
+                    s = self.entropy(seeds[i], params.max_tokens)
             else:
                 assert text.endswith("<|im_start|>assistant\n")                   # thinking on
                 s = self.attempt(seeds[i], params.max_tokens)
@@ -167,6 +182,24 @@ class MockBackend:
     def forced(self):
         # greedy: the engine's logprobs are the raw distribution's, as the recorder's
         s = self._sample("7}$", lambda t, s: -0.05, lambda t, s: 0.1, "stop", raw_fn=lambda t, s: (-0.05, 0.3))
+        s.engine_logprobs = "raw"
+        return s
+
+    def entropy(self, seed, max_tokens):
+        if seed % 2 == 0:                                   # the thinking closes early
+            gen = "<think>\nFirst read the task, then plan the change.\n</think>\n\nI would start there.<|im_end|>"
+        else:                                               # still thinking at the cap
+            gen = "<think>\nLet me think about the approach. " + "Consider the next step carefully. " * 100
+        ids = self.tok.enc(gen)
+        finish = "stop"
+        if len(ids) > max_tokens:
+            gen, finish = self.tok.dec(ids[:max_tokens]), "length"
+        return self._sample(gen, lambda t, s: -0.2 * (1 + t % 2), lambda t, s: 0.4 + 0.01 * (t % 4), finish)
+
+    def entropy_check(self):
+        # greedy: the engine's logprobs are the raw distribution's, as the recorder's
+        s = self._sample("<think>\nOkay, so the task asks", lambda t, s: -0.3, lambda t, s: 0.2, "length",
+                         raw_fn=lambda t, s: (-0.3, 1.7))
         s.engine_logprobs = "raw"
         return s
 
@@ -870,6 +903,479 @@ def test_export_without_the_recorder_says_so(synth):
     assert SP.logprobs_kind({SP.STATS_RAW: 3, SP.STATS_PROC: 1}) == "mixed" and SP.logprobs_kind({}) == "raw"
 
 
+# --- the entropy job (commit D) ------------------------------------------------------------------------
+
+#: the rubric's and the attempts' job config hashes of the first commit's shards (data/features/kaggle/
+#: manifest.json, kinds.<job>.cfg): the entropy job must leave them as they were
+FIRST_COMMIT_CFG = {"rubric": "6464211e3b22c5cc", "attempts": "8ac1dacdaa99b16b"}
+
+
+def entropy_args(data, out, *extra):
+    return run_args(data, out, "--jobs", "entropy", "--no-prefix-caching", *extra)
+
+
+def test_entropy_prompt_template_and_truncation():
+    tok = MockTok()
+    assert SP.ENTROPY_USER == SP.TASK_PH + "\n\n" + SP.ENTROPY_INSTRUCTION
+    p = SP.entropy_prompt(tok, 64)
+    # no system prompt, thinking on (no empty think block), the instruction right after the task
+    assert p.rendered == ("<|im_start|>user\n" + SP.TASK_PH + "\n\n" + SP.ENTROPY_INSTRUCTION
+                          + "<|im_end|>\n<|im_start|>assistant\n")
+    SP.check_prompts_agnostic()
+    low = SP.ENTROPY_USER.lower()
+    assert not [b for b in SP.BENCHES + ("mmdocrag", "measurement-db") if b in low]
+    assert not [w for w in ("boxed", "answer", "json", "final", "code", "math", "website") if w in low]
+    ids, info = p.build("What is 1+1?")
+    assert tok.dec(ids) == ("<|im_start|>user\nWhat is 1+1?\n\n" + SP.ENTROPY_INSTRUCTION
+                            + "<|im_end|>\n<|im_start|>assistant\n")
+    assert info == {"task_tokens": len(tok.enc("What is 1+1?")), "truncated": False}
+    # a long task is cut exactly as the rubric cuts it: the same head, marker and tail, token for token
+    long = " ".join(f"w{i}" for i in range(500))
+    r = SP.rubric_prompt(tok, 64)
+    ids_r, info_r = r.build(long, SP.rubric_meta("lang=go"))
+    ids_e, info_e = p.build(long)
+    cut_e = ids_e[len(p.pre):len(ids_e) - len(p.mid)]
+    assert cut_e == ids_r[len(r.pre):len(r.pre) + 64] == SP.head_tail(tok.enc(long), 64, tok.enc(SP.MARKER))[0]
+    assert info_e == info_r and info_e["truncated"] and len(cut_e) == 64
+    text = tok.dec(ids_e)
+    assert SP.MARKER in text and "w0 " in text and "w499" in text and "w250" not in text
+    assert "Metadata" not in text and "<task>" not in text
+    # the template is in the job config, with the attempts' sampling
+    cfg = SP.job_cfg(SP.parse_args(["run", "--task-tokens", "64"]), "entropy")
+    assert cfg["user"] == SP.ENTROPY_USER and cfg["instruction"] == SP.ENTROPY_INSTRUCTION and cfg["system"] is None
+    assert cfg["thinking"] and cfg["task_tokens"] == 64 and cfg["marker"] == SP.MARKER
+    assert cfg["sampling"] == SP.ATTEMPT_SAMPLING and cfg["sampling"]["presence_penalty"] == 1.5
+    assert cfg["max_tokens"] == 1024 and cfg["n"] == 1 and cfg["record_raw"] and not cfg["force"]
+    assert cfg["windows"] == [256, 1024]
+
+
+def _sample(ent, lp, strs=None, ent_e=None, lp_e=None, finish="length"):
+    n = len(ent)
+    strs = strs if strs is not None else [f"w{t % 50} " for t in range(n)]
+    return SP.Sample(list(range(n)), strs, np.asarray(lp_e if lp_e is not None else np.full(n, -9.0), np.float32),
+                     np.asarray(ent_e if ent_e is not None else np.full(n, 0.01), np.float32), finish,
+                     None, np.asarray(lp, np.float32), np.asarray(ent, np.float32), "processed")
+
+
+def test_entropy_features_on_known_token_entropies():
+    n = 1500
+    ent = np.arange(n) / 1000.0
+    lp = -np.arange(n) / 2000.0
+    f = SP.entropy_features(_sample(ent, lp))
+    e32, l32 = ent.astype(np.float32).astype(np.float64), lp.astype(np.float32).astype(np.float64)
+    assert f["ent_first256"] == pytest.approx(e32[:256].mean())
+    assert f["ent_first1024"] == pytest.approx(e32[:1024].mean())
+    assert f["lp_first256"] == pytest.approx(l32[:256].mean()) and f["lp_first1024"] == pytest.approx(l32[:1024].mean())
+    assert f["ent_first256"] == pytest.approx(0.1275, abs=1e-6)
+    assert f["ent_first1024"] == pytest.approx(0.5115, abs=1e-6)
+    assert f["tok_entropy"] == pytest.approx(e32.mean()) and f["stats_source"] == SP.STATS_RAW
+    assert f["tok_entropy_engine"] == pytest.approx(0.01) and f["tok_lp_engine"] == pytest.approx(-9.0)
+    assert f["n_tokens"] == n and f["capped"] and not f["closed"] and f["n_think"] == n and not f["degenerate"]
+    assert np.allclose(SP.unf16(f["ent_seq"]), ent, atol=2e-3) and len(SP.unf16(f["lp_seq"])) == n
+    # fewer tokens than a window: the mean over all of them
+    short = SP.entropy_features(_sample(ent[:100], lp[:100], finish="stop"))
+    assert short["ent_first256"] == short["ent_first1024"] == pytest.approx(e32[:100].mean())
+    assert short["lp_first256"] == short["lp_first1024"] == pytest.approx(l32[:100].mean())
+    # the thinking closed within the cap; a missing recorder value is skipped, not averaged in as 0
+    strs = [f"w{t} " for t in range(300)]
+    strs[10] = "</think>"
+    e2 = ent[:300].copy()
+    e2[3] = np.nan
+    c = SP.entropy_features(_sample(e2, lp[:300], strs=strs, finish="stop"))
+    assert c["closed"] and c["n_think"] == 11
+    assert c["ent_first256"] == pytest.approx(np.nanmean(e2.astype(np.float32).astype(np.float64)[:256]))
+    # degenerate text; an empty sample; the engine's statistics when there is no recorder (and it says so)
+    assert SP.entropy_features(_sample(ent[:80], lp[:80], strs=["!"] * 80))["degenerate"]
+    empty = SP.entropy_features(_sample([], []))
+    assert empty["n_tokens"] == 0 and math.isnan(empty["ent_first256"]) and math.isnan(empty["lp_first1024"])
+    proc = SP.entropy_features(dataclasses.replace(_sample(ent, lp), lp_raw=None, ent_raw=None))
+    assert proc["stats_source"] == SP.STATS_PROC and proc["ent_first1024"] == pytest.approx(0.01)
+    # seeds: fixed per unit (and --seed), none equal to an attempt's
+    assert SP.entropy_seed("u1", 0) == SP.entropy_seed("u1", 0) != SP.entropy_seed("u2", 0) != SP.entropy_seed("u2", 1)
+    assert SP.entropy_seed("u1", 0) != SP.attempt_seed("u1", 0, 0) and 0 <= SP.entropy_seed("u1", 0) < 2 ** 31 - 1
+
+
+def test_entropy_units_are_the_rubrics_round_robin(synth, tmp_path):
+    data, _, _ = synth
+    ue = SP.entropy_units(str(data), SP.PARENTS)
+    ur = SP.rubric_units(str(data), SP.PARENTS)
+    def units(us):
+        return sorted((u["unit"], tuple(u["item_ids"])) for u in us)
+
+    assert units(ue) == units(ur)
+    m, s, w, r = SP.PARENTS                                          # 7 matharena, 2 swe (s2 = s3), 1, 1
+    assert [u["benchmark"] for u in ue] == [m, s, w, r, m, s, m, m, m, m, m]
+    for b in SP.PARENTS:                                             # each benchmark in its fixed hash order
+        assert [u["unit"] for u in ue if u["benchmark"] == b] == [u["unit"] for u in SP.unique_items(str(data), b)]
+    one = SP.entropy_units(str(data), SP.PARENTS, limit=1)
+    assert [u["benchmark"] for u in one] == list(SP.PARENTS)
+    assert {u["unit"] for u in one} == {u["unit"] for u in SP.rubric_units(str(data), SP.PARENTS, 1)}
+    # any prefix of whole rounds covers the benchmarks evenly
+    many = tmp_path / "many"
+    write_many(str(many))
+    ue = SP.entropy_units(str(many), SP.PARENTS)
+    for k in range(1, 9):
+        assert Counter(u["benchmark"] for u in ue[:4 * k]) == {b: k for b in SP.PARENTS}
+    assert [u["benchmark"] for u in ue[32:]] == ["matharena"] * 16
+    args = SP.parse_args(entropy_args(many, tmp_path / "o", "--entropy-limit", "3"))
+    assert len(SP.load_entropy_units(args)) == 12 and SP.load_entropy_units(SP.parse_args(["run"])) is None
+
+
+def test_entropy_config_hash_is_its_own(monkeypatch):
+    args = SP.parse_args(["run"])
+    h = {j: SP.digest(SP.job_cfg(args, j)) for j in SP.JOBS}
+    # the first commit's rubric and attempt shards keep their config hashes
+    assert {j: h[j] for j in FIRST_COMMIT_CFG} == FIRST_COMMIT_CFG
+    cfg = SP.job_cfg(args, "entropy")
+    assert "version" not in cfg and cfg["entropy_version"] == SP.ENTROPY_VERSION
+    monkeypatch.setattr(SP, "VERSION", "k9.9")
+    assert SP.digest(SP.job_cfg(args, "entropy")) == h["entropy"]
+    assert all(SP.digest(SP.job_cfg(args, j)) != h[j] for j in FIRST_COMMIT_CFG)
+    monkeypatch.undo()
+    monkeypatch.setattr(SP, "ENTROPY_VERSION", "e9.9")
+    assert SP.digest(SP.job_cfg(args, "entropy")) != h["entropy"]
+    assert all(SP.digest(SP.job_cfg(args, j)) == h[j] for j in FIRST_COMMIT_CFG)
+    monkeypatch.undo()
+    # what does not change a unit's result leaves the hash alone; what does, changes it
+    for extra in (["--entropy-limit", "5"], ["--entropy-shard", "8"], ["--entropy-shard-tokens", "9000"],
+                  ["--no-prefix-caching"], ["--k", "2"], ["--max-tokens", "2048"], ["--attempt-logprobs", "1"],
+                  ["--entropy-benchmarks", "matharena"], ["--max-num-seqs", "32"], ["--gpu-mem", "0.8"]):
+        assert SP.digest(SP.job_cfg(SP.parse_args(["run", *extra]), "entropy")) == h["entropy"], extra
+    for extra in (["--presence-penalty", "0"], ["--task-tokens", "2048"], ["--seed", "1"],
+                  ["--model", "Qwen/Qwen3-8B-AWQ"]):
+        assert SP.digest(SP.job_cfg(SP.parse_args(["run", *extra]), "entropy")) != h["entropy"], extra
+    # the transformers fallback cannot sample with the recorder: the entropy job is dropped there
+    assert SP.parse_args(["run", "--backend", "hf", "--jobs", "entropy,rubric"]).jobs == ["rubric"]
+    with pytest.raises(SystemExit):
+        SP.parse_args(["run", "--jobs", "entropie"])
+
+
+def test_entropy_shards_by_count_and_kv_tokens():
+    lens = [100, 3000, 200, 3000, 50, 90_000, 10]
+    got = [[u for u in s] for s, _ in SP.entropy_shards(range(len(lens)), lambda i: (range(lens[i]), None), 3,
+                                                         8000, gen=1024)]
+    # the first shard closes at 3 units; the second before a unit that would pass 8000 tokens (5098 + 91024);
+    # a unit over the budget alone is a shard of its own
+    assert got == [[0, 1, 2], [3, 4], [5], [6]]
+    d = SP.parse_args(["run"])
+    assert SP.entropy_shard_limits(d) == (48, 80_000) and 80_000 <= 0.9 * SP.kv_tokens(d)
+    assert SP.entropy_shard_limits(SP.parse_args(["run", "--max-num-seqs", "32"]))[0] == 32
+    low = SP.parse_args(["run", "--gpu-mem", "0.80"])                  # a retry's smaller KV cache
+    assert SP.entropy_shard_limits(low)[1] == int(0.9 * SP.kv_tokens(low)) < 80_000
+
+
+def _entropy_export(out):
+    return out / SP.model_slug(SP.DEFAULT_MODEL, "vllm") / "export"
+
+
+def pin_entropy_cfg(S, monkeypatch, argv):
+    """strong_llm_eval's ENTROPY_RULE is fixed for the kit's default entropy config (commit D's); these tests run the
+    kit with --task-tokens 256, another config, which the consumer's check-schema warns about: pin the rule to it
+    here, and check that it is not the default one."""
+    cfg = SP.digest(SP.job_cfg(SP.parse_args(argv), "entropy"))
+    assert cfg != S.ENTROPY_CFG == SP.digest(SP.job_cfg(SP.parse_args(["run"]), "entropy"))
+    monkeypatch.setitem(S.ENTROPY_RULE["config"], "cfg", cfg)
+
+
+def test_entropy_pipeline_export_schema_and_manifest(synth, monkeypatch):
+    data, out, items = synth
+    be = MockBackend()
+    argv = entropy_args(data, out, "--entropy-shard", "4")
+    assert SP.main(argv, backend=be, now=clock()) == 0
+    args = SP.parse_args(argv)
+    ue = SP.entropy_units(str(data), SP.PARENTS)
+    ex = _entropy_export(out)
+    man = json.load(open(ex / "manifest.json"))
+    assert man["schema_version"] == 1 and man["hash"] == SP.HASH_DEF and man["logprobs"] == "raw"
+    assert man["shards"] == [{"path": "entropy/entropy.parquet", "rows": 12,
+                              "sha256": SP.file_sha256(str(ex / "entropy" / "entropy.parquet"))}]
+    en = pd.read_parquet(ex / "entropy" / "entropy.parquet")
+    assert list(en.columns) == ["benchmark", "item_id", "content_sha256"] + list(SP.ENTROPY_COLS)
+    want = {"ent_first256": "float64", "ent_first1024": "float64", "lp_first256": "float64", "lp_first1024": "float64",
+            "ent_n_tokens": "int64", "ent_closed": "bool", "ent_degenerate": "bool", "ent_prompt_tokens": "int64",
+            "ent_task_tokens": "int64", "ent_truncated": "bool"}
+    assert {c: str(en[c].dtype) for c in want} == want and SP.ENTROPY_COLS == want
+    all_ids = {(b, r[0]) for b, rows in items.items() for r in rows}
+    assert set(zip(en.benchmark, en.item_id)) == all_ids and len(en) == len(all_ids)
+    by_id = {(b, r[0]): r for b, rows in items.items() for r in rows}
+    for row in en.itertuples():
+        _, content, feats, _ = by_id[(row.benchmark, row.item_id)]
+        assert row.content_sha256 == SP.sha(f"{content}\n{feats}")
+    # the raw statistics over the windows: the mock's long samples run to the cap, the short ones close
+    long, short = en[en.ent_n_tokens == 1024], en[en.ent_n_tokens < 1024]
+    assert len(long) and len(short) and not long.ent_closed.any() and short.ent_closed.all()
+    assert en.ent_first1024.between(RAW_ENT, RAW_ENT + 0.04).all()
+    assert en.lp_first256.between(RAW_LP - 0.07, RAW_LP).all() and not en.ent_degenerate.any()
+    assert (en.loc[en.benchmark == "researchcodebench", "ent_truncated"]).all()
+    assert (en.loc[en.benchmark == "researchcodebench", "ent_task_tokens"] > 256).all()
+    s2, s3 = (en[en.item_id == i].iloc[0] for i in ("s2", "s3"))       # one unit, both item_ids
+    assert s2.ent_first1024 == s3.ent_first1024 and s2.ent_prompt_tokens == s3.ent_prompt_tokens
+    det = pd.read_parquet(ex / "_detail" / "entropy_units.parquet")
+    assert len(det) == len(ue) and det.unit.is_unique and {"text", "lp_seq", "ent_seq", "seed"} <= set(det.columns)
+    for r in det.itertuples():
+        ent = SP.unf16(r.ent_seq)
+        assert len(ent) == r.n_tokens
+        assert r.ent_first1024 == pytest.approx(float(ent.astype(np.float64).mean()), abs=1e-3)
+    # the manifest's job section
+    k = man["kinds"]["entropy"]
+    store_cfg = SP.digest(SP.job_cfg(args, "entropy"))
+    assert k["cfg"] == k["cfg_hash"] == store_cfg and k["version"] == SP.ENTROPY_VERSION
+    assert k["config"] == json.loads(json.dumps(SP.job_cfg(args, "entropy")))
+    assert k["sampling"] == SP.ATTEMPT_SAMPLING and k["max_new_tokens"] == 1024 and k["n"] == 1
+    assert k["prompt"]["template"] == "{task}\n\n" + SP.ENTROPY_INSTRUCTION and k["prompt"]["thinking"]
+    assert k["prompt"]["rendered"] == SP.entropy_prompt(be.tok, 256).rendered and k["prompt"]["task_tokens"] == 256
+    assert k["signs"] == {"ent_first256": 1, "ent_first1024": 1, "lp_first256": -1, "lp_first1024": -1,
+                          **{c: 0 for c in SP.ENTROPY_DIAG}} and k["primary"] == "ent_first1024"
+    assert k["dtypes"] == want and k["units"] == len(ue) and k["logprobs"] == "raw"
+    ts = k["token_stats"]
+    n_shards = len(be.check_prompts)
+    assert n_shards == math.ceil(len(ue) / 4) and ts["sources"] == {SP.STATS_RAW: len(ue)}
+    assert ts["recorder_check"]["status"] == "ok" and ts["recorder_check"]["max_abs_gap"] == 0
+    assert ts["recorder_check"]["shards_checked"] == n_shards and ts["recorder_check"]["tokens"] == 12 * n_shards
+    # the keys, the harness file, the summary
+    keys = pd.read_parquet(ex / "_keys.parquet")
+    assert set(keys.job) == {"entropy"} and len(keys) == len(all_ids)
+    for r in keys.itertuples():
+        _, content, feats, _ = by_id[(r.benchmark, r.item_id)]
+        item = {"item_content": content, "item_features": feats, "interactors": "", "benchmark_id": r.benchmark}
+        assert r.key == SP.item_key_hex(item) and r.text_key == SP.text_key_hex(item)
+    hj = json.load(open(ex / "_harness.json"))
+    assert set(hj) == {f"entropy_{f}" for f in SP.ENTROPY_EXPORT}
+    assert hj["entropy_lp_first1024"]["m3"] == pytest.approx(-float(en.loc[en.item_id == "m3", "lp_first1024"].iloc[0]))
+    m3 = en[en.item_id == "m3"].iloc[0]
+    assert hj["entropy_ent_first1024"]["m3"] == pytest.approx(float(m3.ent_first1024))
+    # split-harness does not hand them to experiments/harness.py one by one: strong_llm_eval --job entropy reads them
+    assert SP.split_harness(str(ex)) == [] and not os.path.exists(ex / "_harness" / "entropy_ent_first1024.json")
+    summ = json.load(open(ex / "_summary.json"))["entropy"]
+    assert summ["units"] == len(ue) and summ["recorder_check"] == "ok" and 0 < summ["closed_rate"] < 1
+    # the requests: one sample per unit with its own seed and the attempts' sampling; a greedy check per shard
+    samp = [c for c in be.calls if c["seeds"] is not None]
+    assert all(c["params"]["temperature"] == 0.6 and c["params"]["top_p"] == 0.95 and c["params"]["top_k"] == 20
+               and c["params"]["presence_penalty"] == 1.5 and c["params"]["max_tokens"] == 1024
+               and c["params"]["logprobs"] == 1 and c["params"]["record_raw"] and c["n"] <= 4 for c in samp)
+    assert [s for c in samp for s in c["seeds"]] == [SP.entropy_seed(u["unit"], 0) for u in ue]
+    chk = [c for c in be.calls if c["seeds"] is None]
+    assert len(chk) == n_shards and all(c["n"] == 1 and c["params"]["temperature"] == 0 for c in chk)
+    assert be.check_prompts == be.entropy_prompts[::4]                 # each shard's first prompt
+    # the prompts, in round-robin order, carry the task and nothing of its metadata
+    assert len(be.entropy_prompts) == len(ue)
+    for u, text in zip(ue, be.entropy_prompts):
+        assert "Metadata" not in text and "problem_idx" not in text and "competition=" not in text
+        if len(be.tok.enc(u["content"])) <= 256:
+            assert f"<|im_start|>user\n{u['content']}\n\n{SP.ENTROPY_INSTRUCTION}<|im_end|>" in text
+    # the root manifest: the job config by its hash, progress, the session's stats
+    top = json.load(open(out / "manifest.json"))
+    assert top["job_configs"][store_cfg] == json.loads(json.dumps(SP.job_cfg(args, "entropy")))
+    slug = SP.model_slug(SP.DEFAULT_MODEL, "vllm")
+    assert top["progress"][slug]["entropy"] == {"units": len(ue), "done": len(ue)}
+    st = top["sessions"][-1]["stats"]["entropy"]
+    assert st["recorder_check"]["status"] == "ok" and st["shards"] == n_shards and st["gen_tokens"] > 0
+    assert top["models"][slug]["entropy_rendered"] == k["prompt"]["rendered"]
+    # the consumer's schema check: no error, no warning
+    try:
+        from experiments import strong_llm_eval as S
+    except Exception as e:                                   # the consumer is optional here
+        pytest.skip(f"experiments/strong_llm_eval.py not importable: {e}")
+    rep = S.check_schema(str(ex), benches=SP.BENCHES)
+    assert rep["ok"], rep["errors"]
+    assert [w for w in rep["warnings"] if "job config" in w] == rep["warnings"] != []    # not the default config
+    pin_entropy_cfg(S, monkeypatch, argv)
+    rep = S.check_schema(str(ex), benches=SP.BENCHES)
+    assert rep["ok"], rep["errors"]
+    assert not rep["warnings"], rep["warnings"]
+    assert set(rep["shards"]["entropy/entropy.parquet"]["features"]) == set(SP.ENTROPY_COLS)
+    over = k["signs"]
+    for f, (sign, _) in SP.ENTROPY_EXPORT.items():
+        assert S.declared_sign(f, over)[0] == sign
+    for c in SP.ENTROPY_DIAG:
+        assert S.declared_sign(c, over)[0] == 0
+
+
+def test_entropy_commit_keeps_the_attached_rubric_and_attempts(synth, tmp_path, monkeypatch):
+    """Commit D with the previous version's Output attached: the new export holds the rubric's and the attempts'
+    tables unchanged beside the entropy table, with their prompts and settings, and passes the consumer's check
+    (the entropy diagnostics do not collide with the rubric's columns)."""
+    data, out, _ = synth
+    assert SP.main(run_args(data, out), backend=MockBackend(), now=clock()) == 0
+    new = tmp_path / "commit_d"
+    be = MockBackend()
+    assert SP.main(resumed(entropy_args(data, new), out), backend=be, now=clock()) == 0
+    assert not be.rubric_prompts and not be.forced_prompts and be.entropy_prompts
+    old_ex, ex = _entropy_export(out), _entropy_export(new)
+    man0, man = json.load(open(old_ex / "manifest.json")), json.load(open(ex / "manifest.json"))
+    got = {s["path"]: s for s in man["shards"]}
+    assert set(got) == {"rubric/rubric.parquet", "attempts/attempts.parquet", "entropy/entropy.parquet"}
+    for s in man0["shards"]:
+        # the same rows and, with one pyarrow as here, the same bytes (on Kaggle only if the image's pyarrow is the
+        # first commit's: parquet records its writer's version)
+        assert got[s["path"]] == s
+    for kind in ("rubric", "attempts"):
+        assert man["kinds"][kind] == man0["kinds"][kind]       # prompts, rendered text, sampling, cfg
+    assert man["kinds"]["attempts"]["max_new_tokens"] == 64 and man["kinds"]["rubric"]["prompt"]["rendered"]
+    keys = pd.read_parquet(ex / "_keys.parquet")
+    assert set(keys.job) == {"rubric", "attempts", "entropy"}
+    assert len(json.load(open(new / "manifest.json"))["sessions"]) == 2
+    try:
+        from experiments import strong_llm_eval as S
+    except Exception as e:
+        pytest.skip(f"experiments/strong_llm_eval.py not importable: {e}")
+    pin_entropy_cfg(S, monkeypatch, entropy_args(data, new))
+    rep = S.check_schema(str(ex), benches=SP.BENCHES)
+    assert rep["ok"], rep["errors"]
+    assert not rep["warnings"], rep["warnings"]
+
+
+def test_entropy_resume(synth, monkeypatch):
+    data, out, _ = synth
+    be = MockBackend()
+    assert SP.main(entropy_args(data, out, "--entropy-shard", "3", "--max-shards", "1"), backend=be,
+                   now=clock()) == SP.EXIT_DEADLINE
+    slug = SP.model_slug(SP.DEFAULT_MODEL, "vllm")
+    assert len(SP.Store(str(out / slug / "entropy"), "").read()) == 3 and len(be.entropy_prompts) == 3
+    ue = SP.entropy_units(str(data), SP.PARENTS)
+    assert json.load(open(out / "manifest.json"))["progress"][slug]["entropy"] == {"units": len(ue), "done": 3}
+    be2 = MockBackend()
+    assert SP.main(entropy_args(data, out, "--entropy-shard", "3"), backend=be2, now=clock()) == 0
+    done_first = {SP.entropy_seed(u["unit"], 0) for u in ue[:3]}
+    seeds2 = [s for c in be2.calls if c["seeds"] for s in c["seeds"]]
+    assert len(seeds2) == len(ue) - 3 and not done_first & set(seeds2)
+    en = SP.Store(str(out / slug / "entropy"), "").read()
+    assert len(en) == len(ue) and en.unit.is_unique
+    # nothing left: no generation; other jobs' settings do not restart it
+    be3 = MockBackend()
+    assert SP.main(entropy_args(data, out, "--k", "2", "--max-tokens", "48"), backend=be3, now=clock()) == 0
+    assert not be3.calls
+    # another prompt version is another config: it starts over, and the export takes the larger config
+    be4 = MockBackend()
+    monkeypatch.setattr(SP, "ENTROPY_VERSION", "e-test")
+    assert SP.main(entropy_args(data, out, "--max-shards", "1", "--entropy-shard", "2"), backend=be4,
+                   now=clock()) == SP.EXIT_DEADLINE
+    assert len(be4.entropy_prompts) == 2
+    assert len(pd.read_parquet(_entropy_export(out) / "entropy" / "entropy.parquet")) == 12
+
+
+class MisalignedEntropyRecorder(MockBackend):
+    """The recorder's raw log-probs disagree with the engine's on the entropy shards' greedy check."""
+
+    def entropy_check(self):
+        s = super().entropy_check()
+        s.lp_raw = s.lp_raw - 0.5
+        return s
+
+
+class GarbageEntropy(MockBackend):
+    def entropy(self, seed, max_tokens):
+        return self._sample("!" * max_tokens, lambda t, s: -0.1, lambda t, s: 0.1, "length")
+
+
+def test_entropy_self_checks_stop_a_useless_run(synth):
+    data, out, _ = synth
+    slug = SP.model_slug(SP.DEFAULT_MODEL, "vllm")
+    be = MisalignedEntropyRecorder()
+    assert SP.main(entropy_args(data, out, "--entropy-shard", "2"), backend=be, now=clock()) == SP.EXIT_CHECK
+    assert len(SP.Store(str(out / slug / "entropy"), "").read()) == 2 and len(be.check_prompts) == 1
+    sess = json.load(open(out / "manifest.json"))["sessions"][-1]
+    assert sess["stats"]["entropy"]["self_check"]["status"] == "FAILED"
+    assert "recorder" in sess["stats"]["entropy"]["self_check"]["why"][0]
+    assert sess["stats"]["entropy"]["recorder_check"]["max_abs_gap"] == pytest.approx(0.5)
+    man = json.load(open(_entropy_export(out) / "manifest.json"))
+    assert man["kinds"]["entropy"]["token_stats"]["recorder_check"]["status"] == "FAILED"
+    # --no-self-check runs on
+    assert SP.main(entropy_args(data, out, "--entropy-shard", "2", "--no-self-check"),
+                   backend=MisalignedEntropyRecorder(), now=clock()) == 0
+    # degenerate texts
+    g = out.parent / "garbage"
+    be = GarbageEntropy()
+    assert SP.main(entropy_args(data, g, "--entropy-shard", "2"), backend=be, now=clock()) == SP.EXIT_CHECK
+    why = json.load(open(g / "manifest.json"))["sessions"][-1]["stats"]["entropy"]["self_check"]["why"]
+    assert len(why) == 1 and "degenerate" in why[0] and len(be.entropy_prompts) == 2
+    # nothing generated at all
+    assert SP.entropy_self_check([{"degenerate": False, "n_tokens": 0}] * 3, "ok") == ["no unit generated a token"]
+    raw = {"degenerate": False, "n_tokens": 5, "stats_source": SP.STATS_RAW}
+    assert SP.entropy_self_check([raw], "ok") == []
+
+
+def test_entropy_self_check_stops_a_run_without_the_raw_statistics(synth):
+    """No recorder (vLLM V1, or a recorder that never ran): the greedy check compares nothing (status n/a) and
+    the samples' statistics are the engine's processed ones, which strong_llm_eval does not read; the first shard
+    stops the run (exit 77) instead of spending the commit on them."""
+    data, out, _ = synth
+    be = MockBackend(raw=False)
+    assert SP.main(entropy_args(data, out, "--entropy-shard", "2"), backend=be, now=clock()) == SP.EXIT_CHECK
+    assert len(be.entropy_prompts) == 2 and len(be.check_prompts) == 1
+    st = json.load(open(out / "manifest.json"))["sessions"][-1]["stats"]["entropy"]
+    assert st["recorder_check"]["status"] == "n/a" and st["stats_source"] == {SP.STATS_PROC: 2}
+    why = st["self_check"]["why"]
+    assert len(why) == 2 and "did not run" in why[0] and "not the raw full-vocabulary" in why[1]
+    man = json.load(open(_entropy_export(out) / "manifest.json"))
+    assert man["kinds"]["entropy"]["logprobs"] == SP.STATS_PROC
+    # the rule on a shard: every sample that generated a token carries the raw statistics; an empty one has none
+    raw = {"degenerate": False, "n_tokens": 5, "stats_source": SP.STATS_RAW}
+    one_off = SP.entropy_self_check([raw] * 9 + [{**raw, "stats_source": SP.STATS_RAW_TOPK}], "ok")
+    assert len(one_off) == 1 and "10%" in one_off[0] and SP.STATS_RAW_TOPK in one_off[0]
+    assert SP.entropy_self_check([raw, {**raw, "n_tokens": 0, "stats_source": SP.STATS_PROC}], "ok") == []
+    assert SP.entropy_self_check([raw], "n/a")[0].startswith("the recorder check did not run")
+    # the export counts the same way: an empty unit's source label is not a second source
+    eu = pd.DataFrame({"stats_source": [SP.STATS_RAW, SP.STATS_PROC], "n_tokens": [5, 0],
+                       "check_gap": [0.0, np.nan], "check_n": [3, 0]})
+    ts = SP.entropy_token_stats(eu)
+    assert ts["logprobs"] == "raw" and ts["sources"] == {SP.STATS_RAW: 1} and ts["empty_units"] == 1
+
+
+def test_entropy_plan_numbers(synth):
+    data, out, _ = synth
+    args = SP.parse_args(["plan"] + entropy_args(data, out)[1:])
+    ue = SP.load_entropy_units(args)
+    b = SP.plan_budget(args, MockTok(), None, None, ue)
+    e, r = b["entropy"], SP.rates(args)
+    p = SP.entropy_prompt(MockTok(), args.task_tokens)
+    lens = [len(p.build(u["content"])[0]) for u in ue]
+    assert e["units"] == len(ue) and e["prompt_tokens"] == sum(lens) and e["max_prompt"] == max(lens)
+    assert e["gen_tokens_est"] == len(ue) * 1024 and e["truncated"] == 1 and not e["prefix_caching"]
+    assert e["shards_est"] == 1 and e["shard_limits"] == {"units": 48, "kv_tokens": 80_000}
+    assert r["prefill_nocache"] == 1000 and r["decode_entropy"] == 180
+    assert e["rates_tok_s"]["decode_slow"] == pytest.approx(180 * SP.ENTROPY_SLOW) == pytest.approx(135)
+    assert e["hours_est"] == pytest.approx(SP.entropy_secs(sum(lens), len(ue), 1, r, 180) / 3600, abs=0.01)
+    assert e["hours_est_slow"] == pytest.approx(
+        SP.entropy_secs(sum(lens), len(ue), 1, r, 135, step_s=0.2) / 3600, abs=0.01)
+    assert e["hours_est_slow"] >= e["hours_est"] and e["fits_one_commit_slow"] and e["units_per_commit_slow"] == len(ue)
+    piece = b["session_plan"][-1]
+    assert [p_["piece"] for p_ in b["session_plan"]] == ["entropy"]
+    assert piece["args"] == ["--jobs", "entropy", "--no-prefix-caching"] and piece["commits_slow"] == 1
+    pa = SP.parse_args(["run", *piece["args"]])
+    assert pa.jobs == ["entropy"] and pa.no_prefix_caching
+    assert b["slow_case"]["total_hours_est"] == pytest.approx(e["hours_est_slow"], abs=0.01)
+    # the quota Kaggle must still show for this commit: the plan cannot see the hours already used this week
+    q = b["quota"]
+    assert q["commit_need_h"] == round(piece["gpu_h_slow"] + SP.QUOTA_MARGIN_H, 1) and not q["counts_hours_used"]
+    # prefill is uncached whether or not --no-prefix-caching was given
+    assert SP.plan_budget(SP.parse_args(["plan"] + run_args(data, out, "--jobs", "entropy")[1:]), MockTok(), None,
+                          None, ue)["entropy"]["hours_est"] == e["hours_est"]
+    # a commit that cannot hold the job says how many units it covers
+    slow = SP.parse_args(["plan"] + entropy_args(data, out, "--session-hours", "1.4", "--decode-rate-entropy",
+                                                 "0.5")[1:])
+    s = SP.plan_budget(slow, MockTok(), None, None, ue)["entropy"]
+    per_unit = SP.entropy_secs(sum(lens), len(ue), 1, SP.rates(slow), 0.5 * SP.ENTROPY_SLOW, step_s=0.2) / len(ue)
+    assert not s["fits_one_commit_slow"] and s["commit_usable_hours"] == pytest.approx(1.0)
+    assert s["units_per_commit_slow"] == int(3600 / per_unit) < len(ue)
+    assert SP.main(["plan"] + entropy_args(data, out)[1:], tok=MockTok()) == 0
+    assert "entropy" in json.load(open(out / "manifest.json"))["plan"][SP.model_slug(SP.DEFAULT_MODEL, "vllm")]
+    # the real job (plan on the local items with the Qwen3 tokenizer, README "Коммит D"): 4,078 units, 1,938,214
+    # uncached prompt tokens, 89 shards; at the 14B's rates it fits one commit even in the slow case
+    d = SP.parse_args(["run", "--jobs", "entropy", "--no-prefix-caching"])
+    rd = SP.rates(d)
+    usable = d.session_hours - SP.SESSION_OVERHEAD_H
+    fast = SP.entropy_secs(1_938_214, 4078, 89, rd, rd["decode_entropy"]) / 3600
+    slow_h = SP.entropy_secs(1_938_214, 4078, 89, rd, rd["decode_entropy"] * SP.ENTROPY_SLOW,
+                             step_s=SP.ENTROPY_CHECK_STEP_S / SP.ENTROPY_SLOW) / 3600
+    assert fast == pytest.approx(7.11, abs=0.01) and slow_h == pytest.approx(9.30, abs=0.01) and slow_h <= usable
+    # README: 9.7 GPU-h of the quota in the slow case, and Settings -> Quota must show at least 10.5 before it
+    assert round(slow_h + SP.SESSION_OVERHEAD_H, 1) == 9.7
+    assert round(slow_h + SP.SESSION_OVERHEAD_H + SP.QUOTA_MARGIN_H, 1) == 10.5
+    # and the default shard fits the measured KV cache (6,292 blocks of 16 tokens)
+    assert SP.entropy_shard_limits(d)[1] <= 6292 * 16
+
+
 # --- real items (skipped without data/) --------------------------------------------------------------
 
 needs_data = pytest.mark.skipif(not all(os.path.exists(os.path.join(DATA, b, "items.parquet")) for b in SP.PARENTS),
@@ -976,9 +1482,10 @@ def resumed(args, *sources):
 def _sessions(data, root, seen_by_write):
     """A worst-case week: session 1 crashes mid-run and its retry continues in the same output; session 2
     restores it and applies a slow-run remedy (--attempt-logprobs 1: a new attempts config); session 3
-    restores session 2 and the stale session 1 and applies another (--max-tokens); session 4 finishes. One
-    unit per shard. Returns the four outputs."""
-    base = ["--rubric-shard", "1", "--attempt-shard", "1", "--k", "2"]
+    restores session 2 and the stale session 1 and applies another (--max-tokens); session 4 finishes, the
+    entropy job included. One unit per shard. Returns the four outputs."""
+    base = ["--jobs", "rubric,attempts,entropy", "--rubric-shard", "1", "--attempt-shard", "1", "--entropy-shard", "1",
+            "--k", "2"]
     s1, s2, s3, s4 = (root / f"s{i}" for i in range(1, 5))
     with pytest.raises(RuntimeError):
         SP.main(run_args(data, s1, *base), backend=CrashingBackend(after=30), now=clock())
@@ -1009,8 +1516,10 @@ def _all_units_exported(data, out):
     ex = out / SP.model_slug(SP.DEFAULT_MODEL, "vllm") / "export"
     ru = pd.read_parquet(ex / "rubric" / "rubric.parquet")
     at = pd.read_parquet(ex / "attempts" / "attempts.parquet")
+    en = pd.read_parquet(ex / "entropy" / "entropy.parquet")
     n_items = sum(len(u["item_ids"]) for u in SP.rubric_units(str(data), SP.PARENTS))
-    return len(ru) == n_items and set(at.item_id) == {i for u in SP.attempt_units(str(data)) for i in u["item_ids"]}
+    return (len(ru) == n_items and set(at.item_id) == {i for u in SP.attempt_units(str(data)) for i in u["item_ids"]}
+            and set(zip(en.benchmark, en.item_id)) == set(zip(ru.benchmark, ru.item_id)))
 
 
 def test_file_count_worst_case_stays_under_the_guard(tmp_path, monkeypatch):
@@ -1037,6 +1546,9 @@ def test_file_count_worst_case_stays_under_the_guard(tmp_path, monkeypatch):
     slug = SP.model_slug(SP.DEFAULT_MODEL, "vllm")
     rub = SP.Store(str(outs[-1] / slug / "rubric"), "").read()
     assert rub.unit.is_unique and len(rub) == len(SP.rubric_units(str(data), SP.PARENTS))
+    ent = SP.Store(str(outs[-1] / slug / "entropy"), "").read()
+    assert ent.unit.is_unique and len(ent) == len(rub)
+    assert len(SP.Store(str(outs[-1] / slug / "entropy"), "").files()) == 1
 
 
 def test_file_count_with_the_default_layout(tmp_path, monkeypatch):

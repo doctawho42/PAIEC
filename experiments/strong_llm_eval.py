@@ -32,6 +32,60 @@ writes, per model, <model>/export/ in this script's schema; the user copies that
 directory's contents to data/features/kaggle/ (or passes --kaggle DIR). This
 script loads no language model and needs no GPU.
 
+The entropy job (commit D: strong_probe.py's `entropy`, ENTROPY_VERSION e1.0; README
+"Коммит D"). The attempts' reasoning entropy was the first item-side signal to pass its
+correlation bar (tok_entropy within-competition rho 0.372 on the probe texts, ent_first1024
+0.30-0.37), but on matharena only, so the harness could not fit a transferred slope leave one
+parent out and the verdict was NULL for ALC. The harness reference says a covariate of
+within-pair r ~0.3 on all four parents gives about -0.0025 test-like ALC, just past the -0.002
+gate. Commit D measures that entropy cheaply on all four parents: one sample per unit (the
+rubric's units), thinking on, no system prompt, the task text cut as the rubric cuts it and
+"Think through how you would solve this task.", at most 1,024 new tokens with the attempts'
+sampling, the raw full-vocabulary entropy and raw log-prob recorded per token. It is for the
+report's claim; it goes into the submission only if it passes the gate and the organisers allow
+a model at predict time. Its table (entropy/entropy.parquet, ENTROPY_COLUMNS) is its own kind
+here (ENTROPY_KIND), never merged into the rubric's and the attempts' features: ingest joins it
+by content hash like the rubric into WORK/entropy.parquet, reports its coverage per benchmark
+under OUT's `entropy` section, and signs, harness, reference and verdict read it with --job
+entropy, storing under that section. The decision was fixed before any entropy output was
+read; ENTROPY_RULE is the declaration that governs (not the README, not kinds.entropy): the
+declared primary is ent_first1024, kept only if a nested harness line passes harness.gate and its
+declared sign holds on >= KEEP_SIGNS of the four parents (the step-8 prong, PRONG_FIELD), exactly
+as the other declared primaries; ent_first256, lp_first256, lp_first1024, ent_n_tokens and
+ent_closed are exploratory (ENTROPY_SIGNS: entropy + = harder, log-prob -, generated length +,
+thinking closed -). The features are read as declared only when kinds.entropy says the token
+statistics are the raw distribution's full-vocabulary ones (`logprobs` 'raw') and its recorder
+check did not fail; otherwise they are excluded (reported, never kept), and the primary is kept
+only on the version and job config the rule was fixed for (ENTROPY_VERSION e1.0, ENTROPY_CFG: the
+kit's defaults, commit D's config). A unit whose text is degenerate (ent_degenerate: fp16
+overflow's '!!!!') has its features set missing, counted per benchmark. The call is final only on
+the complete export (every unit of the four parents; a partial one, from a commit that stopped
+with exit 75, is labelled PRELIMINARY). Beside the verdict, not gating: the consistency stage
+(matharena: this job's ent_first1024 against the attempts' ent_first1024 and tok_entropy, Spearman
+over shared items, units and prompts; and the test-retest of units whose prompts are identical,
+sampled with different seeds, as pairs and as ICC(1) over every such unit).
+
+The rule is kept traceable in OUT (tests pin its digest): ingest writes entropy.rule with its
+digest (entropy_rule_digest) and refuses to ingest under a rule whose digest differs from the one
+stored (--accept-rule-change records the old rule in the append-only entropy.rule_history and
+drops the results read under it); entropy.rule_first keeps the rule of the first ingest; every
+ingest and verdict appends an entry to entropy.history (features digest, config, version, model,
+units, completeness, rule digest; the call), which nothing drops. The verdict refuses a rule other
+than the first ingest's (or reads it marked RULE CHANGED under --accept-rule-change), and signs,
+harness, reference, consistency and verdict refuse a WORK/entropy.parquet other than the one
+ingest recorded; the verdict also rebuilds every harness line's x from it and refuses a line
+computed on another x (entropy_provenance), so another --work's results never mix with this OUT.
+
+Commit D's export, with the previous Output attached (the recommended path), carries the first
+commit's rubric and attempt tables with the same rows (the same bytes only if Kaggle's pyarrow is
+the first commit's: parquet records its writer's version). Pass that export alone: ingest
+re-writes the joined features with the local pyarrow and compares their digest, so it finds the
+rubric-and-attempt features unchanged and leaves every stored section of theirs as it was
+(nothing is rewritten). An export with the entropy table alone keeps the features already in
+WORK; then pass both directories: --kaggle takes several (a job's shards are read from the first
+directory that carries them; two directories with different rows of one job are an error, the
+same rows in other bytes a warning).
+
 Input schema (SCHEMA below; `--stage schema` prints it as JSON). It was defined
 here first; the notebook's export (strong_probe.py VERSION k1.2, store LAYOUT 2:
 eight rubric scales, solve_share, time_log_minutes and their _entropy / _mass
@@ -113,6 +167,20 @@ Under KAGGLE_DIR (data/features/kaggle/, gitignored under data/):
                    greedy forced readout for every attempt. Without one of them,
                    an lp_answer that mixes sampled (processed) and forced (greedy,
                    raw) readouts is excluded.
+    entropy shard  entropy/*.parquet (ENTROPY_KIND): one row per (benchmark, item_id), the
+                   key columns, the four features ENTROPY_FEATURES (float64: ent_first256,
+                   ent_first1024 the mean raw full-vocabulary next-token entropy in nats over
+                   the first 256 / 1024 generated tokens, lp_first256, lp_first1024 the mean raw
+                   log-prob of the sampled tokens; NaN only for an empty sample) and the
+                   diagnostics ent_n_tokens, ent_prompt_tokens, ent_task_tokens (int64),
+                   ent_closed, ent_degenerate, ent_truncated (bool) (ENTROPY_COLUMNS). A unit
+                   that stands for several item_ids repeats its values on each row. Optional:
+                   an export without it passes as before. The manifest's kinds.entropy
+                   (version, cfg, config, prompt, sampling, signs, primary, token_stats with
+                   its recorder_check, logprobs, units) says what they are; its signs,
+                   primary, version and cfg are checked against ENTROPY_SIGNS, ENTROPY_PRIMARY
+                   and ENTROPY_RULE's config (a difference is a warning: this script's
+                   declarations govern).
   Files or directories starting with '.' or '_' are not shards: the shard loader
   skips them (unfinished writes, and the _detail/ tables read by attempts and run).
 
@@ -122,8 +190,12 @@ Stages (results in OUT, derived tables in WORK = data/strong_llm_eval/):
   check-schema  validate KAGGLE_DIR against SCHEMA: manifest keys, version, hash
                 definition, every listed shard present with its row count and
                 sha256, key and attempt columns and types, duplicate keys per
-                feature, conflicting content hashes, unknown benchmarks; exits 1
-                on any error
+                feature, conflicting content hashes, unknown benchmarks; the
+                entropy shard's columns and types and kinds.entropy (present, its
+                signs, primary, version and job config, a failed recorder check:
+                warnings); with several directories, each, and whether two carry
+                different rows of one job (an error; the same rows in other bytes, a
+                warning); exits 1 on any error
   ingest        read the shards, aggregate the attempts (graded against
                 items.parquet's reference answer, a diagnostic only), join to the
                 public items as paiec.data.load_pairs builds them, verify every
@@ -139,7 +211,21 @@ Stages (results in OUT, derived tables in WORK = data/strong_llm_eval/):
                 penalty, the answer log-prob's source and whether it is one
                 distribution, the resolved attempt primary and whether it can be
                 set beside the 4B D2 lead). When the features change it drops the
-                downstream results and WORK/oof.json.
+                downstream results and WORK/oof.json; when they come out
+                byte-identical (the same digest, the same attempt semantics) it
+                rewrites nothing, not even ingest and meta. An export without rubric
+                or attempt shards leaves them as they are. The entropy table, when
+                present: joined the same way (degenerate units' features missing)
+                -> WORK/entropy.parquet and entropy.ingest (coverage per benchmark,
+                the share of responses covered, per-benchmark means and rates,
+                entropy_semantics, completeness against the expected units),
+                entropy.meta, entropy.rule (with its digest; a different stored
+                rule stops ingest before anything is written, unless
+                --accept-rule-change), entropy.rule_first and an entropy.history
+                entry; when it changes, entropy's downstream sections go
+                (ENTROPY_DOWNSTREAM; history, rule_first and rule_history stay),
+                and when the rubric-and-attempt features change,
+                entropy.consistency goes.
   signs         every feature, oriented + = harder by its declared sign, against
                 the harness's honest difficulty (Rasch b without each of five
                 subject folds, averaged; llm4b_close.honest_targets, cached in
@@ -236,7 +322,28 @@ Stages (results in OUT, derived tables in WORK = data/strong_llm_eval/):
                 position). A declared primary (PRIMARY_HEAD; the resolved attempt
                 primary for every attempt design) passing both is kept; others
                 that pass are reported as exploratory, not kept.
-  show          markdown tables of OUT
+  consistency   (the entropy job) on matharena, this job's ent_first1024 against
+                the attempts' ent_first1024 and tok_entropy per design (Spearman
+                over the items both cover, over one item per entropy unit, and per
+                prompt: the mean over a prompt's units against the attempts' value
+                for that text), with both sides' log-prob semantics; and the
+                test-retest per parent: units whose prompts are identical (the same
+                item_content under other metadata, so another unit and another
+                seed), Spearman and Pearson of their ent_first1024 over one pair per
+                prompt, and ICC(1) over every unit of those prompts. Reported,
+                never gating -> entropy.consistency
+  show          markdown tables of OUT (the entropy job's after the rest)
+
+--job entropy (signs, harness, reference, verdict): the same stages on WORK/entropy.parquet,
+stored under OUT's `entropy` section: signs without heads (entropy_registry: ENTROPY_SIGNS, the
+ent_* diagnostics without a sign), the harness on the usable oriented features (four parents, so
+the transferred slope is fitted leave one parent out), the reference on the items with a finite
+ent_first1024, and the verdict by ENTROPY_RULE (with the rule's digests, the completeness, the
+provenance check and a history entry; final only when complete under the unchanged rule). `run`
+on an export with kinds.entropy writes entropy.run (the session's entropy shards, rates against
+the plan's assumption, units left) and leaves `run` alone. The entropy features are read only
+this way: strong_probe.py split-harness leaves the export's entropy_* entries out of the
+per-covariate files experiments/harness.py reads.
 
 Caveats built in, to state in the findings: the heads' transferred slope for a
 held-out parent is fitted on other parents' out-of-fold x, whose heads saw the
@@ -260,6 +367,17 @@ directory over every public item, beside a running LoRA job):
   python experiments/strong_llm_eval.py --stage verdict
   python experiments/strong_llm_eval.py --stage run          # seconds; reads KAGGLE_RAW's root manifest
   python experiments/strong_llm_eval.py --stage show
+The entropy job (commit D's export copied to data/features/kaggle_d/; the same WORK and OUT):
+  python experiments/strong_llm_eval.py --stage check-schema --kaggle data/features/kaggle_d
+  python experiments/strong_llm_eval.py --stage ingest --kaggle data/features/kaggle_d
+      # the Output was attached: kaggle_d alone; only when kaggle_d carries the entropy table alone:
+      # --kaggle data/features/kaggle data/features/kaggle_d
+  python experiments/strong_llm_eval.py --stage signs --job entropy        # ~0.5 min per feature
+  python experiments/strong_llm_eval.py --stage harness --job entropy      # ~2 min per covariate
+  python experiments/strong_llm_eval.py --stage reference --job entropy    # ~6 min
+  python experiments/strong_llm_eval.py --stage consistency
+  python experiments/strong_llm_eval.py --stage verdict --job entropy
+  python experiments/strong_llm_eval.py --stage run --kaggle data/features/kaggle_d
 Needs data/<benchmark>/, the Kaggle outputs, and the harness rows (python
 experiments/harness.py --stage collect) for harness and reference.
 """
@@ -361,6 +479,47 @@ SIGN_RULES = (
 #: answer) or not features (n_distinct, k): never in the harness
 ATT_DIAG = ("graded", "top_correct", "n_distinct", "k")
 
+# --- the entropy job (commit D) --------------------------------------------------------------
+
+#: the export's kind: its shards' directory, the manifest's kinds key and OUT's section
+ENTROPY_KIND = "entropy"
+#: the version of strong_probe.py's entropy job (its prompt, windows and readout: kinds.entropy.version)
+#: the decision (ENTROPY_RULE) was fixed for
+ENTROPY_VERSION = "e1.0"
+#: the job config hash (kinds.entropy.cfg) the decision was fixed for: strong_probe.py's job_cfg with every default
+#: (commit D's ARGS ["--jobs", "entropy", "--no-prefix-caching"]): Qwen/Qwen3-14B-AWQ at its pinned revision,
+#: vllm, awq, task_tokens 3072, the template and instruction, 1,024 new tokens, the attempts' sampling with
+#: presence penalty 1.5, the windows, seed 0 and its per-unit rule. Another model, seed, penalty or cut is another
+#: config: its features are read, but the primary is kept only on this one
+ENTROPY_CFG = "e21faa7f3d0bf929"
+#: the four features and their declared signs against difficulty (+ = harder), fixed before any
+#: output existed: on a harder item the model is less sure of its next token (entropy +) and its
+#: sampled tokens are less likely (log-prob -)
+ENTROPY_FEATURES = {"ent_first256": 1, "ent_first1024": 1, "lp_first256": -1, "lp_first1024": -1}
+#: two diagnostics read as exploratory features, their signs declared here (kinds.entropy.signs gives
+#: them 0): a harder item runs to the 1,024-token cap (generated length +) and closes its thinking
+#: less often (-, as the attempts' closed_rate)
+ENTROPY_EXPLORATORY = {"ent_n_tokens": 1, "ent_closed": -1}
+ENTROPY_SIGNS = {**ENTROPY_FEATURES, **ENTROPY_EXPLORATORY}
+ENTROPY_PRIMARY = "ent_first1024"
+#: the entropy shard's columns after the key columns, with their types (strong_probe.py ENTROPY_COLS)
+ENTROPY_COLUMNS = {**{f: "float" for f in ENTROPY_FEATURES}, "ent_n_tokens": "int", "ent_closed": "bool",
+                   "ent_degenerate": "bool", "ent_prompt_tokens": "int", "ent_task_tokens": "int",
+                   "ent_truncated": "bool"}
+#: a unit whose text is degenerate (one character most of it: fp16 overflow) has its features missing
+ENTROPY_DEGENERATE = "ent_degenerate"
+#: the joined entropy table's columns that are neither join columns nor features: prompt_sha, sha256
+#: of item_content (16 hex): the entropy prompt reads the task text alone, so equal prompt_sha means
+#: an identical prompt (the test-retest pairs)
+ENTROPY_JOIN_EXTRA = ("prompt_sha",)
+ENTROPY_TABLE = "entropy.parquet"
+#: the entropy section's parts computed from its table: dropped when the table changes
+ENTROPY_DOWNSTREAM = ("signs", "harness", "reference", "consistency", "verdict")
+#: consistency: the attempt aggregates set beside the entropy primary on matharena, and the fewest
+#: shared items (or test-retest pairs) for a correlation
+CONSISTENCY_WITH = ("ent_first1024", "tok_entropy")
+CONSISTENCY_MIN = 5
+
 SCHEMA = {
     "schema_version": SCHEMA_VERSION,
     "layout": {"manifest": "manifest.json",
@@ -393,6 +552,17 @@ SCHEMA = {
     "attempt_shard_columns": {**ATTEMPT_COLS, **{k + " (optional)": v for k, v in ATTEMPT_OPTIONAL.items()},
                               **{k + " (optional, averaged per item)": f"{'bool' if k == 'closed' else 'float'} "
                                  f"-> att_<design>_{n} (sign {sg:+d})" for k, (n, sg) in ATTEMPT_EXTRA.items()}},
+    "entropy_shard": {
+        "path": f"{ENTROPY_KIND}/*.parquet (optional; one row per (benchmark, item_id), a unit's values repeated "
+                "on each of its item_ids)",
+        "columns": {c: (f"{t} (sign {ENTROPY_SIGNS[c]:+d}{', the declared primary' if c == ENTROPY_PRIMARY else ''})"
+                        if c in ENTROPY_SIGNS else f"{t} (diagnostic)") for c, t in ENTROPY_COLUMNS.items()},
+        "required": list(ENTROPY_FEATURES),
+        "manifest": {"kinds.entropy": {"version": ENTROPY_VERSION, "cfg": f"{ENTROPY_CFG} (the rule's config)",
+                                       "signs": ENTROPY_FEATURES,
+                                       "primary": ENTROPY_PRIMARY,
+                                       "logprobs": "'raw' (the raw full-vocabulary statistics: read as declared)",
+                                       "token_stats": {"recorder_check": {"status": "'ok' | 'FAILED' | 'n/a'"}}}}},
     "aliases": ALIASES,
 }
 
@@ -433,6 +603,62 @@ GO_RHO, GO_LO, GO_2026 = 0.35, 0.15, 0.25
 KILL_RHO = 0.15
 FLOOR_ACC = 0.10
 ALPHAS = HS.ALPHAS
+
+#: the entropy job's decision, fixed before any entropy output was read and written into OUT (entropy.rule
+#: at ingest, entropy.verdict.rule), each time with its digest (entropy_rule_digest; tests pin it): nothing here
+#: may be changed after commit D's export is read. Ingest refuses a rule whose digest differs from the one OUT
+#: holds (--accept-rule-change records the old one in entropy.rule_history and drops the results read under it),
+#: and the verdict refuses one that differs from the rule at the first ingest (entropy.rule_first), or marks its
+#: call RULE CHANGED under --accept-rule-change
+ENTROPY_RULE = {
+    "fixed": ("2026-09-28, before any output of strong_probe.py's entropy job (version " + ENTROPY_VERSION
+              + ") was downloaded or read"),
+    "primary": ENTROPY_PRIMARY,
+    "config": {"version": ENTROPY_VERSION, "cfg": ENTROPY_CFG,
+               "what": ("kinds.entropy.cfg, strong_probe.py's job config hash with every default (commit D's ARGS "
+                        "['--jobs', 'entropy', '--no-prefix-caching']): the model and its revision, the prompt, the "
+                        "cut, the sampling, the windows and the seeds; the primary is kept only on this config and "
+                        "version")},
+    "keep": (f"{ENTROPY_PRIMARY} is kept only if a nested harness line passes harness.gate {H.GATE} (test-like ALC "
+             f"difference <= {H.GATE['tl']}, nested and acting in >= {H.GATE['folds_on']} of 4 folds, mix/whole of "
+             f"the same sign, no held-out parent above +{H.GATE['parent']}, neither public R1 weighting above "
+             f"+{H.GATE['guard']}) and its declared sign holds on >= {KEEP_SIGNS} of the 4 parents (plan step 8: "
+             f"within group, and on matharena net of competition, log length and position: {PRONG_FIELD}), exactly "
+             "as the other declared primaries"),
+    "exploratory": [f for f in ENTROPY_SIGNS if f != ENTROPY_PRIMARY],
+    "signs": dict(ENTROPY_SIGNS),
+    "readable": ("the features are read as declared only when the manifest's kinds.entropy says the token "
+                 "statistics are the raw distribution's full-vocabulary ones (logprobs 'raw') and its recorder check "
+                 "did not fail; otherwise every feature is excluded (reported, never kept). The primary is kept only "
+                 f"on version {ENTROPY_VERSION} and job config {ENTROPY_CFG} (`config`), the ones this rule was fixed "
+                 "for"),
+    "degenerate": f"a unit whose text is degenerate ({ENTROPY_DEGENERATE}) has its features missing, counted per "
+                  "benchmark",
+    "complete": ("the call is read only on the complete export: every unit of the four parents (strong_probe.py's "
+                 "entropy_units: the unique items by predict.item_key, 1,555 / 2,078 / 233 / 212 on the public data) "
+                 "covered; on a partial export (a commit that stopped with exit 75) the verdict is labelled "
+                 "PRELIMINARY, and the complete export's verdict replaces it"),
+    "provenance": ("the verdict reads signs and harness lines computed on the table ingest recorded (their features "
+                   "digest and x digests), under the rule ingest recorded, which must be the rule at the first "
+                   "ingest"),
+    "not_gating": ["consistency: matharena against the attempts' ent_first1024 and tok_entropy (over items, units "
+                   "and prompts), and the test-retest of identical prompts (pairs, ICC(1))", "reference", "placebos",
+                   "forced lines"],
+    "submission": ("not for the submission unless the primary is kept and the organisers allow a language model at "
+                   "predict time"),
+}
+
+
+def entropy_rule_digest(rule=None):
+    """sha256 hex of a rule's canonical JSON (paiec.llmfeat.digest of H._jsonable), without its own `digest`
+    key: ENTROPY_RULE's by default, what OUT's entropy.rule, entropy.ingest and entropy.verdict record."""
+    r = ENTROPY_RULE if rule is None else {k: v for k, v in rule.items() if k != "digest"}
+    return F.digest(H._jsonable(r))
+
+
+def entropy_rule_record():
+    """ENTROPY_RULE with its digest, as OUT's entropy.rule keeps it."""
+    return {**ENTROPY_RULE, "digest": entropy_rule_digest()}
 
 
 def log(*a):
@@ -498,8 +724,18 @@ def shard_files(kdir):
     return out
 
 
+def shard_kind(rel, df):
+    """'attempts' (an `attempt` column), 'entropy' (under ENTROPY_KIND/: the entropy job's table,
+    never merged into the item features) or 'items'."""
+    if "attempt" in df.columns:
+        return "attempts"
+    if rel.split(os.sep)[0] == ENTROPY_KIND:
+        return ENTROPY_KIND
+    return "items"
+
+
 def load_shards(kdir):
-    """(manifest or None, [(relative path, 'items' | 'attempts', DataFrame)])."""
+    """(manifest or None, [(relative path, 'items' | 'attempts' | 'entropy', DataFrame)])."""
     import pandas as pd
     man = None
     mp = os.path.join(kdir, "manifest.json")
@@ -509,7 +745,7 @@ def load_shards(kdir):
     frames = []
     for rel in shard_files(kdir):
         df = _norm(pd.read_parquet(os.path.join(kdir, rel)))
-        frames.append((rel, "attempts" if "attempt" in df.columns else "items", df))
+        frames.append((rel, shard_kind(rel, df), df))
     return man, frames
 
 
@@ -561,6 +797,7 @@ def check_schema(kdir, loaded=None, benches=BENCHES):
             listed[os.path.normpath(s["path"])] = s
     seen = set()
     item_parts, att_parts = [], []
+    n_ent = 0
     for rel, kind, df in frames:
         seen.add(os.path.normpath(rel))
         info = {"kind": kind, "rows": int(len(df)), "columns": list(map(str, df.columns))}
@@ -615,10 +852,49 @@ def check_schema(kdir, loaded=None, benches=BENCHES):
             info["features"] = feats
             nonfinite = {c: int((~np.isfinite(df[c].astype(float))).sum()) for c in feats}
             info["nonfinite"] = {c: n for c, n in nonfinite.items() if n}
+            if kind == ENTROPY_KIND:
+                n_ent += 1
+                if lst is None or "rows" not in lst or not lst.get("sha256"):
+                    err.append(f"{rel}: an entropy shard must be listed in the manifest's shards with its rows and "
+                               "sha256, which are verified")
+                miss = [c for c in ENTROPY_FEATURES if c not in df.columns]
+                if miss:
+                    err.append(f"{rel}: entropy shard lacks {miss}")
+                for c, t in ENTROPY_COLUMNS.items():
+                    if c in df.columns and not _type_ok(df[c], t):
+                        err.append(f"{rel}: {c} is not {t}")
+                unread = [c for c in feats if c not in ENTROPY_COLUMNS]
+                if unread:
+                    warn.append(f"{rel}: entropy columns not read: {unread}")
+            else:
+                ent_named = [c for c in feats if c in ENTROPY_COLUMNS]
+                if ent_named:
+                    warn.append(f"{rel}: entropy column names outside {ENTROPY_KIND}/: {ent_named} (read as item "
+                                "features of the rubric's kind, not as the entropy job)")
             item_parts.append(df[[c for c in KEY_COLS if c in df.columns] + feats])
         shards[rel] = info
     for p in sorted(set(listed) - seen):
         err.append(f"{p}: listed in the manifest, not on disk")
+    if n_ent:
+        spec = (man.get("kinds") or {}).get(ENTROPY_KIND)
+        if not isinstance(spec, dict):
+            warn.append(f"an entropy shard, but no kinds.{ENTROPY_KIND} in the manifest: its prompt, sampling and "
+                        "token statistics are undeclared, so its features are excluded")
+        else:
+            sem = entropy_semantics(man)
+            if sem["sign_disagreements"]:
+                warn.append(f"kinds.{ENTROPY_KIND}.signs differ from ENTROPY_SIGNS on {sem['sign_disagreements']}: "
+                            "this script's declared signs are used")
+            if sem["primary_manifest"] != ENTROPY_PRIMARY:
+                warn.append(f"kinds.{ENTROPY_KIND}.primary is {sem['primary_manifest']!r}; the declared primary is "
+                            f"{ENTROPY_PRIMARY!r} (ENTROPY_RULE)")
+            if sem["version"] != ENTROPY_VERSION:
+                warn.append(f"kinds.{ENTROPY_KIND}.version is {sem['version']!r}, the rule was fixed for "
+                            f"{ENTROPY_VERSION!r}: the primary cannot be kept")
+            elif sem["readable"] and not sem["primary_eligible"]:
+                warn.append(f"kinds.{ENTROPY_KIND}: {sem['why_not_eligible']}: the primary cannot be kept")
+            if not sem["readable"]:
+                warn.append(f"entropy features excluded: {sem['why']}")
     if item_parts and all(all(c in d.columns for c in KEY_COLS[:2]) for d in item_parts):
         import pandas as pd
         allf = pd.concat(item_parts, ignore_index=True)
@@ -650,6 +926,59 @@ def _hash_conflicts(df, err, what):
     bad = int((n > 1).sum())
     if bad:
         err.append(f"{what}: {bad} items carry more than one content_sha256")
+
+
+#: the jobs an export's shards belong to: 'main' (the rubric's and the attempts' shards, the features
+#: every stage without --job entropy reads) and the entropy job
+JOB_KINDS = {"main": ("items", "attempts"), ENTROPY_KIND: (ENTROPY_KIND,)}
+
+
+def kaggle_dirs(args):
+    """--kaggle as a list of directories (one or several)."""
+    k = args.kaggle
+    return [k] if isinstance(k, str) else list(k)
+
+
+def job_sources(exports):
+    """Which export directory each job's shards are read from: exports is
+    [(dir, (manifest, frames))]. -> ({job: (dir, manifest, frames)}, errors,
+    warnings): a job's shards come from the first directory that carries any; a
+    directory that carries a different set of them is an error; one that carries
+    the same set (paths and sha256) is read once, and so is one with the same
+    paths and the same rows in other bytes (parquet records its writer's pyarrow
+    version: a Kaggle image with another pyarrow rewrites an attached table
+    byte-differently), with a warning."""
+    out, errs, warns = {}, [], []
+    for job, kinds in JOB_KINDS.items():
+        cands = []
+        for d, (man, frames) in exports:
+            mine = {rel: df for rel, kind, df in frames if kind in kinds}
+            if mine:
+                cands.append((d, man, frames, [(r, file_sha256(os.path.join(d, r))) for r in sorted(mine)], mine))
+        if not cands:
+            continue
+        first, other, same_rows = cands[0], [], []
+        for c in cands[1:]:
+            if c[3] == first[3]:
+                continue
+            if sorted(c[4]) == sorted(first[4]) and all(c[4][r].equals(first[4][r]) for r in first[4]):
+                same_rows.append(c[0])
+            else:
+                other.append(c[0])
+        if other:
+            errs.append(f"{job}: {first[0]} and {other} carry different shards of it "
+                        f"({[r for r, _ in first[3]]} vs others); pass the directory to read")
+        if same_rows:
+            warns.append(f"{job}: {same_rows} carry the same rows as {first[0]} in other bytes (parquet records its "
+                         f"writer's pyarrow version); read once, from {first[0]}")
+        out[job] = first[:3]
+    return out, errs, warns
+
+
+def attempt_dir(dirs):
+    """The export directory the attempts' _detail table is read from: the first
+    that holds UNITS_DETAIL, else the first."""
+    return next((d for d in dirs if os.path.exists(os.path.join(d, UNITS_DETAIL))), dirs[0])
 
 
 def item_table(frames):
@@ -835,6 +1164,118 @@ def combine(items, attempts):
         int(conflict.sum())
 
 
+# --- the entropy job (commit D) --------------------------------------------------------------
+
+def entropy_semantics(manifest):
+    """What the export says its entropy features are (kinds.entropy): the token
+    statistics' source ('raw': the raw distribution's full-vocabulary entropy and
+    log-prob, the features' definition), the recorder check, the version, the
+    manifest's signs and primary against ENTROPY_SIGNS and ENTROPY_PRIMARY.
+    readable: logprobs 'raw' and a recorder check that did not fail (else every
+    feature is excluded, with why); primary_eligible: readable on the version and
+    the job config the rule was fixed for (ENTROPY_RULE's config: ENTROPY_VERSION,
+    ENTROPY_CFG), else why_not_eligible says which differs."""
+    spec = ((manifest or {}).get("kinds") or {}).get(ENTROPY_KIND)
+    spec = spec if isinstance(spec, dict) else {}
+    ts = spec.get("token_stats") if isinstance(spec.get("token_stats"), dict) else {}
+    lp = str(spec.get("logprobs") or ts.get("logprobs") or "").strip().lower() or None
+    rc = (ts.get("recorder_check") or {}).get("status")
+    signs = spec.get("signs") if isinstance(spec.get("signs"), dict) else {}
+    disagree = {}
+    for f, s in ENTROPY_FEATURES.items():
+        if f in signs:
+            try:
+                ok = int(np.sign(float(signs[f]))) == s
+            except (TypeError, ValueError):
+                ok = False
+            if not ok:
+                disagree[f] = signs[f]
+    why = None
+    if not spec:
+        why = f"no kinds.{ENTROPY_KIND} in the manifest: the token statistics are undeclared"
+    elif str(rc).upper() == "FAILED":
+        why = "the recorder check failed: the recorded statistics may not be the raw distribution's"
+    elif lp != "raw":
+        why = (f"token statistics {lp!r}, not the raw distribution's full-vocabulary ones ('raw') the features are "
+               "defined on")
+    want = ENTROPY_RULE["config"]
+    not_eligible = why
+    if why is None and spec.get("version") != want["version"]:
+        not_eligible = f"version {spec.get('version')!r}, the rule was fixed for {want['version']!r}"
+    elif why is None and spec.get("cfg") != want["cfg"]:
+        not_eligible = (f"job config {spec.get('cfg')!r}, the rule was fixed for {want['cfg']!r} (strong_probe.py's "
+                        "defaults: another model, seed, sampling or cut)")
+    return {"logprobs": lp, "recorder_check": rc, "version": spec.get("version"), "expected_version": want["version"],
+            "cfg": spec.get("cfg"), "expected_cfg": want["cfg"], "primary_manifest": spec.get("primary"),
+            "signs_manifest": signs, "sign_disagreements": disagree, "sampling": spec.get("sampling"),
+            "max_new_tokens": spec.get("max_new_tokens"), "units": spec.get("units"),
+            "per_benchmark_units": spec.get("per_benchmark_units"), "readable": why is None, "why": why,
+            "primary_eligible": not_eligible is None, "why_not_eligible": not_eligible}
+
+
+def entropy_table(frames):
+    """The entropy shards merged, one row per (benchmark, item_id) (each column's
+    first non-null value), numeric columns as float; a degenerate unit's
+    ENTROPY_SIGNS columns set missing. -> (table, {benchmark: degenerate rows})."""
+    import pandas as pd
+    parts = [df for _, kind, df in frames if kind == ENTROPY_KIND]
+    if not parts:
+        return pd.DataFrame(columns=list(KEY_COLS)), {}
+    allf = pd.concat([df[[c for c in KEY_COLS if c in df.columns] + feature_columns(df)] for df in parts],
+                     ignore_index=True)
+    for c in allf.columns:
+        if c not in KEY_COLS:
+            allf[c] = allf[c].astype(float)
+    deg = {}
+    if ENTROPY_DEGENERATE in allf.columns:
+        m = allf[ENTROPY_DEGENERATE].to_numpy(float) > 0.5
+        deg = {str(b): int(n) for b, n in allf.loc[m, "benchmark"].value_counts().items()}
+        cols = [c for c in ENTROPY_SIGNS if c in allf.columns]
+        allf.loc[m, cols] = np.nan
+    return allf.groupby(["benchmark", "item_id"], sort=True, dropna=True).first().reset_index(), deg
+
+
+def entropy_nonfeature(c):
+    return c in JOIN_COLS or c in ENTROPY_JOIN_EXTRA
+
+
+def entropy_registry(joined, semantics=None):
+    """{column: {sign, source, kind, role, label_free, usable, excluded, primary,
+    distribution}} for the entropy table's columns: ENTROPY_SIGNS' columns are
+    features (the primary and the exploratory ones), the other ent_* columns
+    diagnostics (sign 0). Every feature is excluded (not usable) when semantics
+    (entropy_semantics) is not readable."""
+    sem = semantics or {}
+    excluded = None if sem.get("readable") else (sem.get("why") or "the entropy table's semantics are unknown")
+    reg = {}
+    for c in joined.columns:
+        if entropy_nonfeature(c):
+            continue
+        s = ENTROPY_SIGNS.get(c, 0)
+        role = "primary" if c == ENTROPY_PRIMARY else "exploratory" if s else "diagnostic"
+        reg[c] = {"sign": s, "source": "ENTROPY_SIGNS" if s else "diagnostic", "kind": ENTROPY_KIND if s else
+                  "diagnostic", "role": role, "label_free": True, "usable": bool(s) and excluded is None,
+                  "excluded": excluded if s else None, "primary": c == ENTROPY_PRIMARY,
+                  "distribution": sem.get("logprobs")}
+    return reg
+
+
+def entropy_per_benchmark(joined, degenerate=None):
+    """Per benchmark: the covered items, how many carry a finite primary, the
+    degenerate rows set missing, and the means and rates of the columns."""
+    out = {}
+    for b, sub in joined.groupby("benchmark", sort=True):
+        r = {"items": int(len(sub)), "primary_finite": int(np.isfinite(sub[ENTROPY_PRIMARY].to_numpy(float)).sum())
+             if ENTROPY_PRIMARY in sub.columns else 0, "degenerate_excluded": int((degenerate or {}).get(b, 0))}
+        for c in ENTROPY_COLUMNS:
+            if c in sub.columns:
+                v = sub[c].to_numpy(float)
+                if np.isfinite(v).any():
+                    r[("rate_" if ENTROPY_COLUMNS[c] == "bool" else "mean_") + c] = round(float(np.nanmean(v)), 5)
+        out[str(b)] = r
+    return out
+
+
 # --- the public items and the join -----------------------------------------------------------
 
 #: benchmarks whose reference answers grade the attempts (a diagnostic; swe_rebench's
@@ -972,36 +1413,49 @@ def response_coverage(joined, benches, keys):
     share whose item carries any feature (and any feature of each kind), and
     the count of responses whose item dict gives another predict.item_key than
     the join's (must be 0)."""
-    from paiec import data as D
-    out = {}
     kinds = {"rubric": [c for c in joined.columns if c.startswith("rubric_")],
              "attempts": [c for c in joined.columns if c.startswith("att_")]}
+    return responses_coverage({"main": (joined, kinds)}, benches, keys)["main"]
+
+
+def responses_coverage(parts, benches, keys):
+    """response_coverage for several joined tables at once, reading each
+    benchmark's pairs once: parts {label: (joined, {kind: [columns]})} ->
+    {label: {benchmark: {pairs, responses, covered_share, covered_share_<kind>,
+    item_key_mismatches}}}."""
+    from paiec import data as D
+    out = {lab: {} for lab in parts}
     for b in benches:
-        sub = joined[joined["benchmark"] == b]
-        cov_any = set(sub["item_id"])
-        cov_kind = {k: set(sub.loc[np.isfinite(sub[cs].to_numpy(float)).any(1), "item_id"]) if cs else set()
-                    for k, cs in kinds.items()}
+        cov = {}
+        for lab, (joined, kinds) in parts.items():
+            sub = joined[joined["benchmark"] == b]
+            cov[lab] = (set(sub["item_id"]),
+                        {k: set(sub.loc[np.isfinite(sub[cs].to_numpy(float)).any(1), "item_id"]) if cs else set()
+                         for k, cs in kinds.items()})
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             try:
                 pairs = D.load_pairs([b])
             except FileNotFoundError:
                 continue
-        n = hit = mism = 0
-        hk = {k: 0 for k in kinds}
+        n = mism = 0
+        hit = {lab: 0 for lab in parts}
+        hk = {lab: {k: 0 for k in kinds} for lab, (_, kinds) in parts.items()}
         kb = keys.get(b, {})
         for p in pairs:
             for r in p.responses:
                 n += 1
                 iid = str(r.item_key)
-                hit += iid in cov_any
-                for k in kinds:
-                    hk[k] += iid in cov_kind[k]
+                for lab, (cov_any, cov_kind) in cov.items():
+                    hit[lab] += iid in cov_any
+                    for k in cov_kind:
+                        hk[lab][k] += iid in cov_kind[k]
                 if iid in kb and F.key_for(r.item, r.item["benchmark_id"]) != kb[iid][0]:
                     mism += 1
-        out[b] = {"pairs": len(pairs), "responses": n, "covered_share": round(hit / max(n, 1), 4),
-                  **{f"covered_share_{k}": round(v / max(n, 1), 4) for k, v in hk.items()},
-                  "item_key_mismatches": mism}
+        for lab in parts:
+            out[lab][b] = {"pairs": len(pairs), "responses": n, "covered_share": round(hit[lab] / max(n, 1), 4),
+                           **{f"covered_share_{k}": round(v / max(n, 1), 4) for k, v in hk[lab].items()},
+                           "item_key_mismatches": mism}
         del pairs
     return out
 
@@ -1010,28 +1464,34 @@ def stage_schema(args):
     print(json.dumps(SCHEMA, indent=1))
 
 
+def check_exports(dirs, exports=None):
+    """check_schema on each directory, and job_sources across them: {'ok',
+    'dirs': {dir: report}, 'sources': {job: dir}, 'errors': [...]} (errors
+    prefixed with their directory when there are several)."""
+    exports = exports if exports is not None else [(d, load_shards(d)) for d in dirs]
+    reps = {d: check_schema(d, loaded) for d, loaded in exports}
+    src, src_err, src_warn = job_sources(exports)
+    many = len(dirs) > 1
+    errs = [f"{d}: {e}" if many else e for d, r in reps.items() for e in r["errors"]] + src_err
+    warns = [f"{d}: {w}" if many else w for d, r in reps.items() for w in r["warnings"]] + src_warn
+    return {"ok": not errs, "errors": errs, "warnings": warns, "dirs": reps,
+            "sources": {j: v[0] for j, v in src.items()}}, src
+
+
 def stage_check_schema(args):
-    rep = check_schema(args.kaggle)
-    print(json.dumps(rep, indent=1))
+    dirs = kaggle_dirs(args)
+    rep, _ = check_exports(dirs)
+    print(json.dumps(rep["dirs"][dirs[0]] if len(dirs) == 1 else rep, indent=1))
     if not rep["ok"]:
         log(f"check-schema: {len(rep['errors'])} error(s); the expected schema is `--stage schema`")
         raise SystemExit(1)
-    log(f"check-schema: ok ({len(rep['shards'])} shards, {len(rep['warnings'])} warnings)")
+    n = sum(len(r["shards"]) for r in rep["dirs"].values())
+    log(f"check-schema: ok ({n} shards, {len(rep['warnings'])} warnings; jobs from {rep['sources']})")
 
 
-def stage_ingest(args):
-    t0 = time.time()
-    loaded = load_shards(args.kaggle)
-    sch = check_schema(args.kaggle, loaded)
-    for w in sch["warnings"]:
-        log("warning:", w)
-    if not sch["ok"] and not args.force:
-        for e in sch["errors"]:
-            log("error:", e)
-        raise SystemExit("schema errors (above); fix the input, or --force to ingest what can be read")
-    man, frames = loaded
-    items, gold = local_items()
-    keys = item_keys(items)
+def _main_ingest(kdir, man, frames, items, gold, keys):
+    """The rubric's and the attempts' features joined (ingest's first part):
+    (joined, report) before the response coverage."""
     it = item_table(frames)
     plan = lp_answer_plan(frames, man)
     at = attempt_table(frames, gold, plan["column"])
@@ -1039,26 +1499,184 @@ def stage_ingest(args):
     joined, rep = join(table, items, keys)
     rep["attempt_hash_conflicts"] = conflicts
     rep["attempt_semantics"] = attempt_semantics(man, joined, plan)
-    benches = list(items)
-    del items, frames, loaded, table, it, at        # load_pairs re-reads every column of items.parquet
-    import gc
-    gc.collect()
-    rep["responses"] = response_coverage(joined, benches, keys)
     tot = rep["totals"]
     if tot["rows"] and tot["hash_ok"] == 0:
-        raise SystemExit(f"no row's content hash matches ({tot}); reconcile the hash definition: {HASH_DEF}")
-    os.makedirs(args.work, exist_ok=True)
-    path = os.path.join(args.work, "features.parquet")
-    joined.to_parquet(path + ".tmp.parquet", index=False)
-    os.replace(path + ".tmp.parquet", path)
-    rep["features_digest"] = file_sha256(path)[:16]
-    rep["schema"] = {k: sch[k] for k in ("ok", "errors", "warnings", "shards")}
-    rep["wall_s"] = round(time.time() - t0, 1)
+        raise SystemExit(f"{kdir}: no row's content hash matches ({tot}); reconcile the hash definition: {HASH_DEF}")
+    return joined, rep
+
+
+def _entropy_ingest(kdir, man, frames, items, keys):
+    """The entropy table joined (ingest's entropy part): (joined, report)."""
+    table, deg = entropy_table(frames)
+    joined, rep = join(table, items, keys)
+    tot = rep["totals"]
+    if tot["rows"] and tot["hash_ok"] == 0:
+        raise SystemExit(f"{kdir}: no entropy row's content hash matches ({tot}); reconcile the hash definition: "
+                         f"{HASH_DEF}")
+    joined.insert(len(JOIN_COLS), "prompt_sha", [
+        hashlib.sha256(str(items[b][i]["item_content"]).encode("utf-8")).hexdigest()[:16]
+        for b, i in zip(joined["benchmark"], joined["item_id"])])
+    rep["degenerate_rows"] = deg
+    rep["per_benchmark_stats"] = entropy_per_benchmark(joined, deg)
+    rep["semantics"] = entropy_semantics(man)
+    rep["completeness"] = entropy_completeness(rep, rep["semantics"])
+    return joined, rep
+
+
+def entropy_completeness(rep, semantics=None):
+    """Is the export complete (ENTROPY_RULE's `complete`)? Per parent: the units
+    expected (the unique items by predict.item_key, as strong_probe.py's
+    entropy_units counts them: join's unique_texts), the units covered (join's
+    covered_unique_texts: keys with a row whose content hash matches), the export
+    manifest's own count, and the items covered; complete when every parent's
+    units are all covered."""
+    per, pbu = {}, (semantics or {}).get("per_benchmark_units") or {}
+    for b in PARENTS:
+        r = (rep.get("per_benchmark") or {}).get(b)
+        if r is None:
+            per[b] = {"units_expected": None, "units_covered": 0, "complete": False, "why": "no local items"}
+            continue
+        covered = int(r.get("covered_unique_texts") or 0)
+        per[b] = {"units_expected": int(r["unique_texts"]), "units_covered": covered,
+                  "units_exported_manifest": pbu.get(b), "items": int(r["items"]),
+                  "items_covered": int(r.get("covered_items") or 0),
+                  "covered_share": round((r.get("covered_items") or 0) / r["items"], 4) if r["items"] else None,
+                  "complete": covered >= int(r["unique_texts"])}
+    return {"complete": all(v["complete"] for v in per.values()), "per_parent": per,
+            "units_expected": sum(v.get("units_expected") or 0 for v in per.values()),
+            "units_covered": sum(v["units_covered"] for v in per.values())}
+
+
+def _unchanged(state, work, tmp, semantics):
+    """Is the freshly written main table (tmp) what ingest recorded and what WORK
+    holds, under the same attempt semantics?"""
+    ing = state.get("ingest") or {}
+    dig = file_sha256(tmp)[:16]
+    return (ing.get("features_digest") == dig and features_digest(work) == dig
+            and ing.get("attempt_semantics") == json.loads(json.dumps(H._jsonable(semantics))))
+
+
+def stage_ingest(args):
+    import gc
+    t0 = time.time()
+    dirs = kaggle_dirs(args)
+    exports = [(d, load_shards(d)) for d in dirs]
+    chk, src = check_exports(dirs, exports)
+    for w in chk["warnings"]:
+        log("warning:", w)
+    if not chk["ok"] and not args.force:
+        for e in chk["errors"]:
+            log("error:", e)
+        raise SystemExit("schema errors (above); fix the input, or --force to ingest what can be read")
+    if not src:
+        raise SystemExit(f"no rubric, attempt or entropy shards in {dirs}")
     state = H.load_json(args.out) or {}
-    drop_stale(state, args.work, rep["features_digest"], args.out, rep["attempt_semantics"])
-    state["ingest"] = rep
-    state["meta"] = meta(args, man)
-    H.save_json(args.out, state)
+    # before anything is read or written: the rule OUT's entropy results were read under must be this one
+    rule_change = (entropy_rule_check(state.get(ENTROPY_KIND) or {}, getattr(args, "accept_rule_change", False))
+                   if ENTROPY_KIND in src else None)
+    items, gold = local_items()
+    keys = item_keys(items)
+    benches = list(items)
+    os.makedirs(args.work, exist_ok=True)
+    main = ent = None
+    if "main" in src:
+        kdir, man, frames = src["main"]
+        joined, rep = _main_ingest(kdir, man, frames, items, gold, keys)
+        path = os.path.join(args.work, "features.parquet")
+        joined.to_parquet(path + ".tmp.parquet", index=False)
+        main = {"dir": kdir, "man": man, "joined": joined, "rep": rep, "path": path,
+                "unchanged": _unchanged(state, args.work, path + ".tmp.parquet", rep["attempt_semantics"])}
+    else:
+        log(f"ingest: no rubric or attempt shards in {dirs}: the features in {args.work} and their results are kept")
+    if ENTROPY_KIND in src:
+        kdir, man, frames = src[ENTROPY_KIND]
+        joined_e, rep_e = _entropy_ingest(kdir, man, frames, items, keys)
+        ent = {"dir": kdir, "man": man, "joined": joined_e, "rep": rep_e}
+    del items, exports, src                       # load_pairs re-reads every column of items.parquet
+    frames = None
+    gc.collect()
+    parts = {}
+    if main and not main["unchanged"]:
+        mj = main["joined"]
+        parts["main"] = (mj, {"rubric": [c for c in mj.columns if c.startswith("rubric_")],
+                              "attempts": [c for c in mj.columns if c.startswith("att_")]})
+    if ent:
+        parts[ENTROPY_KIND] = (ent["joined"], {ENTROPY_KIND: [c for c in (ENTROPY_PRIMARY,)
+                                                              if c in ent["joined"].columns]})
+    cov = responses_coverage(parts, benches, keys) if parts else {}
+    if main:
+        rep, path = main["rep"], main["path"]
+        if main["unchanged"]:
+            os.remove(path + ".tmp.parquet")
+            log(f"ingest: the rubric and attempt features from {main['dir']} are byte-identical to those ingested "
+                f"({(state.get('ingest') or {}).get('features_digest')}), under the same attempt semantics: "
+                "ingest, meta and every result of theirs are kept as they are")
+        else:
+            os.replace(path + ".tmp.parquet", path)
+            rep["responses"] = cov["main"]
+            rep["features_digest"] = file_sha256(path)[:16]
+            sch = chk["dirs"][main["dir"]]
+            rep["schema"] = {k: sch[k] for k in ("ok", "errors", "warnings", "shards")}
+            rep["wall_s"] = round(time.time() - t0, 1)
+            drop_stale(state, args.work, rep["features_digest"], args.out, rep["attempt_semantics"])
+            if "consistency" in (state.get(ENTROPY_KIND) or {}):
+                del state[ENTROPY_KIND]["consistency"]
+                log("ingest: the rubric and attempt features changed: entropy.consistency dropped")
+            state["ingest"] = rep
+            state["meta"] = meta(args, main["man"], main["dir"])
+            _log_main_ingest(rep, path, len(main["joined"]))
+    if ent:
+        rep = ent["rep"]
+        path = os.path.join(args.work, ENTROPY_TABLE)
+        ent["joined"].to_parquet(path + ".tmp.parquet", index=False)
+        os.replace(path + ".tmp.parquet", path)
+        rep["responses"] = cov[ENTROPY_KIND]
+        rep["features_digest"] = file_sha256(path)[:16]
+        sch = chk["dirs"][ent["dir"]]
+        rep["schema"] = {k: sch[k] for k in ("ok", "errors", "warnings", "shards")}
+        rep["main_features"] = {
+            "source": _rel(main["dir"]) if main else None,
+            "status": ("byte-identical to those ingested before: kept, nothing rewritten" if main and main["unchanged"]
+                       else "ingested" if main else "no rubric or attempt shards given: those in WORK kept"),
+            "features_digest": (state.get("ingest") or {}).get("features_digest")}
+        rep["wall_s"] = round(time.time() - t0, 1)
+        est = state.get(ENTROPY_KIND) or {}
+        now = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+        dropped = []
+        if rule_change:                       # --accept-rule-change: the old rule and what was read under it
+            est.setdefault("rule_history", []).append({**rule_change, "time": now})
+            dropped = [k for k in ENTROPY_DOWNSTREAM if k in est]
+            for k in dropped:
+                del est[k]
+            log(f"ingest: ENTROPY_RULE changed ({rule_change['digest'][:16]} -> {rule_change['replaced_by'][:16]}, "
+                f"fields {rule_change['fields']}): the old rule is in entropy.rule_history; dropped entropy.{dropped}")
+        dropped += drop_stale_entropy(est, rep["features_digest"], rep["semantics"])
+        rule = entropy_rule_record()
+        rep["rule_digest"] = rule["digest"]
+        est["rule"] = rule
+        est.setdefault("rule_first", {"digest": rule["digest"], "time": now, "features_digest": rep["features_digest"]})
+        est["ingest"] = rep
+        est["meta"] = entropy_meta(ent["man"], ent["dir"])
+        sem, man_e = rep["semantics"], ent["man"] or {}
+        est.setdefault("history", []).append({
+            "stage": "ingest", "time": now, "features_digest": rep["features_digest"], "kaggle_dir": _rel(ent["dir"]),
+            "version": sem.get("version"), "cfg": sem.get("cfg"), "model": man_e.get("model"),
+            "notebook_digest": man_e.get("notebook_digest"), "created": man_e.get("created"),
+            "units": sem.get("units"), "per_benchmark_units": sem.get("per_benchmark_units"),
+            "complete": rep["completeness"]["complete"], "readable": sem.get("readable"),
+            "primary_eligible": sem.get("primary_eligible"), "rule_digest": rule["digest"],
+            "rule_changed": bool(rule_change), "dropped": dropped})
+        state[ENTROPY_KIND] = est
+        _log_entropy_ingest(rep, path, len(ent["joined"]))
+    if (main and not main["unchanged"]) or ent:
+        H.save_json(args.out, state)
+
+
+def _rel(path):
+    return os.path.relpath(path, ROOT) if os.path.abspath(path).startswith(ROOT) else path
+
+
+def _log_main_ingest(rep, path, n):
     for b, r in rep["per_benchmark"].items():
         log(f"{b:18s} rows {r['rows']:5d}  hash ok {r['hash_ok']:5d}  mismatch {r['hash_mismatch']}  "
             f"missing {r['hash_missing']}  unknown {r['unknown_item']}  covered {r['covered_items']}/{r['items']} "
@@ -1071,7 +1689,76 @@ def stage_ingest(args):
             + ("" if sem["lp_answer"]["uniform"] else " -> lp_answer excluded")
             + f"; primary {sem['primary_attempt']}; beside the 4B D2 lead: {sem['d2']['comparable']} "
               f"({sem['d2']['reason']})")
-    log(f"ingest: {len(joined)} items with features -> {path}; {rep['wall_s']}s")
+    log(f"ingest: {n} items with features -> {path}; {rep['wall_s']}s")
+
+
+def _log_entropy_ingest(rep, path, n):
+    for b, r in rep["per_benchmark"].items():
+        st = rep["per_benchmark_stats"].get(b, {})
+        log(f"entropy {b:18s} rows {r['rows']:5d}  hash ok {r['hash_ok']:5d}  mismatch {r['hash_mismatch']}  "
+            f"missing {r['hash_missing']}  unknown {r['unknown_item']}  covered {r['covered_items']}/{r['items']} "
+            f"items, {st.get('primary_finite', 0)} with {ENTROPY_PRIMARY} ({st.get('degenerate_excluded', 0)} "
+            f"degenerate excluded)  responses {rep['responses'].get(b, {}).get('covered_share')}")
+    sem = rep["semantics"]
+    log(f"entropy: version {sem['version']} (rule fixed for {ENTROPY_VERSION}), log-probs {sem['logprobs']}, recorder "
+        f"check {sem['recorder_check']}" + ("" if sem["readable"] else f" -> features excluded: {sem['why']}")
+        + f"; primary {ENTROPY_PRIMARY} eligible: {sem['primary_eligible']}")
+    log(f"ingest: {n} items with entropy features -> {path}; {rep['wall_s']}s")
+
+
+def entropy_meta(man, kdir):
+    """The entropy export's provenance for OUT's entropy section."""
+    man = man or {}
+    spec = (man.get("kinds") or {}).get(ENTROPY_KIND)
+    return {"kaggle_dir": _rel(kdir), "script_digest_strong": H.digest(["experiments/strong_llm_eval.py"]),
+            "manifest": {k: man.get(k) for k in ("schema_version", "model", "created", "wall_s", "sessions", "gpu",
+                                                 "notebook_digest", "hash", "slug")},
+            "kind": spec if isinstance(spec, dict) else None,
+            "primary": ENTROPY_PRIMARY, "signs": dict(ENTROPY_SIGNS), "version": ENTROPY_VERSION,
+            "prong_fields": {"feature": PRONG_FIELD}, "gate": H.GATE, "keep_signs": KEEP_SIGNS}
+
+
+def entropy_rule_check(est, accept=False):
+    """OUT's entropy.rule against ENTROPY_RULE, before ingest writes anything:
+    None when they agree (or OUT holds no rule yet); when they differ (another
+    digest, or a stored rule that no longer matches its own digest), a
+    rule_history entry if accept (--accept-rule-change), else SystemExit."""
+    prev = est.get("rule")
+    if not isinstance(prev, dict):
+        return None
+    content = entropy_rule_digest(prev)
+    stored = prev.get("digest") or content
+    now = entropy_rule_digest()
+    if stored == content == now:
+        return None
+    fields = sorted(k for k in set(prev) | set(ENTROPY_RULE) if k != "digest"
+                    and json.dumps(H._jsonable(prev.get(k)), sort_keys=True)
+                    != json.dumps(H._jsonable(ENTROPY_RULE.get(k)), sort_keys=True))
+    what = (f"ENTROPY_RULE (digest {now[:16]}) differs from the rule this OUT's entropy results were read under "
+            f"({stored[:16]}{'' if stored == content else ', which no longer matches its own digest'}; fields "
+            f"{fields})")
+    if not accept:
+        raise SystemExit(what + ": the decision was fixed before the output was read. Restore the rule, or pass "
+                         "--accept-rule-change to record the change (the old rule goes to entropy.rule_history, the "
+                         "results read under it are dropped, and the verdict's call is marked RULE CHANGED)")
+    return {"rule": prev, "digest": stored, "digest_of_content": content, "replaced_by": now, "fields": fields}
+
+
+def drop_stale_entropy(est, digest, semantics=None):
+    """When the entropy table (or what its manifest says it is) changes, drop the
+    entropy section's ENTROPY_DOWNSTREAM parts. Returns the dropped names."""
+    ing = est.get("ingest") or {}
+    prev = ing.get("features_digest")
+    sem_changed = (semantics is not None and "semantics" in ing
+                   and ing.get("semantics") != json.loads(json.dumps(H._jsonable(semantics))))
+    dropped = []
+    if prev and (prev != digest or sem_changed):
+        dropped = [k for k in ENTROPY_DOWNSTREAM if k in est]
+        for k in dropped:
+            del est[k]
+    if dropped:
+        log(f"ingest: the entropy features ({prev} -> {digest}) or their semantics changed; dropped entropy.{dropped}")
+    return dropped
 
 
 def drop_stale(state, work, digest, out=OUT, semantics=None):
@@ -1108,6 +1795,52 @@ def load_joined(work):
     if not os.path.exists(path):
         raise SystemExit("run --stage ingest first")
     return pd.read_parquet(path)
+
+
+def load_entropy(work):
+    """WORK/entropy.parquet: the entropy job's features joined to the public items."""
+    import pandas as pd
+    path = os.path.join(work, ENTROPY_TABLE)
+    if not os.path.exists(path):
+        raise SystemExit(f"no {path}: run --stage ingest on an export with the entropy table first")
+    return pd.read_parquet(path)
+
+
+def entropy_digest(work):
+    """The digest --stage ingest records for WORK/entropy.parquet."""
+    path = os.path.join(work, ENTROPY_TABLE)
+    return file_sha256(path)[:16] if os.path.exists(path) else None
+
+
+def entropy_state(state):
+    """OUT's entropy section, which ingest must have written."""
+    est = state.get(ENTROPY_KIND)
+    if not isinstance(est, dict) or "ingest" not in est:
+        raise SystemExit("no entropy section in OUT: run --stage ingest on an export with the entropy table first")
+    return est
+
+
+def entropy_work_checked(work, est):
+    """(WORK/entropy.parquet, its digest), refused (SystemExit) unless it is the
+    table --stage ingest recorded in this OUT's entropy section: the entropy
+    stages never mix one --work's table with another --out's results."""
+    joined = load_entropy(work)
+    dig = entropy_digest(work)
+    want = (est.get("ingest") or {}).get("features_digest")
+    if dig != want:
+        raise SystemExit(f"{os.path.join(work, ENTROPY_TABLE)} ({dig}) is not the table --stage ingest recorded in "
+                         f"this OUT's entropy section ({want}): pass the --work and --out ingest used, or ingest again")
+    return joined, dig
+
+
+def entropy_stage_registry(joined, est):
+    return entropy_registry(joined, (est.get("ingest") or {}).get("semantics"))
+
+
+def _save_part_entropy(path, part, value):
+    st = H.load_json(path) or {}
+    st.setdefault(ENTROPY_KIND, {})[part] = value
+    H.save_json(path, st)
 
 
 def attempt_designs(columns):
@@ -1547,7 +2280,46 @@ def fit_head(joined, cols, target, items, boots, seed=0, alphas=ALPHAS, posfree=
     return entry, preds
 
 
+def _log_sign(name, e, prefix=""):
+    short = {"matharena text-bearing": "text", "matharena text-bearing 2025": "2025",
+             "matharena text-bearing 2026": "2026"}
+    log(f"{prefix}{name:30s} " + "  ".join(
+        f"{short.get(u, u[:10])} {v['spearman_within']['est']:+.3f}" for u, v in e["units"].items()
+        if isinstance(v.get("spearman_within"), dict)) + f"  | declared sign within on "
+        f"{e['agreement_within']['positive']}/{e['agreement_within']['units']}, prong (matharena net of "
+        f"position) {e['agreement_prong']['positive']}/{e['agreement_prong']['units']}")
+
+
+def stage_signs_entropy(args):
+    """--stage signs --job entropy: every column of the entropy table through
+    sign_entry (the declared ones at --boots, the diagnostics at DIAG_BOOT), no
+    heads -> entropy.signs."""
+    t0 = time.time()
+    state = H.load_json(args.out) or {}
+    est = entropy_state(state)
+    joined, dig = entropy_work_checked(args.work, est)
+    reg = entropy_stage_registry(joined, est)
+    target, _, tinfo = targets(args.work, args.refresh_targets)
+    items = unit_items(joined)
+    maps = oriented_maps(joined, reg)
+    log(f"signs (entropy): {len(maps)} columns, targets and items in {time.time() - t0:.0f}s")
+    res = {"registry": reg, "features": {}, "target_info": tinfo, "features_digest": dig,
+           "prong_fields": {**{q: "spearman_within" for q in PARENTS}, **PRONG_FIELD}}
+    for fi, (name, x) in enumerate(sorted(maps.items())):
+        declared = 0 if reg[name].get("excluded") else reg[name]["sign"]
+        boots = args.boots if declared else min(args.boots, DIAG_BOOT)
+        e = res["features"][name] = sign_entry(x, target, items, boots, 100 * fi, declared)
+        if reg[name].get("excluded"):
+            e["excluded"] = reg[name]["excluded"]
+        _log_sign(name, e, "entropy ")
+    res["wall_s"] = round(time.time() - t0, 1)
+    _save_part_entropy(args.out, "signs", res)
+    log(f"signs (entropy): {res['wall_s']}s -> {args.out} [{ENTROPY_KIND}]")
+
+
 def stage_signs(args):
+    if getattr(args, "job", "main") == ENTROPY_KIND:
+        return stage_signs_entropy(args)
     t0 = time.time()
     joined = load_joined(args.work)
     dig = features_digest(args.work)
@@ -1572,8 +2344,6 @@ def stage_signs(args):
     log(f"signs: {len(maps)} features, targets and items in {time.time() - t0:.0f}s")
     res = {"registry": reg, "features": {}, "target_info": tinfo, "features_digest": dig,
            "prong_fields": {**{q: "spearman_within" for q in PARENTS}, **PRONG_FIELD}}
-    short = {"matharena text-bearing": "text", "matharena text-bearing 2025": "2025",
-             "matharena text-bearing 2026": "2026"}
     for fi, (name, x) in enumerate(sorted(maps.items())):
         # a feature without a declared sign (or excluded) is a diagnostic: fewer bootstrap draws
         declared = 0 if reg[name].get("excluded") else reg[name]["sign"]
@@ -1582,11 +2352,7 @@ def stage_signs(args):
         e = res["features"][name]
         if reg[name].get("excluded"):
             e["excluded"] = reg[name]["excluded"]
-        log(f"{name:30s} " + "  ".join(
-            f"{short.get(u, u[:10])} {v['spearman_within']['est']:+.3f}" for u, v in e["units"].items()
-            if isinstance(v.get("spearman_within"), dict)) + f"  | declared sign within on "
-            f"{e['agreement_within']['positive']}/{e['agreement_within']['units']}, prong (matharena net of "
-            f"position) {e['agreement_prong']['positive']}/{e['agreement_prong']['units']}")
+        _log_sign(name, e)
     heads, oof = {}, {}
     for hi, (name, (cols, prim, posfree)) in enumerate(head_specs(reg).items()):
         t1 = time.time()
@@ -1659,18 +2425,45 @@ def maps_digest(maps):
     return F.digest({k: sorted((i, round(float(x), 7)) for i, x in v.items()) for k, v in maps.items()})[:16]
 
 
+def entropy_harness_maps(joined, reg, feats=None):
+    """{name: raw x map} for --stage harness --job entropy: every usable oriented
+    entropy feature (ENTROPY_SIGNS' columns, unless the semantics exclude them)."""
+    names = [c for c, v in reg.items() if v["usable"] and v["label_free"] and c in joined.columns]
+    out = oriented_maps(joined, reg, names) if names else {}       # oriented_maps reads every column given none
+    return {k: v for k, v in out.items() if k in feats} if feats else out
+
+
 def stage_harness(args):
     t0 = time.time()
-    joined = load_joined(args.work)
     state = H.load_json(args.out) or {}
-    reg = stage_registry(joined, state)
-    maps = harness_maps(args.work, joined, reg, args.feats)
+    if getattr(args, "job", "main") == ENTROPY_KIND:
+        est = entropy_state(state)
+        joined, _ = entropy_work_checked(args.work, est)
+        maps = entropy_harness_maps(joined, entropy_stage_registry(joined, est), args.feats)
+        res, where = est.get("harness", {}), ENTROPY_KIND
+
+        def save(r):
+            _save_part_entropy(args.out, "harness", r)
+    else:
+        joined = load_joined(args.work)
+        reg = stage_registry(joined, state)
+        maps = harness_maps(args.work, joined, reg, args.feats)
+        res, where = state.get("harness", {}), "harness"
+
+        def save(r):
+            _save_part(args.out, "harness", r)
+    run_harness(args, maps, res, save, t0)
+    log(f"harness: {time.time() - t0:.0f}s -> {args.out} [{where}]")
+
+
+def run_harness(args, maps, res, save, t0):
+    """Every covariate in maps through the harness (stage_harness' recipe), kept
+    where its x digest is unchanged (unless --redo); save(res) after each."""
     rows, keys = H.load_rows(args.rows, list(H.PLAN))
     items_bench = H.benchmark_items(rows, keys)
     _, honest, _ = targets(args.work)
     prov = H.provenance()
     log(f"harness: {len(maps)} covariates, rows and targets in {time.time() - t0:.0f}s")
-    res = state.get("harness", {})
     if res.get("_meta", {}).get("lib_digest") != prov["lib_digest"]:
         res = {}
     res["_meta"] = {"lib_digest": prov["lib_digest"], "rows_lib_digest": H.rows_digest(rows),
@@ -1703,13 +2496,13 @@ def stage_harness(args):
                             for n, ds in plac.items()}
         entry["wall_s"] = round(time.time() - t1, 1)
         res[name] = entry
-        _save_part(args.out, "harness", res)
+        save(res)
         a = entry["lines"]
         log(f"{name}: {entry['wall_s']}s  r_within_pair {entry.get('r_within_pair_tl')}  " + "  ".join(
             f"{n.split()[0]} {a[n]['tl']:+.5f} (on {a[n]['folds_on']})" for n in NESTED)
             + "  forced: " + "  ".join(f"{n} {a[n]['tl']:+.5f}" for n in a if n.endswith("(forced)")))
-    _save_part(args.out, "harness", res)
-    log(f"harness: {time.time() - t0:.0f}s -> {args.out}")
+    save(res)
+    return res
 
 
 def _save_part(path, part, value):
@@ -1718,20 +2511,36 @@ def _save_part(path, part, value):
     H.save_json(path, st)
 
 
+def reference_covered(work, state, job="main"):
+    """(covered item_ids, what): the items the reference degrades honest
+    difficulty on. The rubric's job: the declared primary head's (else any
+    declared feature's); the entropy job: the items with a finite
+    ENTROPY_PRIMARY (degenerate units excluded), this job's coverage."""
+    if job == ENTROPY_KIND:
+        joined = load_entropy(work)
+        v = joined[ENTROPY_PRIMARY].to_numpy(float) if ENTROPY_PRIMARY in joined.columns else np.zeros(0)
+        return (set(joined.loc[np.isfinite(v), "item_id"]) if len(v) else set(),
+                f"entropy job: items with a finite {ENTROPY_PRIMARY}")
+    joined = load_joined(work)
+    reg = stage_registry(joined, state)
+    oof = load_oof(work)
+    if PRIMARY_HEAD in oof:
+        return set(oof[PRIMARY_HEAD]), f"head {PRIMARY_HEAD}"
+    cols = rubric_levels(reg) or [c for c, v in reg.items() if v["sign"] != 0]
+    covered = set(joined.loc[np.isfinite(joined[cols].to_numpy(float)).any(1), "item_id"]) if cols else set()
+    return covered, "any declared feature"
+
+
 def stage_reference(args):
     """The honest difficulty degraded to r on exactly the items the declared
-    primary head (else any rubric level) covers, 0 elsewhere, N_REF draws per r."""
+    primary head (else any rubric level) covers, or with --job entropy the items
+    with a finite ent_first1024, 0 elsewhere, N_REF draws per r."""
     t0 = time.time()
-    joined = load_joined(args.work)
     state = H.load_json(args.out) or {}
-    reg = stage_registry(joined, state)
-    oof = load_oof(args.work)
-    if PRIMARY_HEAD in oof:
-        covered, what = set(oof[PRIMARY_HEAD]), f"head {PRIMARY_HEAD}"
-    else:
-        cols = rubric_levels(reg) or [c for c, v in reg.items() if v["sign"] != 0]
-        covered = set(joined.loc[np.isfinite(joined[cols].to_numpy(float)).any(1), "item_id"]) if cols else set()
-        what = "any declared feature"
+    job = getattr(args, "job", "main")
+    if job == ENTROPY_KIND:
+        entropy_work_checked(args.work, entropy_state(state))
+    covered, what = reference_covered(args.work, state, job)
     rows, keys = H.load_rows(args.rows, list(H.PLAN))
     target, honest, _ = targets(args.work)
     par_of_key = {k: par for par, d in target.items() for k in d}
@@ -1752,7 +2561,11 @@ def stage_reference(args):
             for n, ln in avg.items()}
         log(f"reference r={r:g}: " + "  ".join(f"{n} {v['tl']:+.5f}" for n, v in out["r"][f"r={r:g}"].items()))
     out["wall_s"] = round(time.time() - t0, 1)
-    _save_part(args.out, "reference", out)
+    if job == ENTROPY_KIND:
+        out["covered_items"] = len(covered)
+        _save_part_entropy(args.out, "reference", out)
+    else:
+        _save_part(args.out, "reference", out)
 
 
 # --- attempts -----------------------------------------------------------------------------
@@ -1995,12 +2808,13 @@ def stage_attempts(args):
     reg = stage_registry(joined, state)
     exclude = {v["feature"]: v["excluded"] for v in reg.values() if v["kind"] == "attempt" and v.get("excluded")}
     primary = sem.get("primary_attempt")
-    pu = probe_units(args.kaggle, strong_probe_ids()) if units in ("probe", "both") else None
+    kdir = attempt_dir(kaggle_dirs(args))
+    pu = probe_units(kdir, strong_probe_ids()) if units in ("probe", "both") else None
     if units == "probe" and pu is None:
-        raise SystemExit(f"attempts: no probe flag ({os.path.join(args.kaggle, UNITS_DETAIL)} is missing or lacks "
+        raise SystemExit(f"attempts: no probe flag ({os.path.join(kdir, UNITS_DETAIL)} is missing or lacks "
                          "benchmark, item_ids and probe); --attempt-units all reads every unit")
     if pu is not None and pu["probe_ids_check"] is not None and not pu["probe_ids_check"]["ok"]:
-        raise SystemExit(f"attempts: the probe flag in {os.path.join(args.kaggle, UNITS_DETAIL)} is not membership "
+        raise SystemExit(f"attempts: the probe flag in {os.path.join(kdir, UNITS_DETAIL)} is not membership "
                          f"in {STRONG_PROBE} PROBE_IDS ({json.dumps(pu['probe_ids_check'])}); the probe reading "
                          "would be on other texts than the rule was fixed for")
     target, _, _ = targets(args.work)
@@ -2049,7 +2863,7 @@ def stage_attempts(args):
             f"{json.dumps(out['probe_only']['decision'])}")
     else:                                                   # 'all', or 'both' without a probe flag
         if units == "both":
-            log(f"attempts: no probe flag in {os.path.join(args.kaggle, UNITS_DETAIL)}; probe-only reading skipped")
+            log(f"attempts: no probe flag in {os.path.join(kdir, UNITS_DETAIL)}; probe-only reading skipped")
         prev = old.get("probe_only")
         if prev is not None and prev.get("features_digest") == dig:
             out["probe_only"] = prev                        # a probe reading of these features is kept
@@ -2180,6 +2994,10 @@ def run_facts(kdir, root_manifest=None):
         for c in ("capped", "closed", "forced"):
             if c in s.columns:
                 tl[f"attempt_{c}_share"] = round(float(s[c].map(_flag).mean()), 4)
+    ep = os.path.join(kdir, "_detail", "entropy_units.parquet")
+    if os.path.exists(ep):
+        tl.update(entropy_timeline(cols(ep, ("t", "benchmark", "item_ids", "n_tokens", "prompt_tokens", "capped",
+                                             "closed", "degenerate", "truncated"))))
     out["timeline"] = tl
     if not root_manifest:
         out["root_manifest"] = None
@@ -2205,6 +3023,10 @@ def run_facts(kdir, root_manifest=None):
                          "secs", "gen_tok_s", "units_done_session", "graded_units", "recorder_check",
                          "stats_source")},
                      "files_at_end": (se.get("files") or {}).get("at_end")})
+        if st.get(ENTROPY_KIND):
+            sess[-1][ENTROPY_KIND] = {k: st[ENTROPY_KIND].get(k) for k in (
+                "secs", "gen_tok_s", "units_done_session", "shards", "gen_tokens", "prompt_tokens", "stats_source",
+                "recorder_check", "self_check")}
     out["sessions"] = sess
     plan = (root.get("plan") or {}).get(slug) or {}
     pr, pa = plan.get("rubric") or {}, plan.get("attempts") or {}
@@ -2215,6 +3037,12 @@ def run_facts(kdir, root_manifest=None):
                                                        "gen_tokens_est", "forced_cache_hit", "hours_est",
                                                        "hours_est_slow", "probe_hours_est", "probe_hours_est_slow",
                                                        "rest_hours_est", "rest_hours_est_slow")}}
+    pe = plan.get(ENTROPY_KIND) or {}
+    if pe:
+        out["plan"][ENTROPY_KIND] = {k: pe.get(k) for k in (
+            "units", "item_ids", "per_benchmark", "prompt_tokens", "gen_tokens_est", "shards_est", "rates_tok_s",
+            "hours_est", "hours_est_slow", "commit_usable_hours", "fits_one_commit", "fits_one_commit_slow",
+            "units_per_commit_slow")}
     prog = ((root.get("progress") or {}).get(slug) or {})
     out["progress"] = prog
     der = {}
@@ -2242,23 +3070,92 @@ def run_facts(kdir, root_manifest=None):
         if tl.get("shard_s") and tl.get("units_per_shard"):
             der["attempt_hours_left_at_median_shard"] = round(
                 left / tl["units_per_shard"] * tl["shard_s"]["median"] / 3600, 2)
+    es = [se[ENTROPY_KIND] for se in sess if se.get(ENTROPY_KIND)]
+    pe_prog = prog.get(ENTROPY_KIND) or {}
+    if es or pe_prog:
+        der.update(entropy_derived(es, pe, pe_prog))
     out["derived"] = der
     return out
 
 
+def entropy_timeline(e):
+    """run_facts' entropy entries from _detail/entropy_units.parquet (one row per
+    unit; a shard's rows share their write time t)."""
+    tl = {"entropy_units": int(len(e))}
+    if "benchmark" in e.columns:
+        tl["entropy_units_per_benchmark"] = {str(b): int(n) for b, n in e["benchmark"].value_counts().items()}
+    if "item_ids" in e.columns:
+        tl["entropy_item_ids"] = int(e["item_ids"].map(len).sum())
+    if "t" in e.columns and len(e):
+        ts = np.sort(e["t"].unique().astype(float))
+        d = np.diff(ts)
+        tl.update(entropy_shards=int(len(ts)), entropy_first_write_utc=_utc(ts[0]),
+                  entropy_last_write_utc=_utc(ts[-1]), entropy_units_per_shard=round(len(e) / len(ts), 2))
+        if len(d):
+            tl["entropy_shard_s"] = {"median": round(float(np.median(d)), 1), "mean": round(float(d.mean()), 1),
+                                     "min": round(float(d.min()), 1), "max": round(float(d.max()), 1),
+                                     "n": int(len(d)), "what": "between consecutive shard writes"}
+    for c, name in (("n_tokens", "entropy_gen_tokens"), ("prompt_tokens", "entropy_prompt_tokens")):
+        if c in e.columns:
+            tl[name] = int(e[c].sum())
+    for c in ("capped", "closed", "degenerate", "truncated"):
+        if c in e.columns and len(e):
+            tl[f"entropy_{c}_share"] = round(float(e[c].map(_flag).mean()), 4)
+    return tl
+
+
+def entropy_derived(sessions, plan, progress):
+    """The entropy job's measured rate against the plan's assumption, and what is
+    left: sessions [{secs, gen_tokens, units_done_session, ...}] from the root
+    manifest, plan its plan[slug].entropy, progress its progress[slug].entropy."""
+    der = {}
+    secs = sum(float(s.get("secs") or 0) for s in sessions)
+    gen = sum(int(s.get("gen_tokens") or 0) for s in sessions)
+    done = sum(int(s.get("units_done_session") or 0) for s in sessions)
+    if secs > 0:
+        der["entropy_hours"] = round(secs / 3600, 3)
+        der["entropy_gen_tok_s"] = round(gen / secs, 1)
+        der["entropy_gen_tok_s_what"] = ("generated tokens over the shards' measured seconds, prefill and checks "
+                                         "included")
+        rt = (plan or {}).get("rates_tok_s") or {}
+        for k in ("decode", "decode_slow"):
+            if rt.get(k):
+                der[f"entropy_gen_tok_s_over_plan_{k}"] = round(gen / secs / float(rt[k]), 3)
+        if (plan or {}).get("hours_est") and (plan or {}).get("units") and done:
+            der["entropy_hours_per_unit_over_plan"] = round(secs / done / (plan["hours_est"] * 3600 / plan["units"]),
+                                                            3)
+    if progress.get("units") is not None and progress.get("done") is not None:
+        left = int(progress["units"]) - int(progress["done"])
+        der["entropy_units_left"] = left
+        if secs > 0 and done:
+            der["entropy_hours_left_at_measured"] = round(left * secs / done / 3600, 2)
+    return der
+
+
 def stage_run(args):
-    mp = os.path.join(args.kaggle, "manifest.json")
-    if not os.path.exists(mp):
-        raise SystemExit(f"run: no export manifest at {mp}")
-    with open(mp) as fh:
-        man = json.load(fh)
-    root = args.run_manifest or find_root_manifest(man)
-    if args.run_manifest is None and root is None:
-        log(f"run: no root manifest under {KAGGLE_RAW} matches the export (notebook_digest, wall_s); "
-            "--run-manifest PATH for the sessions and the plan")
-    out = run_facts(args.kaggle, root)
-    _save_part(args.out, "run", out)
-    print(json.dumps(out, indent=1))
+    """run_facts for each export directory: into `run` for the first commit's kind of
+    export, into entropy.run for one whose manifest carries kinds.entropy (so `run`
+    keeps the session it describes)."""
+    dirs = kaggle_dirs(args)
+    if args.run_manifest and len(dirs) > 1:
+        raise SystemExit("--run-manifest reads one export directory's session: pass one --kaggle directory")
+    for kdir in dirs:
+        mp = os.path.join(kdir, "manifest.json")
+        if not os.path.exists(mp):
+            raise SystemExit(f"run: no export manifest at {mp}")
+        with open(mp) as fh:
+            man = json.load(fh)
+        root = args.run_manifest or find_root_manifest(man)
+        if args.run_manifest is None and root is None:
+            log(f"run: no root manifest under {KAGGLE_RAW} matches the export {kdir} (notebook_digest, wall_s); "
+                "--run-manifest PATH for the sessions and the plan")
+        out = run_facts(kdir, root)
+        if isinstance((man.get("kinds") or {}).get(ENTROPY_KIND), dict):
+            _save_part_entropy(args.out, "run", out)
+            log(f"run: {kdir} carries the entropy job -> {args.out} [{ENTROPY_KIND}.run]")
+        else:
+            _save_part(args.out, "run", out)
+        print(json.dumps(out, indent=1))
 
 
 def _ref_4b():
@@ -2285,6 +3182,21 @@ def gate_checks(ln):
     return checks
 
 
+def nested_gate(lines):
+    """({nested line: gate_checks with tl and folds_on}, whether any passes)."""
+    nested = {n: {**gate_checks(lines[n]), "tl": lines[n]["tl"], "folds_on": lines[n]["folds_on"]}
+              for n in NESTED if n in lines}
+    return nested, any(v["pass"] for v in nested.values())
+
+
+def best_nested(nested):
+    return min((v["tl"] for v in nested.values() if v["tl"] is not None), default=None)
+
+
+def forced_per_pair(lines):
+    return {n: lines[n]["tl"] for n in lines if n.startswith("per-pair") and n.endswith("(forced)")}
+
+
 def verdict(state):
     """The harness gate on every nested line, the step-8 sign prong, and the call."""
     hz = {k: v for k, v in (state.get("harness") or {}).items() if not k.startswith("_")}
@@ -2294,9 +3206,7 @@ def verdict(state):
     per = {}
     for name, e in hz.items():
         lines = e["lines"]
-        nested = {n: {**gate_checks(lines[n]), "tl": lines[n]["tl"], "folds_on": lines[n]["folds_on"]}
-                  for n in NESTED if n in lines}
-        gate_pass = any(v["pass"] for v in nested.values())
+        nested, gate_pass = nested_gate(lines)
         if name.startswith("head "):
             h = heads.get(name[5:], {})
             # the prong: positive out-of-fold r, on matharena net of position (HEAD_PRONG_FIELD)
@@ -2313,8 +3223,7 @@ def verdict(state):
             sign_info = {"positive_parents_prong": a.get("positive"), "units": a.get("units"),
                          "positive_parents_within": ((sg.get(name) or {}).get("agreement_within") or {}).get(
                              "positive")}
-        best = min((v["tl"] for v in nested.values() if v["tl"] is not None), default=None)
-        forced_pp = {n: lines[n]["tl"] for n in lines if n.startswith("per-pair") and n.endswith("(forced)")}
+        best, forced_pp = best_nested(nested), forced_per_pair(lines)
         per[name] = {"primary": primary, "gate_pass_nested": gate_pass, "sign_prong": sign_ok, **sign_info,
                      "best_nested_tl": best, "nested": nested, "forced_per_pair_tl": forced_pp,
                      "keep": bool(primary and gate_pass and sign_ok)}
@@ -2342,7 +3251,277 @@ def verdict(state):
             "call": ("KEEP " + ", ".join(keep)) if keep else "NULL: no declared primary passes"}
 
 
+def entropy_verdict(est):
+    """ENTROPY_RULE on the entropy section: per harness covariate the nested gate
+    lines and the step-8 sign prong (PRONG_FIELD, as for every declared feature);
+    ENTROPY_PRIMARY is kept only if it passes both, is readable and on the rule's
+    version and job config; any other feature that passes both is exploratory,
+    never kept. The consistency check and the reference are set beside it, not
+    gating. The call is final only on a complete export (ingest's completeness)
+    under an unchanged rule (entropy.rule's digest, the one at the first ingest
+    and ENTROPY_RULE's agree); otherwise it is prefixed PRELIMINARY or RULE
+    CHANGED."""
+    hz = {k: v for k, v in (est.get("harness") or {}).items() if not k.startswith("_")}
+    sg = (est.get("signs") or {}).get("features", {})
+    reg = (est.get("signs") or {}).get("registry", {})
+    sem = (est.get("ingest") or {}).get("semantics") or {}
+    eligible = bool(sem.get("primary_eligible"))
+    per = {}
+    for name, e in hz.items():
+        lines = e["lines"]
+        nested, gate_pass = nested_gate(lines)
+        a = (sg.get(name) or {}).get("agreement_prong") or {}
+        sign_ok = bool(a.get("declared_sign_ok"))
+        r = reg.get(name, {})
+        primary = name == ENTROPY_PRIMARY
+        per[name] = {"primary": primary, "role": r.get("role"), "excluded": r.get("excluded"),
+                     "gate_pass_nested": gate_pass, "sign_prong": sign_ok, "positive_parents_prong": a.get("positive"),
+                     "units": a.get("units"),
+                     "positive_parents_within": ((sg.get(name) or {}).get("agreement_within") or {}).get("positive"),
+                     "random_effects_within": (sg.get(name) or {}).get("random_effects_within"),
+                     "within_pair_r": e.get("r_within_pair_tl"), "best_nested_tl": best_nested(nested),
+                     "nested": nested, "forced_per_pair_tl": forced_per_pair(lines),
+                     "keep": bool(primary and eligible and gate_pass and sign_ok)}
+    keep = sorted(n for n, v in per.items() if v["keep"])
+    exploratory = sorted(n for n, v in per.items() if not v["primary"] and v["gate_pass_nested"] and v["sign_prong"])
+    p = per.get(ENTROPY_PRIMARY)
+    if keep:
+        call = "KEEP " + ", ".join(keep)
+    elif not sem.get("readable"):
+        call = f"NOT READ: {sem.get('why') or 'the entropy semantics are unknown'}"
+    elif p is None:
+        call = f"NO DATA: {ENTROPY_PRIMARY} has no harness line (run --stage harness --job entropy)"
+    elif not eligible:
+        call = (f"NULL: {sem.get('why_not_eligible') or 'the export is not the one the rule was fixed for'}; the "
+                "declared primary cannot be kept")
+    else:
+        why = [w for w, ok in (("the gate", p["gate_pass_nested"]), ("the sign prong", p["sign_prong"])) if not ok]
+        call = f"NULL: the declared primary {ENTROPY_PRIMARY} fails " + " and ".join(why)
+    # final only on a complete export under the rule of the first ingest
+    rule_now = entropy_rule_digest()
+    stored = est.get("rule") if isinstance(est.get("rule"), dict) else {}
+    stored_dig = stored.get("digest")
+    first = (est.get("rule_first") or {}).get("digest")
+    rule_unchanged = bool(stored) and stored_dig == entropy_rule_digest(stored) == rule_now == first
+    comp = (est.get("ingest") or {}).get("completeness") or {}
+    complete = comp.get("complete") is True
+    marks = []
+    if not rule_unchanged:
+        marks.append(f"RULE CHANGED (at the first ingest {(first or 'none')[:16]}, stored "
+                     f"{(stored_dig or 'none')[:16]}, ENTROPY_RULE {rule_now[:16]})")
+    if not complete:
+        part = {b: f"{v.get('units_covered')}/{v.get('units_expected')}" for b, v in
+                (comp.get("per_parent") or {}).items() if not v.get("complete")}
+        marks.append("PRELIMINARY (" + (f"partial export, units covered/expected {part}" if comp else
+                                        "completeness unknown: run --stage ingest again") + ")")
+    if marks:
+        call = "; ".join(marks) + ": " + call
+    cons = est.get("consistency") or {}
+    ref = est.get("reference") or {}
+    return {"rule": entropy_rule_record(), "rule_digest": rule_now, "rule_digest_stored": stored_dig,
+            "rule_digest_at_first_ingest": first, "rule_unchanged": rule_unchanged,
+            "complete": complete, "completeness": comp.get("per_parent"), "final": complete and rule_unchanged,
+            "features": per, "keep": keep, "exploratory_pass": exploratory,
+            "primary": ENTROPY_PRIMARY, "primary_eligible": eligible,
+            "semantics": {k: sem.get(k) for k in ("logprobs", "recorder_check", "version", "cfg", "readable", "why",
+                                                  "why_not_eligible")},
+            "consistency (not gating)": {k: cons.get(k) for k in ("attempts", "test_retest")} if cons else None,
+            "reference (not gating)": ({"covered_by": ref.get("covered_by"), "covered_keys_in_rows":
+                                        ref.get("covered_keys_in_rows"),
+                                        "transferred_nested_tl": {r: (v.get("transferred nested") or {}).get("tl")
+                                                                  for r, v in (ref.get("r") or {}).items()}}
+                                       if ref else None),
+            "call": call}
+
+
+def spearman(x, y):
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    return round(L4.pearson(L4.ranks(x), L4.ranks(y)), 4) if len(x) >= CONSISTENCY_MIN else None
+
+
+def icc1(groups):
+    """One-way random-effects ICC(1) over groups of repeated measurements of
+    unequal size (n0 = (N - sum n_i^2 / N) / (g - 1)); None under CONSISTENCY_MIN
+    groups of at least two."""
+    gs = [np.asarray(g, float) for g in groups if len(g) >= 2]
+    k = len(gs)
+    if k < CONSISTENCY_MIN:
+        return None
+    n = sum(len(g) for g in gs)
+    grand = float(np.concatenate(gs).mean())
+    msb = sum(len(g) * (g.mean() - grand) ** 2 for g in gs) / (k - 1)
+    msw = sum(float(((g - g.mean()) ** 2).sum()) for g in gs) / (n - k)
+    n0 = (n - sum(len(g) ** 2 for g in gs) / n) / (k - 1)
+    den = msb + (n0 - 1) * msw
+    return round(float((msb - msw) / den), 4) if den > 0 else None
+
+
+def consistency(je, jm=None, att_sem=None, ent_sem=None):
+    """The entropy job beside the attempts on matharena, and its test-retest
+    (entropy.consistency; reported, never gating). attempts: per design and
+    CONSISTENCY_WITH feature, Spearman of this job's ENTROPY_PRIMARY against the
+    attempts' aggregate over the matharena items both carry finite, over one
+    item per entropy unit (key), and per prompt (the attempts' unit is the task
+    text: the mean primary over a prompt's entropy units, every one of them,
+    against the mean attempt value over its items). test_retest: per benchmark,
+    the units whose prompts are identical (the same prompt_sha: the task text
+    alone) but which are other units (another key: other metadata, so another
+    seed): one pair per prompt (the first two keys), Spearman and Pearson of the
+    primary; and the one-way ICC(1) over every unit of such prompts (icc1)."""
+    out = {"what": ("matharena: this job's one sample (the neutral instruction, no metadata, 1,024 tokens) against "
+                    "the mean over the attempts' k samples (the \\boxed instruction, 4,096 tokens) of the same "
+                    "windowed statistics; and a single sample's test-retest on identical prompts"),
+           "gating": False, "entropy_logprobs": (ent_sem or {}).get("logprobs"),
+           "attempt_logprobs": (att_sem or {}).get("logprobs"),
+           "same_definition": (ent_sem or {}).get("logprobs") == "raw" and (att_sem or {}).get("logprobs") == "raw"}
+    ok = np.isfinite(je[ENTROPY_PRIMARY].to_numpy(float)) if ENTROPY_PRIMARY in je.columns else np.zeros(len(je), bool)
+    e = je[ok]
+    mh = e[e["benchmark"] == "matharena"]
+    x = dict(zip(mh["item_id"], mh[ENTROPY_PRIMARY].to_numpy(float)))
+    unit = dict(zip(mh["item_id"], mh["key"]))
+    psha = dict(zip(mh["item_id"], mh["prompt_sha"])) if "prompt_sha" in mh.columns else {}
+    px = {}                                           # prompt -> {unit: x}: every entropy unit of the prompt
+    for i, p in psha.items():
+        px.setdefault(p, {})[unit[i]] = x[i]
+    att = {}
+    if jm is None:
+        out["attempts"] = None
+        out["attempts_why"] = "no rubric-and-attempt features in WORK"
+    else:
+        mm = jm[jm["benchmark"] == "matharena"]
+        for d, cols in sorted(attempt_designs(jm.columns).items()):
+            for f in CONSISTENCY_WITH:
+                if f not in cols:
+                    continue
+                y = dict(zip(mm["item_id"], mm[cols[f]].to_numpy(float)))
+                ids = sorted(i for i in x if i in y and np.isfinite(y[i]))
+                first = {}
+                for i in ids:
+                    first.setdefault(unit[i], i)
+                us = sorted(first.values())
+                py = {}
+                for i in ids:
+                    if i in psha:
+                        py.setdefault(psha[i], []).append(y[i])
+                ps = sorted(py)
+                att[f"{d}/{f}"] = {"design": d, "attempt_feature": f, "n_items": len(ids), "n_units": len(us),
+                                   "spearman": spearman([x[i] for i in ids], [y[i] for i in ids]),
+                                   "spearman_units": spearman([x[i] for i in us], [y[i] for i in us]),
+                                   "n_prompts": len(ps),
+                                   "spearman_prompts": spearman([np.mean(list(px[p].values())) for p in ps],
+                                                                [np.mean(py[p]) for p in ps])}
+        out["attempts"] = att
+    tr = {}
+    for b, sub in e.groupby("benchmark", sort=True):
+        if "prompt_sha" not in sub.columns:
+            continue
+        pairs, groups = [], []
+        for _, g in sub.groupby("prompt_sha", sort=True):
+            ks = g.drop_duplicates("key").sort_values("key")
+            if len(ks) >= 2:
+                v = ks[ENTROPY_PRIMARY].to_numpy(float)
+                pairs.append(v[:2])
+                groups.append(v)
+        if pairs:
+            P = np.array(pairs)
+            tr[str(b)] = {"pairs": len(P), "spearman": spearman(P[:, 0], P[:, 1]),
+                          "pearson": round(L4.pearson(P[:, 0], P[:, 1]), 4) if len(P) >= CONSISTENCY_MIN else None,
+                          "mean_abs_diff": round(float(np.mean(np.abs(P[:, 0] - P[:, 1]))), 5),
+                          "sd_over_units": round(float(np.std(sub.drop_duplicates("key")[ENTROPY_PRIMARY])), 5),
+                          "units_in_repeated_prompts": int(sum(map(len, groups))), "icc1": icc1(groups)}
+    out["test_retest"] = tr
+    return out
+
+
+def stage_consistency(args):
+    import pandas as pd
+    t0 = time.time()
+    state = H.load_json(args.out) or {}
+    est = entropy_state(state)
+    je, _ = entropy_work_checked(args.work, est)
+    p = os.path.join(args.work, "features.parquet")
+    jm = pd.read_parquet(p) if os.path.exists(p) else None
+    out = consistency(je, jm, (state.get("ingest") or {}).get("attempt_semantics"),
+                      (est.get("ingest") or {}).get("semantics"))
+    out["features_digest"] = entropy_digest(args.work)
+    out["main_features_digest"] = features_digest(args.work)
+    out["wall_s"] = round(time.time() - t0, 1)
+    _save_part_entropy(args.out, "consistency", out)
+    for k, v in (out.get("attempts") or {}).items():
+        log(f"consistency, matharena: {ENTROPY_PRIMARY} vs attempts {k}: Spearman {v['spearman']} over {v['n_items']} "
+            f"items ({v['spearman_units']} over {v['n_units']} units, {v['spearman_prompts']} over {v['n_prompts']} "
+            "prompts)")
+    for b, v in out["test_retest"].items():
+        log(f"test-retest {b}: {v['pairs']} pairs of identical prompts, Spearman {v['spearman']}, Pearson "
+            f"{v['pearson']}; ICC(1) {v['icc1']} over all {v['units_in_repeated_prompts']} units of those prompts")
+    log(f"consistency: {out['wall_s']}s -> {args.out} [{ENTROPY_KIND}] (reported, not gating)")
+
+
+def entropy_provenance(work, est):
+    """The verdict's inputs against the table ingest recorded: WORK/entropy.parquet's
+    digest, the signs' features digest, and every harness line's x digest against
+    the map rebuilt from WORK on the ingested semantics (entropy_harness_maps) ->
+    {ok, problems, features_digest, harness_lines_checked}."""
+    want = (est.get("ingest") or {}).get("features_digest")
+    probs = []
+    dig = entropy_digest(work)
+    if dig != want:
+        probs.append(f"{os.path.join(work, ENTROPY_TABLE)} is {dig}, ingest recorded {want}")
+    sd = (est.get("signs") or {}).get("features_digest")
+    if sd != want:
+        probs.append(f"entropy.signs were computed on {sd}, ingest recorded {want}")
+    hz = {k: v for k, v in (est.get("harness") or {}).items() if not k.startswith("_")}
+    n = 0
+    if hz and dig == want:
+        joined = load_entropy(work)
+        maps = entropy_harness_maps(joined, entropy_stage_registry(joined, est))
+        for name, e in sorted(hz.items()):
+            if name not in maps:
+                probs.append(f"entropy.harness[{name!r}] is not a usable feature of the ingested table")
+            elif e.get("x_digest") != maps_digest({name: maps[name]}):
+                probs.append(f"entropy.harness[{name!r}] was computed on another x ({e.get('x_digest')}, the ingested "
+                             f"table gives {maps_digest({name: maps[name]})})")
+            else:
+                n += 1
+    return {"ok": not probs, "problems": probs, "features_digest": want, "harness_lines_checked": n}
+
+
+def stage_verdict_entropy(args):
+    state = H.load_json(args.out) or {}
+    est = entropy_state(state)
+    if "harness" not in est or "signs" not in est:
+        raise SystemExit("run --stage signs --job entropy and --stage harness --job entropy first")
+    prov = entropy_provenance(args.work, est)
+    if not prov["ok"]:
+        raise SystemExit("the entropy verdict reads only what --stage ingest recorded: " + "; ".join(prov["problems"])
+                         + " (run signs and harness --job entropy again with the --work and --out ingest used)")
+    v = entropy_verdict(est)
+    if not v["rule_unchanged"] and not getattr(args, "accept_rule_change", False):
+        raise SystemExit(f"ENTROPY_RULE ({v['rule_digest'][:16]}) is not the rule of the first ingest "
+                         f"({(v['rule_digest_at_first_ingest'] or 'none')[:16]}) or the one stored "
+                         f"({(v['rule_digest_stored'] or 'none')[:16]}): the decision was fixed before the output was "
+                         "read. Restore it, or pass --accept-rule-change to read the call marked RULE CHANGED")
+    v["provenance"] = prov
+    v["script_digest"] = H.digest(["experiments/strong_llm_eval.py"])
+    v["time"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    est["verdict"] = v
+    est.setdefault("history", []).append({
+        "stage": "verdict", "time": v["time"], "call": v["call"], "keep": v["keep"],
+        "exploratory_pass": v["exploratory_pass"], "primary": v["primary"], "primary_eligible": v["primary_eligible"],
+        "complete": v["complete"], "final": v["final"], "rule_digest": v["rule_digest"],
+        "rule_unchanged": v["rule_unchanged"], "features_digest": prov["features_digest"],
+        "script_digest": v["script_digest"],
+        "primary_line": {k: ((v["features"].get(ENTROPY_PRIMARY) or {}).get(k)) for k in (
+            "gate_pass_nested", "sign_prong", "best_nested_tl", "within_pair_r")}})
+    state[ENTROPY_KIND] = est
+    H.save_json(args.out, state)
+    print(json.dumps(H._jsonable({k: v[k] for k in ("call", "keep", "exploratory_pass", "primary_eligible", "complete",
+                                                     "final", "rule_digest")}), indent=1))
+
+
 def stage_verdict(args):
+    if getattr(args, "job", "main") == ENTROPY_KIND:
+        return stage_verdict_entropy(args)
     state = H.load_json(args.out)
     if not state or "harness" not in state or "signs" not in state:
         raise SystemExit("run --stage signs and --stage harness first")
@@ -2406,25 +3585,7 @@ def stage_show(args):
             print("  note:", n)
     sg = s.get("signs")
     if sg:
-        print("\nwithin-group Spearman, oriented (+ = harder), 95% group bootstrap; matharena net of competition, "
-              "log length and position in brackets\n| feature | sign | " + " | ".join(PARENTS)
-              + " | matharena text-bearing | 2026 | declared sign on (prong) | within group | RE mean [PI] |\n|"
-              + "---|" * (len(PARENTS) + 7))
-        for f, e in sg["features"].items():
-            u = e["units"]
-            cells = []
-            for q in PARENTS:
-                c = _c((u.get(q) or {}).get("spearman_within"))
-                if q in PRONG_FIELD and (u.get(q) or {}).get(PRONG_FIELD[q]):
-                    c += f" ({_c(u[q][PRONG_FIELD[q]])})"
-                cells.append(c)
-            pr = e.get("agreement_prong") or {}
-            print(f"| {f} | {'excluded' if e.get('excluded') else e['declared_sign']} | " + " | ".join(cells)
-                  + f" | {_c((u.get('matharena text-bearing') or {}).get('spearman_within'))} | "
-                  f"{_c((u.get('matharena text-bearing 2026') or {}).get('spearman_within'))} | "
-                  f"{pr.get('positive')}/{pr.get('units')} | "
-                  f"{e['agreement_within']['positive']}/{e['agreement_within']['units']} | "
-                  f"{_pi(e.get('random_effects_within'))} |")
+        _show_signs(sg)
     hd = s.get("heads")
     if hd:
         print("\nheads, leave one parent out (Pearson over the benchmark / within group; the prong's statistic "
@@ -2446,25 +3607,9 @@ def stage_show(args):
                   f"{[f['choice'] for f in e['folds'].values()]} |")
     hz = s.get("harness")
     if hz:
-        print("\n| covariate, line | test-like ± cluster SE (sel) | benchmark-equal | worst parent | mix/whole | "
-              "R1 b / p | folds on | gate | placebo test-like |\n|" + "---|" * 9)
-        for f, v in hz.items():
-            if f.startswith("_"):
-                continue
-            for n, ln in v["lines"].items():
-                pl = v["placebo"].get(n, {})
-                sel = ln.get("tl_sel_se")
-                gate = ln["gate_pass"] if ln["gate_pass"] is not None else f"if on: {ln['gate_pass_if_on']}"
-                print(f"| {f}, {n} | {_g(ln['tl'], 5)} ± {ln['tl_cluster_se']:.5f}"
-                      + ("" if sel is None else f" ({sel:.5f})") + f" | {_g(ln['tl_benchmark_equal'], 5)} | "
-                      f"{_g(ln['tl_worst_parent'], 5)} | {_g(ln['mix'], 5)} | {_g(ln['r1b'], 5)} / {_g(ln['r1p'], 5)}"
-                      f" | {'' if ln['folds_on'] is None else str(ln['folds_on']) + '/4'} | {gate} | "
-                      f"{_g(pl.get('tl'), 5)} |")
-            print(f"  {f}: within-pair r {v.get('r_within_pair_tl')}, coverage {v['coverage_eval_items']}")
+        _show_harness(hz)
     if s.get("reference"):
-        print("\nreference (honest difficulty degraded to r on the covered items):")
-        for r, t in s["reference"]["r"].items():
-            print(f"  {r}: " + "  ".join(f"{n} {v['tl']:+.5f}" for n, v in t.items()))
+        _show_reference(s["reference"])
     at = s.get("attempts")
     for label, part in (("", at), (", probe texts only", (at or {}).get("probe_only"))):
         if not part or not part.get("designs"):
@@ -2493,14 +3638,119 @@ def stage_show(args):
     if s.get("verdict"):
         v = s["verdict"]
         print("\nverdict:", json.dumps({k: v.get(k) for k in ("call", "keep", "exploratory_pass")}, indent=1))
+    if s.get(ENTROPY_KIND):
+        show_entropy(s[ENTROPY_KIND])
+
+
+def _show_signs(sg):
+    print("\nwithin-group Spearman, oriented (+ = harder), 95% group bootstrap; matharena net of competition, "
+          "log length and position in brackets\n| feature | sign | " + " | ".join(PARENTS)
+          + " | matharena text-bearing | 2026 | declared sign on (prong) | within group | RE mean [PI] |\n|"
+          + "---|" * (len(PARENTS) + 7))
+    for f, e in sg["features"].items():
+        u = e["units"]
+        cells = []
+        for q in PARENTS:
+            c = _c((u.get(q) or {}).get("spearman_within"))
+            if q in PRONG_FIELD and (u.get(q) or {}).get(PRONG_FIELD[q]):
+                c += f" ({_c(u[q][PRONG_FIELD[q]])})"
+            cells.append(c)
+        pr = e.get("agreement_prong") or {}
+        print(f"| {f} | {'excluded' if e.get('excluded') else e['declared_sign']} | " + " | ".join(cells)
+              + f" | {_c((u.get('matharena text-bearing') or {}).get('spearman_within'))} | "
+              f"{_c((u.get('matharena text-bearing 2026') or {}).get('spearman_within'))} | "
+              f"{pr.get('positive')}/{pr.get('units')} | "
+              f"{e['agreement_within']['positive']}/{e['agreement_within']['units']} | "
+              f"{_pi(e.get('random_effects_within'))} |")
+
+
+def _show_harness(hz):
+    print("\n| covariate, line | test-like ± cluster SE (sel) | benchmark-equal | worst parent | mix/whole | "
+          "R1 b / p | folds on | gate | placebo test-like |\n|" + "---|" * 9)
+    for f, v in hz.items():
+        if f.startswith("_"):
+            continue
+        for n, ln in v["lines"].items():
+            pl = v["placebo"].get(n, {})
+            sel = ln.get("tl_sel_se")
+            gate = ln["gate_pass"] if ln["gate_pass"] is not None else f"if on: {ln['gate_pass_if_on']}"
+            print(f"| {f}, {n} | {_g(ln['tl'], 5)} ± {ln['tl_cluster_se']:.5f}"
+                  + ("" if sel is None else f" ({sel:.5f})") + f" | {_g(ln['tl_benchmark_equal'], 5)} | "
+                  f"{_g(ln['tl_worst_parent'], 5)} | {_g(ln['mix'], 5)} | {_g(ln['r1b'], 5)} / {_g(ln['r1p'], 5)}"
+                  f" | {'' if ln['folds_on'] is None else str(ln['folds_on']) + '/4'} | {gate} | "
+                  f"{_g(pl.get('tl'), 5)} |")
+        print(f"  {f}: within-pair r {v.get('r_within_pair_tl')}, coverage {v['coverage_eval_items']}")
+
+
+def _show_reference(ref):
+    print("\nreference (honest difficulty degraded to r on the covered items):")
+    for r, t in ref["r"].items():
+        print(f"  {r}: " + "  ".join(f"{n} {v['tl']:+.5f}" for n, v in t.items()))
+
+
+def show_entropy(est):
+    """The entropy section's tables (show)."""
+    rule = est.get("rule") if isinstance(est.get("rule"), dict) else {}
+    cfg = rule.get("config") or {}
+    now = entropy_rule_digest()
+    print(f"\n## the entropy job ({ENTROPY_KIND}): primary {rule.get('primary')} (the stored rule, digest "
+          f"{(rule.get('digest') or 'none')[:16]}; fixed for version {cfg.get('version')}, config {cfg.get('cfg')})"
+          + ("" if rule and rule.get("digest") == entropy_rule_digest(rule) == now
+             == (est.get("rule_first") or {}).get("digest") else
+             f" -- WARNING: the stored rule's content is {entropy_rule_digest(rule)[:16] if rule else 'none'}, "
+             f"ENTROPY_RULE {now[:16]}, "
+             f"the first ingest's {((est.get('rule_first') or {}).get('digest') or 'none')[:16]}")
+          + (f"; {len(est['rule_history'])} earlier rule(s) in rule_history" if est.get("rule_history") else ""))
+    ing = est.get("ingest")
+    if ing:
+        sem = ing.get("semantics") or {}
+        print(f"source {(est.get('meta') or {}).get('kaggle_dir')}; version {sem.get('version')}, log-probs "
+              f"{sem.get('logprobs')}, recorder check {sem.get('recorder_check')}, readable {sem.get('readable')}"
+              + ("" if sem.get("readable") else f" ({sem.get('why')})") + f"; primary eligible "
+              f"{sem.get('primary_eligible')}; rubric-and-attempt features: {ing.get('main_features')}")
+        print("\n| benchmark | items | rows | hash ok | mismatch | missing | unknown | covered | with the primary | "
+              "degenerate excluded | responses covered | mean ent_first1024 | closed | truncated |\n|" + "---|" * 14)
+        for b, r in (ing.get("per_benchmark") or {}).items():
+            st = (ing.get("per_benchmark_stats") or {}).get(b, {})
+            print(f"| {b} | {r['items']} | {r['rows']} | {r['hash_ok']} | {r['hash_mismatch']} | {r['hash_missing']} "
+                  f"| {r['unknown_item']} | {r.get('covered_items')} | {st.get('primary_finite')} | "
+                  f"{st.get('degenerate_excluded')} | {ing.get('responses', {}).get(b, {}).get('covered_share')} | "
+                  f"{st.get('mean_' + ENTROPY_PRIMARY)} | {st.get('rate_ent_closed')} | "
+                  f"{st.get('rate_ent_truncated')} |")
+        comp = ing.get("completeness") or {}
+        part = {b: f"{v.get('units_covered')}/{v.get('units_expected')}" for b, v in
+                (comp.get("per_parent") or {}).items()}
+        print(f"\ncomplete export: {comp.get('complete')} (units covered/expected {part})")
+    if est.get("signs"):
+        _show_signs(est["signs"])
+    if est.get("harness"):
+        _show_harness(est["harness"])
+    if est.get("reference"):
+        _show_reference(est["reference"])
+    c = est.get("consistency")
+    if c:
+        print("\nconsistency (not gating):", json.dumps({k: c.get(k) for k in ("same_definition", "attempts",
+                                                                                "test_retest")}, indent=1))
+    if est.get("run"):
+        print("\nentropy run:", json.dumps({k: est["run"].get(k) for k in ("timeline", "derived")}, indent=1))
+    if est.get("verdict"):
+        v = est["verdict"]
+        print("\nentropy verdict:", json.dumps({k: v.get(k) for k in ("call", "keep", "exploratory_pass",
+                                                                       "primary_eligible", "complete", "final",
+                                                                       "rule_digest")}, indent=1))
+    if est.get("history"):
+        print(f"\nentropy history ({len(est['history'])} entries, append-only): " + "; ".join(
+            f"{h.get('time')} {h.get('stage')} {h.get('features_digest')}"
+            + (f" {h.get('call')!r}" if h.get("stage") == "verdict" else "") for h in est["history"][-6:]))
 
 
 # --- io -----------------------------------------------------------------------------------
 
-def meta(args, man):
+def meta(args, man, kdir=None):
     man = man or {}
+    kdir = kdir if kdir is not None else kaggle_dirs(args)[0]
     return {**H.provenance(), "script_digest_strong": H.digest(["experiments/strong_llm_eval.py"]),
-            "kaggle_dir": os.path.relpath(args.kaggle, ROOT) if args.kaggle.startswith(ROOT) else args.kaggle,
+            "kaggle_dir": os.path.relpath(kdir, ROOT) if kdir.startswith(ROOT) else kdir,
             "schema_version": SCHEMA_VERSION, "hash_def": HASH_DEF,
             "manifest": {k: man.get(k) for k in ("schema_version", "model", "kinds", "created", "wall_s", "gpu",
                                                  "notebook_digest", "hash", "logprobs", "slug")},
@@ -2516,8 +3766,14 @@ def meta(args, man):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--stage", required=True, choices=("schema", "check-schema", "ingest", "signs", "harness",
-                                                        "reference", "attempts", "verdict", "run", "show"))
-    ap.add_argument("--kaggle", default=KAGGLE_DIR, help="the Kaggle outputs (manifest.json + parquet shards)")
+                                                        "reference", "attempts", "consistency", "verdict", "run",
+                                                        "show"))
+    ap.add_argument("--kaggle", nargs="+", default=[KAGGLE_DIR],
+                    help="the Kaggle export directories (manifest.json + parquet shards); several are merged by job: "
+                         "each job's shards from the first that carries them")
+    ap.add_argument("--job", choices=("main", ENTROPY_KIND), default="main",
+                    help="signs, harness, reference, verdict: the rubric's and the attempts' features (main) or the "
+                         "entropy job's (commit D; OUT's entropy section)")
     ap.add_argument("--work", default=WORK, help="derived tables (features.parquet, targets.json, oof.json)")
     ap.add_argument("--rows", default=H.ROWS)
     ap.add_argument("--out", default=OUT)
@@ -2526,6 +3782,11 @@ def main():
     ap.add_argument("--feats", nargs="+", default=None, help="harness: only these covariates (names as in show)")
     ap.add_argument("--redo", action="store_true")
     ap.add_argument("--force", action="store_true", help="ingest despite schema errors")
+    ap.add_argument("--accept-rule-change", action="store_true",
+                    help="the entropy job: ingest under an ENTROPY_RULE that differs from the one OUT's entropy "
+                         "results were read under (the old rule goes to entropy.rule_history, those results are "
+                         "dropped), and a verdict under a rule other than the first ingest's (its call marked RULE "
+                         "CHANGED)")
     ap.add_argument("--refresh-targets", action="store_true")
     ap.add_argument("--attempt-units", choices=ATTEMPT_UNITS, default="both",
                     help="attempts: every attempted text ('all'), the probe texts the rule was fixed for "
@@ -2534,9 +3795,12 @@ def main():
                     help="run: the notebook's root manifest (strong_probe/manifest.json of the Kaggle Output); "
                          f"default: the one under {os.path.relpath(KAGGLE_RAW, ROOT)} that matches the export")
     args = ap.parse_args()
+    if args.job == ENTROPY_KIND and args.stage == "attempts":
+        ap.error("--job entropy applies to signs, harness, reference and verdict; attempts reads the attempts, and "
+                 "check-schema, ingest, consistency, run and show handle both jobs by themselves")
     {"schema": stage_schema, "check-schema": stage_check_schema, "ingest": stage_ingest, "signs": stage_signs,
-     "harness": stage_harness, "reference": stage_reference, "attempts": stage_attempts, "verdict": stage_verdict,
-     "run": stage_run, "show": stage_show}[args.stage](args)
+     "harness": stage_harness, "reference": stage_reference, "attempts": stage_attempts,
+     "consistency": stage_consistency, "verdict": stage_verdict, "run": stage_run, "show": stage_show}[args.stage](args)
 
 
 if __name__ == "__main__":
