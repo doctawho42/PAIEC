@@ -1,0 +1,1553 @@
+{
+ "about": "Formative run 3 (scored 2026-10-01): the archive built at 4d2cc4f, uploaded by the team as a regression and latency check only. The record of its feedback table, set beside runs 1 and 2; nothing here selects, tunes or reads a level. experiments/formative_run3.py.",
+ "run3": {
+  "scored": "2026-10-01",
+  "commit": "4d2cc4f",
+  "archive_sha256": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090",
+  "model": "paiec.hier.HierPredictor, LEVEL mu0 -2.5 sigma_mu 2.5 attr_scale 0.5, the corrected multiple-choice floor (f7e7d87) and the floored-fit fix (4d2cc4f)",
+  "level": {
+   "mu0": -2.5,
+   "sigma_mu": 2.5,
+   "attr_scale": 0.5
+  },
+  "purpose": "a regression and latency check only: that the archive selected at 4d2cc4f runs on the platform with every pair scored and no errors. Its score selects or tunes nothing.",
+  "uploaded_by": "the team",
+  "team_report": "all 9 pairs scored, no errors",
+  "platform_alc": null,
+  "platform_alc_note": "the platform's headline score for run 3 was not pasted, so the table's pair-mean ALC is recomputed here and cannot be checked against a reported score",
+  "purpose_stated_before_scoring": {
+   "source": "results/formative_feedback.json, submissions[run 3] (read only)",
+   "entry": {
+    "run": 3,
+    "scored": null,
+    "commit": "4d2cc4f",
+    "archive_sha256": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090",
+    "model": "the rebuilt archive: hier with the same LEVEL, the corrected multiple-choice floor (f7e7d87) and the floored-fit fix (4d2cc4f)",
+    "alc": null,
+    "informed": [
+     "planned as a regression and latency check only: that the rebuilt archive runs on the platform without failures or timeouts; its score is not to select or tune anything"
+    ]
+   },
+   "first_commit_with_the_statement": {
+    "commit": "00bdf04",
+    "committed": "2026-09-28T12:30:42+03:00"
+   },
+   "stated_before_scoring": true
+  },
+  "feedback": "results/formative/run3.txt (the organisers' table, verbatim)",
+  "benchmark_letters": {
+   "map": {
+    "benchmark_830060": "A",
+    "benchmark_800730": "B",
+    "benchmark_869474": "C",
+    "benchmark_213669": "D",
+    "benchmark_342307": "E",
+    "benchmark_893575": "F",
+    "benchmark_119137": "G"
+   },
+   "note": "docs/findings.md's letters, A, B, ... in order of first appearance in run 1; for recording only, no model input is keyed on them"
+  },
+  "pairs": [
+   {
+    "label": "s1",
+    "subject": "subject_139488",
+    "benchmark": "benchmark_119137",
+    "letter": "G",
+    "n": 44,
+    "brier": [
+     0.276829,
+     0.194101,
+     0.211881,
+     0.18906,
+     0.193526,
+     0.206699
+    ],
+    "ece_b": [
+     0.295088,
+     0.073317,
+     0.157518,
+     0.042101,
+     0.055916,
+     0.136902
+    ],
+    "alc_summary_row": 0.206066,
+    "alc_recomputed": 0.2060664,
+    "ece_alc_summary_row": 0.108969,
+    "ece_alc_recomputed": 0.10896940000000001,
+    "b1_or_b3_above_b0": false,
+    "b31_at_or_above_0.25": false
+   },
+   {
+    "label": "s2",
+    "subject": "subject_251586",
+    "benchmark": "benchmark_342307",
+    "letter": "E",
+    "n": 60,
+    "brier": [
+     0.254322,
+     0.296181,
+     0.361746,
+     0.2578,
+     0.263512,
+     0.251448
+    ],
+    "ece_b": [
+     0.06872,
+     0.215826,
+     0.334882,
+     0.090552,
+     0.117949,
+     0.042987
+    ],
+    "alc_summary_row": 0.286425,
+    "alc_recomputed": 0.28642480000000003,
+    "ece_alc_summary_row": 0.163013,
+    "ece_alc_recomputed": 0.1630125,
+    "b1_or_b3_above_b0": true,
+    "b31_at_or_above_0.25": true
+   },
+   {
+    "label": "s3",
+    "subject": "subject_279917",
+    "benchmark": "benchmark_213669",
+    "letter": "D",
+    "n": 58,
+    "brier": [
+     0.207126,
+     0.130663,
+     0.098899,
+     0.092747,
+     0.092822,
+     0.094676
+    ],
+    "ece_b": [
+     0.3382,
+     0.194721,
+     0.078436,
+     0.000411,
+     0.008664,
+     0.04392
+    ],
+    "alc_summary_row": 0.113206,
+    "alc_recomputed": 0.1132064,
+    "ece_alc_summary_row": 0.094658,
+    "ece_alc_recomputed": 0.09465840000000002,
+    "b1_or_b3_above_b0": false,
+    "b31_at_or_above_0.25": false
+   },
+   {
+    "label": "s4",
+    "subject": "subject_288525",
+    "benchmark": "benchmark_869474",
+    "letter": "C",
+    "n": 56,
+    "brier": [
+     0.202394,
+     0.169636,
+     0.187347,
+     0.175478,
+     0.182089,
+     0.186509
+    ],
+    "ece_b": [
+     0.191305,
+     0.061968,
+     0.146803,
+     0.098396,
+     0.127642,
+     0.143919
+    ],
+    "alc_summary_row": 0.1818,
+    "alc_recomputed": 0.1818003,
+    "ece_alc_summary_row": 0.120484,
+    "ece_alc_recomputed": 0.1204842,
+    "b1_or_b3_above_b0": false,
+    "b31_at_or_above_0.25": false
+   },
+   {
+    "label": "s5",
+    "subject": "subject_289169",
+    "benchmark": "benchmark_830060",
+    "letter": "A",
+    "n": 72,
+    "brier": [
+     0.212151,
+     0.137666,
+     0.130672,
+     0.146975,
+     0.130328,
+     0.117771
+    ],
+    "ece_b": [
+     0.2876,
+     0.084426,
+     0.025977,
+     0.14316,
+     0.052017,
+     0.029999
+    ],
+    "alc_summary_row": 0.14212,
+    "alc_recomputed": 0.1421204,
+    "ece_alc_summary_row": 0.092876,
+    "ece_alc_recomputed": 0.09287590000000001,
+    "b1_or_b3_above_b0": false,
+    "b31_at_or_above_0.25": false
+   },
+   {
+    "label": "s6",
+    "subject": "subject_431933",
+    "benchmark": "benchmark_830060",
+    "letter": "A",
+    "n": 53,
+    "brier": [
+     0.225389,
+     0.141261,
+     0.130401,
+     0.123272,
+     0.132599,
+     0.121542
+    ],
+    "ece_b": [
+     0.311816,
+     0.104041,
+     0.007571,
+     0.080797,
+     0.095296,
+     0.065569
+    ],
+    "alc_summary_row": 0.1402,
+    "alc_recomputed": 0.1401997,
+    "ece_alc_summary_row": 0.095279,
+    "ece_alc_recomputed": 0.0952795,
+    "b1_or_b3_above_b0": false,
+    "b31_at_or_above_0.25": false
+   },
+   {
+    "label": "s7",
+    "subject": "subject_791774",
+    "benchmark": "benchmark_119137",
+    "letter": "G",
+    "n": 44,
+    "brier": [
+     0.262068,
+     0.161945,
+     0.192277,
+     0.145336,
+     0.148743,
+     0.150815
+    ],
+    "ece_b": [
+     0.340912,
+     0.126877,
+     0.215477,
+     0.034324,
+     0.057163,
+     0.04082
+    ],
+    "alc_summary_row": 0.170948,
+    "alc_recomputed": 0.1709485,
+    "ece_alc_summary_row": 0.124941,
+    "ece_alc_recomputed": 0.12494140000000001,
+    "b1_or_b3_above_b0": false,
+    "b31_at_or_above_0.25": false
+   },
+   {
+    "label": "s8",
+    "subject": "subject_895895",
+    "benchmark": "benchmark_800730",
+    "letter": "B",
+    "n": 54,
+    "brier": [
+     0.214957,
+     0.136468,
+     0.104388,
+     0.108961,
+     0.102321,
+     0.10013
+    ],
+    "ece_b": [
+     0.340869,
+     0.194172,
+     0.074984,
+     0.100971,
+     0.059631,
+     0.036938
+    ],
+    "alc_summary_row": 0.121936,
+    "alc_recomputed": 0.1219363,
+    "ece_alc_summary_row": 0.123732,
+    "ece_alc_recomputed": 0.12373229999999999,
+    "b1_or_b3_above_b0": false,
+    "b31_at_or_above_0.25": false
+   },
+   {
+    "label": "s9",
+    "subject": "subject_955611",
+    "benchmark": "benchmark_893575",
+    "letter": "F",
+    "n": 44,
+    "brier": [
+     0.260638,
+     0.313601,
+     0.278977,
+     0.258147,
+     0.254794,
+     0.250028
+    ],
+    "ece_b": [
+     0.115629,
+     0.257553,
+     0.176382,
+     0.098439,
+     0.080518,
+     0.051572
+    ],
+    "alc_summary_row": 0.27217,
+    "alc_recomputed": 0.27217040000000003,
+    "ece_alc_summary_row": 0.139298,
+    "ece_alc_recomputed": 0.1392985,
+    "b1_or_b3_above_b0": true,
+    "b31_at_or_above_0.25": true
+   }
+  ],
+  "counts": {
+   "pairs": 9,
+   "benchmarks": 7,
+   "subjects": 9,
+   "pairs_per_benchmark": [
+    2,
+    2,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "subject_item_pairs": 485,
+   "n_min": 44,
+   "n_max": 72
+  },
+  "alc": {
+   "recomputed": 0.1816525777777778,
+   "recomputed_6dp": 0.181653,
+   "from_budget_means": 0.18165257777777777,
+   "summary_rows_mean": 0.18165233333333333,
+   "item_weighted_alternative": 0.17885387216494844
+  },
+  "per_pair_alc_max_abs_diff": 5.000000000143778e-07,
+  "per_pair_ece_alc_max_abs_diff": 4.999999999866223e-07,
+  "budgets": {
+   "budgets": [
+    0,
+    1,
+    3,
+    7,
+    15,
+    31
+   ],
+   "brier_mean": [
+    0.23509711111111115,
+    0.1868357777777778,
+    0.18850977777777778,
+    0.16641955555555554,
+    0.16674822222222221,
+    0.164402
+   ],
+   "ece_mean": [
+    0.25445988888888893,
+    0.14587788888888886,
+    0.1353366666666667,
+    0.07657233333333334,
+    0.0727551111111111,
+    0.06584733333333331
+   ],
+   "brier_min": [
+    0.202394,
+    0.130663,
+    0.098899,
+    0.092747,
+    0.092822,
+    0.094676
+   ],
+   "brier_max": [
+    0.276829,
+    0.313601,
+    0.361746,
+    0.258147,
+    0.263512,
+    0.251448
+   ]
+  },
+  "ece": {
+   "run_mean_of_pair_ece_alc": 0.11813888888888889,
+   "max_pair_ece_b0": 0.340912
+  },
+  "b0_minus_b31_mean": 0.07069511111111111,
+  "alc_how": "per pair 0.1*B0 + 0.2*(B1+B3+B7+B15) + 0.1*B31 from the budget tables, then the unweighted mean over pairs (the rule runs 1 and 2 pinned); equal to the weighted sum of the pair-averaged budget means",
+  "regression_check": {
+   "pairs": 9,
+   "every_pair_in_every_section": true,
+   "all_values_finite_in_unit_interval": true,
+   "team_report": "all 9 pairs scored, no errors",
+   "latency": "the table records no timing; that the run finished and every pair was scored at every budget is the only latency evidence here",
+   "low_budget_profile": {
+    "mean_b1_minus_b0": -0.04826133333333335,
+    "mean_b3_minus_b1": 0.001673999999999981,
+    "pairs_with_b1_or_b3_above_b0": [
+     {
+      "subject": "subject_251586",
+      "benchmark": "benchmark_342307",
+      "b0": 0.254322,
+      "b1": 0.296181,
+      "b3": 0.361746,
+      "b31": 0.251448
+     },
+     {
+      "subject": "subject_955611",
+      "benchmark": "benchmark_893575",
+      "b0": 0.260638,
+      "b1": 0.313601,
+      "b3": 0.278977,
+      "b31": 0.250028
+     }
+    ]
+   }
+  }
+ },
+ "archive": {
+  "path": "dist/paiec.zip",
+  "commit": "4d2cc4f",
+  "expected_sha256": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090",
+  "provenance": "the current submission archive in the working tree (dist/), built at 4d2cc4f and handed to the team for upload. It was not downloaded back from the platform, so that the uploaded file had these bytes is not verified from a downloaded copy (runs 1 and 2's archives were; results/formative_feedback.json 'archives'). dist/ is gitignored and rebuilt by tools/build_submission.py, so re-verifying needs it to hold the 4a882cc7... file; this read's archive checks are required.",
+  "downloaded_back": false,
+  "available": true,
+  "sha256": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090",
+  "members": {
+   "model.py": {
+    "sha256": "a9561290e62d3f7c65935c860b7f4300359cc5df34c6bccc207eb85305dfd82e",
+    "source": "submission/model.py",
+    "matches_commit": true
+   },
+   "paiec_rt/__init__.py": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source": "paiec/__init__.py",
+    "matches_commit": true
+   },
+   "paiec_rt/fitting.py": {
+    "sha256": "ec3af9224f48309adac04085759b8049837e6443e5deefbe178afa25b5c83bcd",
+    "source": "paiec/fitting.py",
+    "matches_commit": true
+   },
+   "paiec_rt/hier.py": {
+    "sha256": "d9a9561202b63b9d57552a54e81e0e58b4cbd626927fef1035680b5e7cea625a",
+    "source": "paiec/hier.py",
+    "matches_commit": true
+   },
+   "paiec_rt/irt.py": {
+    "sha256": "3f7d93e5d012699c02d39decabcc1ba246704199e3e855beb752a83d7f6cd3d9",
+    "source": "paiec/irt.py",
+    "matches_commit": true
+   },
+   "paiec_rt/mcq.py": {
+    "sha256": "f240425d01fb7278137a2ebd1e8eaac04f938e806a045677f4106621a330d610",
+    "source": "paiec/mcq.py",
+    "matches_commit": true
+   },
+   "paiec_rt/predict.py": {
+    "sha256": "46193d8dd7701ec206d94820dad6037c32fd8af45423a75288663834c8e5c23b",
+    "source": "paiec/predict.py",
+    "matches_commit": true
+   },
+   "paiec_rt/prior.py": {
+    "sha256": "3a8a8c7dcd0da53e9dd16a2b22fb9b8dfee07ae2ca4e78364a4f373ba454ddd4",
+    "source": "paiec/prior.py",
+    "matches_commit": true
+   },
+   "paiec_rt/subjects.py": {
+    "sha256": "79eaa16553a90e6b0d3d0bf02a65509aeca460f15b032ad0820318acf2be4666",
+    "source": "paiec/subjects.py",
+    "matches_commit": true
+   },
+   "prior.json": {
+    "sha256": "c7ce3b845d584f953d34e282d94065c379dc3d3b88e4cb0dee95a23c23282770",
+    "source": null
+   },
+   "requirements.txt": {
+    "sha256": "c1c42c1303c98566b197761257f639744ba453be9a7a5ffaa8113f6f3a6ecb82",
+    "source": "requirements.txt",
+    "matches_commit": true
+   }
+  },
+  "all_tracked_members_match": true,
+  "prior_json_equals_submission_prior_json": true,
+  "equals_selected_archive": true,
+  "size_bytes": 73374,
+  "file_mtime_utc": "2026-09-27T20:12:00+00:00",
+  "level_in_model_py": {
+   "mu0": -2.5,
+   "sigma_mu": 2.5,
+   "attr_scale": 0.5
+  }
+ },
+ "overlap": {
+  "run1_run3": {
+   "subjects": {
+    "run1": 9,
+    "run3": 9,
+    "shared": [
+     "subject_431933"
+    ]
+   },
+   "benchmarks": {
+    "run1": 7,
+    "run3": 7,
+    "shared": 7
+   },
+   "pairs": {
+    "shared": [
+     [
+      "subject_431933",
+      "benchmark_830060"
+     ]
+    ]
+   },
+   "paired_comparison": [
+    {
+     "subject": "subject_431933",
+     "benchmark": "benchmark_830060",
+     "n": [
+      53,
+      53
+     ],
+     "run1_brier": [
+      0.477148,
+      0.293928,
+      0.173825,
+      0.133486,
+      0.128459,
+      0.128648
+     ],
+     "run3_brier": [
+      0.225389,
+      0.141261,
+      0.130401,
+      0.123272,
+      0.132599,
+      0.121542
+     ],
+     "run3_minus_run1_alc": -0.0663195,
+     "run3_minus_run1_brier": [
+      -0.251759,
+      -0.15266700000000002,
+      -0.04342400000000002,
+      -0.010213999999999987,
+      0.004140000000000005,
+      -0.007106000000000015
+     ]
+    }
+   ]
+  },
+  "run2_run3": {
+   "subjects": {
+    "run2": 8,
+    "run3": 9,
+    "shared": []
+   },
+   "benchmarks": {
+    "run2": 7,
+    "run3": 7,
+    "shared": 7
+   },
+   "pairs": {
+    "shared": []
+   },
+   "paired_comparison": null
+  },
+  "run1_run2": {
+   "subjects": {
+    "run1": 9,
+    "run2": 8,
+    "shared": []
+   },
+   "benchmarks": {
+    "run1": 7,
+    "run2": 7,
+    "shared": 7
+   },
+   "pairs": {
+    "shared": []
+   },
+   "paired_comparison": null
+  },
+  "all_three": {
+   "pair_appearances": 26,
+   "distinct_subjects": 25,
+   "subjects_in_more_than_one_run": {
+    "subject_431933": [
+     "run1",
+     "run3"
+    ]
+   },
+   "benchmark_ids_in_every_run": 7,
+   "distinct_benchmark_ids": 7,
+   "n_by_benchmark": {
+    "benchmark_119137": {
+     "run1": [
+      44
+     ],
+     "run2": [
+      44,
+      44
+     ],
+     "run3": [
+      44,
+      44
+     ]
+    },
+    "benchmark_213669": {
+     "run1": [
+      58
+     ],
+     "run2": [
+      58
+     ],
+     "run3": [
+      58
+     ]
+    },
+    "benchmark_342307": {
+     "run1": [
+      60
+     ],
+     "run2": [
+      60
+     ],
+     "run3": [
+      60
+     ]
+    },
+    "benchmark_800730": {
+     "run1": [
+      50
+     ],
+     "run2": [
+      54
+     ],
+     "run3": [
+      54
+     ]
+    },
+    "benchmark_830060": {
+     "run1": [
+      53,
+      76
+     ],
+     "run2": [
+      75
+     ],
+     "run3": [
+      53,
+      72
+     ]
+    },
+    "benchmark_869474": {
+     "run1": [
+      56
+     ],
+     "run2": [
+      113
+     ],
+     "run3": [
+      56
+     ]
+    },
+    "benchmark_893575": {
+     "run1": [
+      44,
+      44
+     ],
+     "run2": [
+      44
+     ],
+     "run3": [
+      44
+     ]
+    }
+   }
+  },
+  "note": "run 3 shares 7 of its 7 benchmark ids with run 1 and 7 with run 2; it shares 1 subject and 1 (subject, benchmark) pair with run 1 and 0 subjects with run 2. A recurring pair is listed under paired_comparison, descriptive only: it ran under different models with different co-sampled pairs"
+ },
+ "placement": {
+  "source": "results/ship_confirm.json (run2_placement.regimes: run means; single_run_sd: sds)",
+  "what_the_rows_are": "the shipped hier as formative run 2 ran it: paiec/hier.py 70a3a81a, the old multiple-choice floor, the solver before the floored-fit fix (ship_confirm.json code_gap.rows_code). Run 3's archive adds the corrected floor and the floored-fit fix.",
+  "code_gap_not_added": {
+   "mcq_floor_fix_minus_old_alc": {
+    "tl": -0.000263,
+    "r1b": -0.0002676,
+    "r1p": -0.0004514
+   },
+   "floored_fit_fix_alc": {
+    "tl": 0.0,
+    "r1b": -1.8617626849483874e-07,
+    "r1p": -8.155534561959038e-06
+   },
+   "note": "measured on runs 0-199 (mcq_floor.json, hier_floor.json) and not added to the regimes' means"
+  },
+  "sign": "z = (run - regime's run mean) / regime's single-run sd; positive is worse (higher Brier)",
+  "run2_exact_budgets_note": "run 2 recomputed from its table at 6 dp; ship_confirm.json placed it with budgets rounded to three decimals (kept as stored)",
+  "not_computed": "the share of a regime's runs at or above run 3 needs each run's ALC, which ship_confirm.json does not store (they are in data/subject_side_rows, gitignored); only z-scores are given",
+  "regimes": {
+   "tl": {
+    "group": "tuned test-like (primary)",
+    "label": "test-like (seed 2, primary)",
+    "runs": 300,
+    "mean_ALC": 0.165755,
+    "sd_ALC": 0.031829,
+    "mean_budgets": [
+     0.216513,
+     0.189197,
+     0.164523,
+     0.152529,
+     0.144953,
+     0.138628
+    ],
+    "sd_budgets": [
+     0.020853,
+     0.038508,
+     0.03671,
+     0.03544,
+     0.033585,
+     0.031789
+    ],
+    "run3": {
+     "z_ALC": 0.49946833949473063,
+     "z_budgets": [
+      0.891196044267546,
+      -0.06131770598894279,
+      0.6534126335542843,
+      0.39194569852019034,
+      0.6489570410070632,
+      0.8107836043914559
+     ]
+    },
+    "run2_exact_budgets": {
+     "z_ALC": 0.8441433127022518,
+     "z_budgets": [
+      0.9748177720232085,
+      0.14295081541497878,
+      0.8655271043312445,
+      0.8763438205417616,
+      0.9982432633616191,
+      1.4041256409449812
+     ]
+    },
+    "run2_as_stored_in_ship_confirm": {
+     "z_ALC": 0.844142,
+     "z_budgets": [
+      0.982458,
+      0.150687,
+      0.857455,
+      0.888014,
+      0.983963,
+      1.395834
+     ],
+     "share_runs_at_or_above": 0.2
+    },
+    "run3_minus_run2": {
+     "alc": -0.010970659722222192,
+     "sd_of_difference_of_two_independent_runs": 0.04501300347677325,
+     "z": -0.2437220108603298
+    }
+   },
+   "tl mix/whole": {
+    "group": "test-like variant",
+    "label": "test-like, groups merged at random and wholes (seed 3)",
+    "runs": 200,
+    "mean_ALC": 0.171062,
+    "sd_ALC": 0.032926,
+    "mean_budgets": [
+     0.217779,
+     0.1931,
+     0.169236,
+     0.158982,
+     0.152421,
+     0.14536
+    ],
+    "sd_budgets": [
+     0.017139,
+     0.04001,
+     0.037075,
+     0.03571,
+     0.03544,
+     0.032739
+    ],
+    "run3": {
+     "z_ALC": 0.32164787030850406,
+     "z_budgets": [
+      1.01045049951054,
+      -0.15656641395206697,
+      0.5198591443770136,
+      0.20827654874140383,
+      0.4042669927263604,
+      0.5816304713033387
+     ]
+    },
+    "run2_exact_budgets": {
+     "z_ALC": 0.6548392607665674,
+     "z_budgets": [
+      1.1121929517474751,
+      0.04003374156460917,
+      0.7298853674983139,
+      0.689012181461776,
+      0.7352708803611729,
+      1.1577552765814476
+     ]
+    },
+    "run2_as_stored_in_ship_confirm": {
+     "z_ALC": 0.654849,
+     "z_budgets": [
+      1.121442,
+      0.04749,
+      0.721889,
+      0.700604,
+      0.721753,
+      1.149684
+     ],
+     "share_runs_at_or_above": 0.245
+    },
+    "run3_minus_run2": {
+     "alc": -0.010970659722222192,
+     "sd_of_difference_of_two_independent_runs": 0.04656439575469653,
+     "z": -0.23560189162587128
+    }
+   },
+   "r1b": {
+    "group": "public",
+    "label": "public R1, benchmark-first (seed 0, split scope pair)",
+    "runs": 150,
+    "mean_ALC": 0.205115,
+    "sd_ALC": 0.028527,
+    "mean_budgets": [
+     0.234977,
+     0.224261,
+     0.212843,
+     0.197288,
+     0.18515,
+     0.177091
+    ],
+    "sd_budgets": [
+     0.033036,
+     0.037298,
+     0.034548,
+     0.028596,
+     0.026424,
+     0.025205
+    ],
+    "run3": {
+     "z_ALC": -0.8224637088450308,
+     "z_budgets": [
+      0.003635764351348654,
+      -1.0034109663312294,
+      -0.7043308504753453,
+      -1.0794672137517292,
+      -0.696403942543816,
+      -0.5034318587581831
+     ]
+    },
+    "run2_exact_budgets": {
+     "z_ALC": -0.43789261050934214,
+     "z_budgets": [
+      0.056419512047462976,
+      -0.7925156844871034,
+      -0.47894234109065703,
+      -0.47913606798153446,
+      -0.2524598849530744,
+      0.24490180519738164
+     ]
+    },
+    "run2_as_stored_in_ship_confirm": {
+     "z_ALC": -0.437897,
+     "z_budgets": [
+      0.061244,
+      -0.784523,
+      -0.487539,
+      -0.464658,
+      -0.270574,
+      0.234436
+     ],
+     "share_runs_at_or_above": 0.673333
+    },
+    "run3_minus_run2": {
+     "alc": -0.010970659722222192,
+     "sd_of_difference_of_two_independent_runs": 0.040343270293817284,
+     "z": -0.2719328314815241
+    }
+   },
+   "r1p": {
+    "group": "public",
+    "label": "public R1, pair-uniform (seed 0, split scope pair)",
+    "runs": 100,
+    "mean_ALC": 0.202029,
+    "sd_ALC": 0.026086,
+    "mean_budgets": [
+     0.244156,
+     0.221512,
+     0.206894,
+     0.192943,
+     0.181331,
+     0.170775
+    ],
+    "sd_budgets": [
+     0.029711,
+     0.039317,
+     0.029727,
+     0.027878,
+     0.025656,
+     0.024384
+    ],
+    "run3": {
+     "z_ALC": -0.7811248264288196,
+     "z_budgets": [
+      -0.30490016791386576,
+      -0.8819651098054835,
+      -0.6184351674310297,
+      -0.9514113080007339,
+      -0.5683963898416657,
+      -0.2613599081364837
+     ]
+    },
+    "run2_exact_budgets": {
+     "z_ALC": -0.3605674499731656,
+     "z_budgets": [
+      -0.24620931641479699,
+      -0.6818996871582262,
+      -0.35649409627611295,
+      -0.33561858813401146,
+      -0.11116308076083649,
+      0.512169865485564
+     ]
+    },
+    "run2_as_stored_in_ship_confirm": {
+     "z_ALC": -0.360582,
+     "z_budgets": [
+      -0.240868,
+      -0.674317,
+      -0.366478,
+      -0.320778,
+      -0.129821,
+      0.501373
+     ],
+     "share_runs_at_or_above": 0.68
+    },
+    "run3_minus_run2": {
+     "alc": -0.010970659722222192,
+     "sd_of_difference_of_two_independent_runs": 0.03689117498806456,
+     "z": -0.2973789727698167
+    }
+   },
+   "tl no shift": {
+    "group": "test-like variant",
+    "label": "test-like, no date shift (seed 3)",
+    "runs": 100,
+    "mean_ALC": 0.158508,
+    "sd_ALC": 0.03349,
+    "mean_budgets": [
+     0.194779,
+     0.176307,
+     0.162034,
+     0.147894,
+     0.141272,
+     0.135286
+    ],
+    "sd_budgets": [
+     0.042264,
+     0.041785,
+     0.038352,
+     0.032664,
+     0.030729,
+     0.028586
+    ],
+    "run3": {
+     "z_ALC": 0.6910892140274048,
+     "z_budgets": [
+      0.9539587145350922,
+      0.25197505750335775,
+      0.6903363000046351,
+      0.5671551419163466,
+      0.8290612197670671,
+      1.0185405443223956
+     ]
+    },
+    "run2_exact_budgets": {
+     "z_ALC": 1.0186693789190797,
+     "z_budgets": [
+      0.9952175610448601,
+      0.44022376450879536,
+      0.8933693158114303,
+      1.0927205792309587,
+      1.2108106349051373,
+      1.6783652837053107
+     ]
+    },
+    "run2_as_stored_in_ship_confirm": {
+     "z_ALC": 1.018663,
+     "z_budgets": [
+      0.998984,
+      0.447352,
+      0.885627,
+      1.105397,
+      1.195229,
+      1.669167
+     ],
+     "share_runs_at_or_above": 0.18
+    },
+    "run3_minus_run2": {
+     "alc": -0.010970659722222192,
+     "sd_of_difference_of_two_independent_runs": 0.047362012203874954,
+     "z": -0.2316341559771107
+    }
+   }
+  },
+  "note": "each run is one draw of 8 or 9 pairs; a z is its distance from a regime's run mean in that regime's single-run sds, not a test"
+ },
+ "three_runs": {
+  "table": [
+   {
+    "run": 1,
+    "scored": "2026-09-25",
+    "commit": "b68492c",
+    "model": "legacy Predictor (paiec.predict), the first submission",
+    "pairs": 9,
+    "benchmarks": 7,
+    "subjects": 9,
+    "pairs_per_benchmark": [
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "subject_item_pairs": 485,
+    "n_range": [
+     44,
+     76
+    ],
+    "platform_alc": 0.2113,
+    "alc_recomputed": 0.2112999888888889,
+    "alc_recomputed_6dp": 0.2113,
+    "brier_mean": [
+     0.35885511111111107,
+     0.2538957777777778,
+     0.20431466666666664,
+     0.17116022222222219,
+     0.16932255555555556,
+     0.15675833333333333
+    ],
+    "ece_mean": [
+     0.3811597777777778,
+     0.2529681111111111,
+     0.19483622222222222,
+     0.09672288888888889,
+     0.08972611111111112,
+     0.04651888888888888
+    ],
+    "mean_ece_alc": 0.16961844444444443,
+    "max_pair_ece_b0": 0.752519,
+    "b0_minus_b31_mean": 0.2020967777777778,
+    "benchmark_balanced_alc": 0.2138758928571429,
+    "z_ALC_vs_shipped_model_regimes": null,
+    "low_budget": {
+     "mean_b1_minus_b0": -0.1049593333333333,
+     "mean_b3_minus_b1": -0.04958111111111113,
+     "pairs_with_b1_or_b3_above_b0": 1
+    }
+   },
+   {
+    "run": 2,
+    "scored": "2026-09-26",
+    "commit": "ee5085a",
+    "model": "paiec.hier.HierPredictor, LEVEL mu0 -2.5 sigma_mu 2.5 attr_scale 0.5, old multiple-choice floor, before the floored-fit fix",
+    "pairs": 8,
+    "benchmarks": 7,
+    "subjects": 8,
+    "pairs_per_benchmark": [
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "subject_item_pairs": 492,
+    "n_range": [
+     44,
+     113
+    ],
+    "platform_alc": 0.192623,
+    "alc_recomputed": 0.1926232375,
+    "alc_recomputed_6dp": 0.192623,
+    "brier_mean": [
+     0.23684087499999998,
+     0.19470175,
+     0.19629649999999998,
+     0.18358662500000003,
+     0.17847899999999997,
+     0.18326375
+    ],
+    "ece_mean": [
+     0.210268625,
+     0.097836125,
+     0.11827237499999999,
+     0.084306125,
+     0.05711237500000001,
+     0.0762345
+    ],
+    "mean_ece_alc": 0.10015575,
+    "max_pair_ece_b0": 0.394984,
+    "b0_minus_b31_mean": 0.053577124999999996,
+    "benchmark_balanced_alc": 0.19094050714285715,
+    "z_ALC_vs_shipped_model_regimes": {
+     "tl": 0.8441433127022518,
+     "tl mix/whole": 0.6548392607665674,
+     "r1b": -0.43789261050934214,
+     "r1p": -0.3605674499731656,
+     "tl no shift": 1.0186693789190797
+    },
+    "low_budget": {
+     "mean_b1_minus_b0": -0.04213912499999997,
+     "mean_b3_minus_b1": 0.0015947499999999781,
+     "pairs_with_b1_or_b3_above_b0": 1
+    }
+   },
+   {
+    "run": 3,
+    "scored": "2026-10-01",
+    "commit": "4d2cc4f",
+    "model": "paiec.hier.HierPredictor, LEVEL mu0 -2.5 sigma_mu 2.5 attr_scale 0.5, the corrected multiple-choice floor (f7e7d87) and the floored-fit fix (4d2cc4f)",
+    "pairs": 9,
+    "benchmarks": 7,
+    "subjects": 9,
+    "pairs_per_benchmark": [
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "subject_item_pairs": 485,
+    "n_range": [
+     44,
+     72
+    ],
+    "platform_alc": null,
+    "alc_recomputed": 0.1816525777777778,
+    "alc_recomputed_6dp": 0.181653,
+    "brier_mean": [
+     0.23509711111111115,
+     0.1868357777777778,
+     0.18850977777777778,
+     0.16641955555555554,
+     0.16674822222222221,
+     0.164402
+    ],
+    "ece_mean": [
+     0.25445988888888893,
+     0.14587788888888886,
+     0.1353366666666667,
+     0.07657233333333334,
+     0.0727551111111111,
+     0.06584733333333331
+    ],
+    "mean_ece_alc": 0.11813888888888889,
+    "max_pair_ece_b0": 0.340912,
+    "b0_minus_b31_mean": 0.07069511111111111,
+    "benchmark_balanced_alc": 0.18645795714285715,
+    "z_ALC_vs_shipped_model_regimes": {
+     "tl": 0.49946833949473063,
+     "tl mix/whole": 0.32164787030850406,
+     "r1b": -0.8224637088450308,
+     "r1p": -0.7811248264288196,
+     "tl no shift": 0.6910892140274048
+    },
+    "low_budget": {
+     "mean_b1_minus_b0": -0.04826133333333335,
+     "mean_b3_minus_b1": 0.001673999999999981,
+     "pairs_with_b1_or_b3_above_b0": 2
+    }
+   }
+  ],
+  "notes": [
+   "run 1 is the legacy Predictor: the shipped model's single-run sds do not describe it, so it is not placed",
+   "benchmark_balanced_alc: each run's mean over the benchmark ids all three runs share of its per-benchmark mean pair ALC; subjects differ, so it is descriptive only",
+   "run 3's platform score was not pasted; its ALC is the table's pair mean"
+  ]
+ },
+ "what_three_runs_can_and_cannot_measure": {
+  "can": [
+   "the scoring rule once more: every pair's summary ALC is 0.1 B0 + 0.2 (B1 + B3 + B7 + B15) + 0.1 B31 of its budget rows (largest difference 5.0e-07); the pair-mean rule itself was pinned on runs 1 and 2 and is applied, not re-tested, for run 3, whose headline score was not pasted",
+   "that the archive selected at 4d2cc4f runs end to end on the platform: every pair scored at all six budgets, no errors reported (the regression and latency check it was uploaded for)",
+   "that the formative evaluation drew on the same 7 benchmark ids in all three runs, with 25 distinct subjects over 26 pair appearances",
+   "that runs 2 and 3 (the shipped model's family) each sit within 1.02 single-run sds of every regime's mean in ship_confirm.json: one draw each, consistent with all of them"
+  ],
+  "cannot": [
+   "compare predictors or configurations: the subjects differ from run to run; the one recurring (subject, benchmark) pair (subject_431933, benchmark_830060, n 53 both times) ran under two different models with different co-sampled pairs (the shared labeled list differs), so it is not a paired comparison of models",
+   "tell regimes apart or detect a change of the size measured offline: the difference of two independent runs has an sd of 0.037 to 0.047 (sqrt 2 times single-run sds 0.026 to 0.033), against a measured code gap from run 2's archive to run 3's of 0.00046 in ALC at most (the corrected floor and the floored-fit fix together, on runs 0-199)",
+   "measure latency: the table records no timing",
+   "add to the level reading: none is done on run 3 (below)"
+  ]
+ },
+ "no_reading_or_tuning": {
+  "statement": "No level reading, matching or tuning is done on run 3, and nothing in the model, its hyperparameters or the archive changes because of it. The preregistered decision rule of the pooled reading covered runs 1 and 2 only (17 pairs); run 3 is not added to it, and it is not re-run with run 3.",
+  "pooled_reading_preregistration": {
+   "sha256": "0de18448723b0120a6138f2a7a3dd4693df4a3ba90257a81c3e2c11b5e5a2274",
+   "written_utc": "2026-09-28T05:06:59+00:00",
+   "outcome": "no candidate: LEVEL stays"
+  }
+ },
+ "checks": [
+  {
+   "check": "run1: summarise() equals formative_feedback.summarise_run on every shared field",
+   "ok": true,
+   "got": true,
+   "want": true,
+   "required": true
+  },
+  {
+   "check": "run1: recomputed ALC reproduces the platform's",
+   "ok": true,
+   "got": 0.2113,
+   "want": 0.2113,
+   "required": true
+  },
+  {
+   "check": "run2: summarise() equals formative_feedback.summarise_run on every shared field",
+   "ok": true,
+   "got": true,
+   "want": true,
+   "required": true
+  },
+  {
+   "check": "run2: recomputed ALC reproduces the platform's",
+   "ok": true,
+   "got": 0.192623,
+   "want": 0.192623,
+   "required": true
+  },
+  {
+   "check": "run3: per-pair ALC from the budgets equals the summary rows",
+   "ok": true,
+   "got": 5.000000000143778e-07,
+   "want": 1e-06,
+   "required": true
+  },
+  {
+   "check": "run3: per-pair ECE-ALC from the budgets equals the summary rows",
+   "ok": true,
+   "got": 4.999999999866223e-07,
+   "want": 1e-06,
+   "required": true
+  },
+  {
+   "check": "run3: pair-mean ALC equals the weighted pair-averaged budget means",
+   "ok": true,
+   "got": 0.18165257777777777,
+   "want": 0.1816525777777778,
+   "required": true
+  },
+  {
+   "check": "run3: the summary rows' mean is within 1e-6 of the recomputed ALC",
+   "ok": true,
+   "got": 0.18165233333333333,
+   "want": 0.1816525777777778,
+   "required": true
+  },
+  {
+   "check": "run3: every value finite and in [0, 1]",
+   "ok": true,
+   "got": true,
+   "want": true,
+   "required": true
+  },
+  {
+   "check": "overlap run1/run3 agrees with formative_feedback.overlap",
+   "ok": true,
+   "got": true,
+   "want": true,
+   "required": true
+  },
+  {
+   "check": "overlap run2/run3 agrees with formative_feedback.overlap",
+   "ok": true,
+   "got": true,
+   "want": true,
+   "required": true
+  },
+  {
+   "check": "overlap run1/run2 agrees with formative_feedback.overlap",
+   "ok": true,
+   "got": true,
+   "want": true,
+   "required": true
+  },
+  {
+   "check": "archive: sha256 equals the selected archive's (4a882cc7...)",
+   "ok": true,
+   "got": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090",
+   "want": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090",
+   "required": true
+  },
+  {
+   "check": "archive: every tracked member byte-identical to 4d2cc4f",
+   "ok": true,
+   "got": true,
+   "want": true,
+   "required": true
+  },
+  {
+   "check": "archive: model.py's LEVEL is mu0 -2.5, sigma_mu 2.5, attr_scale 0.5",
+   "ok": true,
+   "got": {
+    "mu0": -2.5,
+    "sigma_mu": 2.5,
+    "attr_scale": 0.5
+   },
+   "want": {
+    "mu0": -2.5,
+    "sigma_mu": 2.5,
+    "attr_scale": 0.5
+   },
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl: run 2's stored z_ALC recomputed from the stored means and sds",
+   "ok": true,
+   "got": 0.844136,
+   "want": 0.844142,
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl: run 2's stored budget z recomputed",
+   "ok": true,
+   "got": [
+    0.982449,
+    0.150696,
+    0.85745,
+    0.888008,
+    0.983981,
+    1.395829
+   ],
+   "want": [
+    0.982458,
+    0.150687,
+    0.857455,
+    0.888014,
+    0.983963,
+    1.395834
+   ],
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl: sd_ALC equals single_run_sd ALC",
+   "ok": true,
+   "got": 0.031829,
+   "want": 0.031829,
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl mix/whole: run 2's stored z_ALC recomputed from the stored means and sds",
+   "ok": true,
+   "got": 0.654832,
+   "want": 0.654849,
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl mix/whole: run 2's stored budget z recomputed",
+   "ok": true,
+   "got": [
+    1.121477,
+    0.047488,
+    0.721888,
+    0.700588,
+    0.721755,
+    1.149699
+   ],
+   "want": [
+    1.121442,
+    0.04749,
+    0.721889,
+    0.700604,
+    0.721753,
+    1.149684
+   ],
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl mix/whole: sd_ALC equals single_run_sd ALC",
+   "ok": true,
+   "got": 0.032926,
+   "want": 0.032926,
+   "required": true
+  },
+  {
+   "check": "ship_confirm r1b: run 2's stored z_ALC recomputed from the stored means and sds",
+   "ok": true,
+   "got": -0.437901,
+   "want": -0.437897,
+   "required": true
+  },
+  {
+   "check": "ship_confirm r1b: run 2's stored budget z recomputed",
+   "ok": true,
+   "got": [
+    0.061236,
+    -0.784519,
+    -0.487525,
+    -0.46468,
+    -0.270587,
+    0.234438
+   ],
+   "want": [
+    0.061244,
+    -0.784523,
+    -0.487539,
+    -0.464658,
+    -0.270574,
+    0.234436
+   ],
+   "required": true
+  },
+  {
+   "check": "ship_confirm r1b: sd_ALC equals single_run_sd ALC",
+   "ok": true,
+   "got": 0.028527,
+   "want": 0.028527,
+   "required": true
+  },
+  {
+   "check": "ship_confirm r1p: run 2's stored z_ALC recomputed from the stored means and sds",
+   "ok": true,
+   "got": -0.360577,
+   "want": -0.360582,
+   "required": true
+  },
+  {
+   "check": "ship_confirm r1p: run 2's stored budget z recomputed",
+   "ok": true,
+   "got": [
+    -0.240854,
+    -0.674314,
+    -0.366468,
+    -0.320791,
+    -0.129833,
+    0.501353
+   ],
+   "want": [
+    -0.240868,
+    -0.674317,
+    -0.366478,
+    -0.320778,
+    -0.129821,
+    0.501373
+   ],
+   "required": true
+  },
+  {
+   "check": "ship_confirm r1p: sd_ALC equals single_run_sd ALC",
+   "ok": true,
+   "got": 0.026086,
+   "want": 0.026086,
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl no shift: run 2's stored z_ALC recomputed from the stored means and sds",
+   "ok": true,
+   "got": 1.018662,
+   "want": 1.018663,
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl no shift: run 2's stored budget z recomputed",
+   "ok": true,
+   "got": [
+    0.998983,
+    0.447361,
+    0.885638,
+    1.105376,
+    1.195223,
+    1.669139
+   ],
+   "want": [
+    0.998984,
+    0.447352,
+    0.885627,
+    1.105397,
+    1.195229,
+    1.669167
+   ],
+   "required": true
+  },
+  {
+   "check": "ship_confirm tl no shift: sd_ALC equals single_run_sd ALC",
+   "ok": true,
+   "got": 0.03349,
+   "want": 0.03349,
+   "required": true
+  },
+  {
+   "check": "formative_feedback.json lists run 3 as unscored, at 4d2cc4f, with the selected archive",
+   "ok": true,
+   "got": {
+    "scored": null,
+    "commit": "4d2cc4f",
+    "archive_sha256": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090"
+   },
+   "want": {
+    "scored": null,
+    "commit": "4d2cc4f",
+    "archive_sha256": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090"
+   },
+   "required": true
+  },
+  {
+   "check": "the purpose was committed before run 3 was scored",
+   "ok": true,
+   "got": "2026-09-28T12:30:42+03:00",
+   "want": "2026-10-01",
+   "required": true
+  }
+ ],
+ "provenance": {
+  "command": "python experiments/formative_run3.py",
+  "when_utc": "2026-10-01T09:33:02+00:00",
+  "head": "78e303ef559bf68c3f33791a44f3ba52f75d1f48",
+  "git_status": [
+   "?? experiments/formative_run3.py",
+   "?? results/formative/run3.txt",
+   "?? tests/test_formative_run3.py"
+  ],
+  "python": "3.10.8",
+  "numpy": "1.26.4",
+  "script": "experiments/formative_run3.py",
+  "script_sha256": "cf9e9b1d981696eca6369a29e422d820fcd193d8e0b03523280e2c6149d2ae34",
+  "code_sha256": {
+   "experiments/formative_run3.py": "cf9e9b1d981696eca6369a29e422d820fcd193d8e0b03523280e2c6149d2ae34",
+   "experiments/formative_feedback.py": "93cb6a84d9762894f20e9adfe7f9a84d05ccf4d6067611e6dd2432b07fad5da8",
+   "paiec/evaluator.py": "e2e41ae82793aa4a681d3913d0d6935ea9ca83638396a5073196cdee149271f2"
+  },
+  "inputs_sha256": {
+   "results/formative/run1.txt": "b53101df26c20e2018cfc08ca7791e90bc555884d3fabb9d1aa744a6afee934b",
+   "results/formative/run2.txt": "929ff80c1a7b5b0547ee7137867962559e788b88c2b44806a5e279bc2bba0cd4",
+   "results/formative/run3.txt": "51fa577a08f9745f71e63f11c3252047635a1d3c8c9808a086ab77a6691878c9",
+   "results/ship_confirm.json": "72f2f64aa44e42d3d3e3484c2345c83ef2ac83ff8f9ff8550cbea9ee2725c8cd",
+   "results/formative_feedback.json": "9154d93b9148d1938c91193ccd4d009900350fd0fbeb4e77401e33dda179478e",
+   "submission/prior.json": "c7ce3b845d584f953d34e282d94065c379dc3d3b88e4cb0dee95a23c23282770",
+   "dist/paiec.zip": "4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090"
+  },
+  "wall_s": 0.3
+ }
+}

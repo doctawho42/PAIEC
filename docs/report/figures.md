@@ -36,11 +36,12 @@ Brier by budget, one panel.
 
 - Formative run 1: its nine pairs as thin lines and their mean as a thick line (legacy Predictor).
 - Formative run 2: its eight pairs as thin lines and their mean as a thick line (shipped hier, archive of ee5085a).
+- Formative run 3: its nine pairs as thin lines and their mean as a thick line (shipped hier, archive of 4d2cc4f, uploaded as a regression and latency check only).
 - For each model, the replica's mean on test-like runs and on public R1, with a band of ± one single-run sd.
 
-It shows the budget-0 optimism, the level fix, and the flat B3 to B31 of run 2 against the test-like expectation. The caption must say that the two runs are different draws with no subject in common, so the gap between them is not a measured effect.
+It shows the budget-0 optimism, the level fix, and the flat B3 to B31 of run 2 against the test-like expectation. The caption must say that the three runs are different draws, sharing one (subject, benchmark) pair between runs 1 and 3 under different models, so the gaps between them are not measured effects, and that run 3's ALC is recomputed from its table (its headline score was not pasted).
 
-- Runs 1 and 2 per pair, with ECE: `results/formative_feedback.json`, `record.run1.pairs` and `record.run2.pairs` (`brier`, `ece_b`, `n`); budget means in `record.<run>.budgets`. The organisers' tables are `results/formative/run1.txt` and `run2.txt`. Label benchmarks with the relabelled letters of the draft's Appendix A.1, never the anonymous ids.
+- Runs 1 and 2 per pair, with ECE: `results/formative_feedback.json`, `record.run1.pairs` and `record.run2.pairs` (`brier`, `ece_b`, `n`); budget means in `record.<run>.budgets`. Run 3: `results/formative_run3.json`, `run3.pairs` (the same fields) and `run3.budgets`. The organisers' tables are `results/formative/run1.txt`, `run2.txt` and `run3.txt`. Label benchmarks with the relabelled letters of the draft's Appendix A.1, never the anonymous ids.
 - Shipped hier, test-like, mix/whole, no-shift, R1: `results/ship_confirm.json`, `regimes.<regime>.shipped.<runs>.budgets` (the same numbers as `results/subject_side.json`, `summary.regimes.<regime>.ship.budgets`).
 - Single-run sds of the shipped hier per budget: `results/ship_confirm.json`, `single_run_sd.<regime>` (also `regimes.<regime>.shipped.<runs>.single_run_sd`).
 - Legacy Predictor, test-like: `results/ship_confirm.json`, `regimes.tl.vs.legacy['0-299'].budgets[*].other` (paired with the shipped rows), or `results/level_calibration.json`, `summary.testlike_all`. Legacy Predictor, R1: `regimes.r1b.vs.legacy['0-149'].budgets[*].other` and `regimes.r1p.vs.legacy['0-99'].budgets[*].other`.
@@ -109,7 +110,7 @@ A forest plot. One row per idea gives its nested test-like ALC difference agains
 - the known-sign cues (six covariates, nested and forced);
 - the subject side (E, H, the date forms, T, T1.8, the combined selection);
 - the meta-learned heads (nested lines are exactly 0; show the forced lines);
-- the closed language-model and encoder probes that give a harness line (the 4B judge, the entropy and hidden-state heads, the fine-tuned encoder, the 14B's rubric heads and scales);
+- the closed language-model and encoder probes that give a harness line (the 4B judge, the entropy and hidden-state heads, the fine-tuned encoder, the 14B's rubric heads and scales, and the 14B's reasoning entropy on all four parents, commit D);
 - the multiple-choice floor correction (adopted), for contrast.
 
 The attempt probe (no ALC line: its accuracy was below the floor), the 14B's attempts (GO for correlation, but on one parent: every nested line is exactly 0, and the forced per-pair line is -0.0001) and the pairwise comparisons (a q statistic, not an ALC line) go in the caption, not the plot.
@@ -118,7 +119,7 @@ The attempt probe (no ALC line: its accuracy was below the floor), the 14B's att
 - Known-sign cues: `results/itemcov_eval.json`, `harness` (nested and forced lines per covariate) and `harness_train_scale`.
 - Subject side: `results/subject_side.json`, `summary.nested`, `summary.gates`, `summary.per_config`, `summary.student_t`.
 - Meta-learned heads: `results/heads_eval.json`, `rows.current.configs` (and `rows.legacy.configs`, the study as it ran): `lopo_*` nested, `force_all_*` forced.
-- Closed probes: `results/llm4b_close.json`, `results/hidden_state_probe.json`, `results/finetune_encoder.json` (their harness stages); in-context learning's value map in `results/icl_probe.json`; the 14B's `results/strong_llm_eval.json`, `harness.<covariate>.lines` (nested and forced) and `.placebo`, with the attempt calls in `attempts.decision` and `attempts.probe_only.decision`.
+- Closed probes: `results/llm4b_close.json`, `results/hidden_state_probe.json`, `results/finetune_encoder.json` (their harness stages); in-context learning's value map in `results/icl_probe.json`; the 14B's `results/strong_llm_eval.json`, `harness.<covariate>.lines` (nested and forced) and `.placebo`, with the attempt calls in `attempts.decision` and `attempts.probe_only.decision`; the entropy job's `entropy.harness.<feature>.lines` and `.placebo`, with its call in `entropy.verdict`.
 - MCQ floor: `results/mcq_floor.json`, `regimes`.
 
 ### Fig. 10: Item difficulty does not transfer (§6.1, §6.2)

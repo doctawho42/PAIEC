@@ -4184,7 +4184,10 @@ or it is marked as from the Kaggle log or derived; the results section that
 holds it is named in brackets where it helps. The harness stage reads the
 stored rows of `experiments/harness.py` (library 3f75a549673aae6a) and never
 recomputes hier. The export is in `data/features/kaggle/` and the full Kaggle
-Output in `data/features/kaggle_raw/` (both gitignored).
+Output in `data/features/kaggle_raw/` (both gitignored). A second commit
+(commit D, 2026-09-30) ran a third job, the reasoning entropy on all four
+parents, read under its own rule in the `entropy` section of the same file:
+"Commit D: reasoning entropy on all four parents", at the end of this section.
 
 Which script wrote what: signs, heads, harness and reference ran with the
 script of commit 4d2cc4f (digest afe6db1c3f9b84d2, unchanged at 00bdf04). The
@@ -4232,7 +4235,7 @@ free GPU, for two uses:
   matharena subject, so its attempts are not in the target.
 * **One commit** (run.sessions). `ARGS` were empty, so the commit ran the rubric
   and then the attempts, probe texts first, until the session deadline. The
-  first cell ran at 2026-09-27 18:11:34 UTC and the session lasted 38,368 s
+  first cell ran at 2026-09-27 18:11:34 UTC and the script ran 38,368 s
   (10.66 h). Status: rubric done, attempts stopped at the deadline. The
   notebook starts a shard only if 1.25 times its expected duration, plus a
   minute, fits before 11 hours less 5 minutes (`strong_probe.py`, `Clock`).
@@ -4496,9 +4499,17 @@ can be fitted for it leave one parent out, and a per-pair slope needs r ≈ 0.5
   that fails) and fails every nested gate line. No
   other covariate passes the gate. The attempt primary cannot pass it on one
   parent, and its forced lines give -0.0001.
+* **The entropy job, on all four parents: NULL** (commit D, below;
+  entropy.verdict.call "NULL: the declared primary ent_first1024 fails the
+  gate", under a rule committed in 78e303e before the output existed). The
+  14B's reasoning entropy orders difficulty within group on matharena (+0.29)
+  and researchcodebench (+0.33), but on multi_swebench only weakly (+0.12) and
+  on real_webagents not at all (-0.03). Within a test-like pair it reaches r
+  0.12, far below the 0.25 (an honest r of about 0.3 on all four parents) at
+  which the reference reaches the gate, and no nested line comes near it.
 
 Nothing ships. `experiments/strong_llm_eval.py` and the Kaggle kit stay
-research-only.
+research-only, and the Kaggle line is closed: no further commit is planned.
 
 **What was not done, and why.**
 
@@ -4507,17 +4518,21 @@ research-only.
   verdict: they are matharena problems, on the one parent the attempts already
   cover, so the transferred slope still could not be fitted leave one parent
   out. The call is GO already.
-* **An entropy-only job on all four benchmarks.** One truncated attempt per
-  item, the token entropy alone, on every parent's items. It is the one
-  variant with upside, because it is what a transferred slope needs: the
-  feature on every parent, so that the slope can be fitted leave one parent
-  out. It is held until the organisers say whether a model can run at predict
-  time. The hidden benchmarks' items are not public, so the feature would have
-  to be computed inside `predict`, where workers are recreated at each of the
-  six checkpoints. On T4s that would be far too slow: at the 138 generated
-  tokens a second measured here, one 1,024-token window for each item of a run
-  of up to 1,000 subject-item pairs is about two hours (derived: 1,000 × 1,024
-  / 138 s), before the checkpoints' repeats.
+* **An entropy-only job on all four benchmarks: it has now run** (commit D,
+  below). One truncated reasoning sample per item, the token entropy alone, on
+  every parent's items. It was the one variant with upside, because it is
+  what a transferred slope needs: the feature on every parent, so that the
+  slope can be fitted leave one parent out. It was first held until the
+  organisers said whether a model can run at predict time: the hidden
+  benchmarks' items are not public, so the feature would have to be computed
+  inside `predict`, where workers are recreated at each of the six
+  checkpoints. It was then run as a measurement for this report, not for the
+  submission, and is NULL, so that question no longer decides anything. The
+  cost at predict time would have been prohibitive anyway: at the 229.6
+  generated tokens a second commit D measured on T4s (138 for the attempts),
+  one 1,024-token window for each item of a run of up to 1,000 subject-item
+  pairs is about 1.2 hours (derived: 1,000 × 1,024 / 229.6 s), before the
+  checkpoints' repeats.
 
 **Caveats built into the script.**
 
@@ -4546,6 +4561,228 @@ research-only.
   demeans within group (`llm4b_close.corr_block`). They give 0.35 and 0.43 for
   the same feature on the same items, and 0.37 and 0.47 on the probe texts.
 * **One session, one seed**, sampled at temperature 0.6.
+
+### Commit D: reasoning entropy on all four parents
+
+On Kaggle, a second commit of `kaggle/strong_probe/strong_probe.py` with
+`ARGS = ["--jobs", "entropy", "--no-prefix-caching"]` and the first commit's
+Output attached (the job: `kaggle/strong_probe/README.md`, "Коммит D"). Then
+locally `python experiments/strong_llm_eval.py` with commit D's stages, one
+process at a time: `--stage check-schema` and `--stage ingest` on
+`data/features/kaggle_d` (ingest 14 s), `--stage signs --job entropy` (12
+minutes), `--stage harness --job entropy` (six covariates, 6 to 8 minutes
+each, 40 minutes), `--stage reference --job entropy` (23 minutes),
+`--stage consistency` (4 s), `--stage verdict --job entropy` and
+`--stage run`. No language model is loaded locally. Every number below is in
+the `entropy` section of `results/strong_llm_eval.json`, its subsection named
+in brackets, unless it is marked as from the Kaggle log or derived. The export
+is in `data/features/kaggle_d/` and the Output in
+`data/features/kaggle_raw/run-260930162825627805/` (both gitignored).
+
+**The rule, fixed before the output.** Commit 78e303e (2026-09-28) added the
+job and its reading rule, `ENTROPY_RULE`, before any output existed; its
+sha256 `72cde00805ff3c87…` is pinned by a test (rule.digest). The export's
+`notebook_digest` (`cd3362a7…`, meta.manifest) is the sha256 of
+`strong_probe.py` at 78e303e, so the committed kit is what ran, and the local
+stages ran `strong_llm_eval.py` at 78e303e (digest 2bfcbad12a949b0b,
+verdict.script_digest; unchanged since). Ingest recorded the rule at its first
+run (rule_first, 2026-10-01 06:26:30 UTC), and the verdict (07:41:01 UTC)
+found it unchanged and read the complete export (verdict.rule_unchanged,
+verdict.final). The rule:
+
+* **The job** (version e1.0, config e21faa7f3d0bf929; meta.kind.config). One
+  sample for each of the rubric's 4,078 units, thinking on, no system prompt:
+  the task text cut as the rubric cuts it (head and tail to 3,072 tokens),
+  then "Think through how you would solve this task." The attempts' sampling
+  (temperature 0.6, top-p 0.95, top-k 20, presence penalty 1.5), at most 1,024
+  new tokens, a fixed seed per unit, the raw recorder on, no forced readout.
+* **The primary** is `ent_first1024`, the mean raw full-vocabulary next-token
+  entropy over the first 1,024 generated tokens, declared + (harder, higher).
+  `ent_first256`, `lp_first256`, `lp_first1024` (declared -), `ent_n_tokens`
+  (+) and `ent_closed` (-) are exploratory: read through the same lines and
+  reported, and only the primary can be kept.
+* **Kept only if** a nested harness line passes the gate (-0.002 test-like,
+  acting in at least 3 of 4 folds, mix/whole of the same sign, no held-out
+  parent above +0.002, neither public weighting above +0.001) and the
+  declared sign holds on at least 3 of the 4 parents (within group; on
+  matharena net of competition, log length and position), on that version and
+  config only, and only on the complete export. Even kept, it would enter the
+  submission only if the organisers allowed a model at predict time.
+
+**The run.**
+
+* **Time** (run.sessions, run.timeline). The notebook's first cell ran at
+  2026-09-30 16:22:33 UTC, and the export was written at 21:22:38: about 5.0
+  hours of session (derived). The script ran 17,643 s (4.90 h), the generation
+  17,440 s (4.84 h). Its 89 shards were written from 16:34:45 to 21:22:29, a
+  shard of 45.8 units every 194 s (median of 88 intervals; 76 to 218 s).
+* **Against the plan** (run.plan.entropy, run.derived). The plan assumed 180
+  generated tokens a second (135 in its slow case) and 1,000 prompt tokens a
+  second without caching: 7.11 h, 9.30 h slow, in one commit (9.7 GPU-hours
+  of quota with the set-up, `kaggle/strong_probe/README.md`). The job
+  generated 4.00 M tokens (the plan counted every unit to the cap, 4.18 M)
+  from 1.94 M prompt tokens, at 229.6 generated tokens a second with prefill
+  and checks included: 1.28 times the assumption and 1.7 times the slow case.
+  It took 0.68 of the planned hours, where the first commit's rubric took 2.9
+  times its plan and its attempts ran below even the slow case. Up to 48
+  sequences (the kit's `ENTROPY_SHARD` and `--max-num-seqs`, 45.8 units a
+  shard on average) of about 1.5 thousand tokens decode together here,
+  against the attempts' 20 of about 4.2 thousand.
+* **Prefix caching** was off from the start. The session log, saved beside the
+  Output as `session.log` (run.logs: path, sha256), shows
+  `--no-prefix-caching` and no `prefix_prefill` error.
+* **Coverage** (ingest, verdict.completeness). 4,078 of 4,078 units, 4,326
+  item_ids: matharena 1,555 units (1,755 items), multi_swebench 2,078 (2,126),
+  real_webagents 233, researchcodebench 212. Every content hash matched, and
+  every response of the four parents is covered. swe_rebench has none, by
+  design (one subject). The entropy covers every evaluated item of test-like
+  and mix/whole runs, and 69% (benchmark-first) and 97% (pair-uniform) on
+  public R1, the rest being swe_rebench (harness.ent_first1024.coverage_eval_items).
+* **The generations** (run.timeline, ingest.per_benchmark_stats). 91.1% of
+  the units reached the 1,024-token cap, and 24.1% closed their reasoning
+  within it (over items: real_webagents 95%, researchcodebench 27%,
+  multi_swebench 22%, matharena 14%); the mean length is 982 tokens. No text
+  is degenerate. The task text was cut for 5.5% of the units, and for 97% of
+  researchcodebench's items, whose tasks average 30,786 tokens.
+* **The recorder check** (meta.kind.token_stats). Each shard's greedy check
+  request matched the engine's raw log-probs to 0 (maximum gap) over 2,848
+  tokens on all 89 shards, and all 4,078 units carry raw full-vocabulary
+  statistics (`logprobs: raw`).
+* **The first commit's tables are unchanged.** The export carries the rubric
+  and the attempts again; ingest found their features byte-identical
+  (6e7ce7bbd1a8d2ab, ingest.main_features) and rewrote nothing, so every number
+  earlier in this section stands.
+
+**The signs** (signs). Within-group Spearman, oriented (+ = harder), with 95%
+bootstrap intervals over groups. Matharena's column gives, in brackets, the
+value net of competition, log length and position, the prong's statistic
+there; "text-bearing" is as in the rubric's table. The last column is the
+DerSimonian-Laird mean over the four parents with its prediction interval.
+
+| feature (declared sign) | matharena | multi_swebench | real_webagents | researchcodebench | matharena text-bearing | prong | random effects [PI] |
+|---|---|---|---|---|---|---|---|
+| ent_first1024, the primary (+) | +0.29 [+0.16, +0.40] (+0.28) | +0.12 [+0.06, +0.16] | -0.03 [-0.19, +0.15] | +0.33 [+0.17, +0.45] | +0.34 (+0.27) | 3/4 | +0.18 [-0.42, +0.67] |
+| ent_first256 (+) | +0.26 [+0.13, +0.36] (+0.27) | +0.16 [+0.13, +0.21] | -0.25 [-0.38, -0.09] | +0.29 [+0.14, +0.43] | +0.27 (+0.20) | 3/4 | +0.12 [-0.54, +0.69] |
+| lp_first1024 (-) | +0.29 [+0.18, +0.40] (+0.28) | +0.12 [+0.06, +0.16] | +0.02 [-0.15, +0.19] | +0.31 [+0.14, +0.46] | +0.35 (+0.28) | 4/4 | +0.19 [-0.40, +0.67] |
+| lp_first256 (-) | +0.26 [+0.15, +0.35] (+0.26) | +0.14 [+0.11, +0.19] | -0.23 [-0.39, -0.04] | +0.25 [+0.11, +0.40] | +0.28 (+0.21) | 3/4 | +0.11 [-0.53, +0.68] |
+| ent_n_tokens (+) | -0.13 [-0.22, -0.04] (-0.18) | +0.05 [+0.02, +0.08] | +0.15 [+0.00, +0.32] | +0.17 [-0.01, +0.37] | | 3/4 | +0.05 [-0.53, +0.60] |
+| ent_closed (-) | -0.14 [-0.22, -0.04] (-0.19) | +0.03 [-0.04, +0.11] | +0.12 [-0.00, +0.23] | +0.12 [-0.06, +0.32] | | 3/4 | +0.02 [-0.52, +0.55] |
+
+multi_swebench's intervals resample 8 languages and are indicative.
+
+* **The primary passes the sign prong, and it is weak off mathematics and
+  research code.** It has the declared sign on 3 of 4 parents. Its
+  random-effects mean is +0.18 (95% CI +0.05 to +0.31), and its prediction
+  interval for a new benchmark crosses 0.
+* **Where it orders difficulty.** On matharena it gives +0.29 within
+  competition, +0.28 net of length and position, +0.34 on the text-bearing
+  items and +0.40 on the text-bearing 2026 contests (150 items, 5
+  competitions), which post-date the model. Within paper on researchcodebench
+  it gives +0.33. On multi_swebench, within language, +0.12; on real_webagents,
+  within website, -0.03. Beside the rubric ("The rubric", above): both are
+  strongest on researchcodebench, the rubric's levels were near 0 within
+  competition on matharena where the entropy is not, and they gave +0.12 to
+  +0.22 on real_webagents where the entropy gives nothing.
+* **The first 256 tokens are wrong-signed on real_webagents** (-0.25 entropy,
+  -0.23 log-prob, both intervals below 0), where 95% of the reasoning closes
+  within 1,024 tokens. Exploratory; nothing is kept.
+* **Length does not carry it on matharena**: net of log length and position
+  the primary keeps +0.28 of its +0.29. The two diagnostics, the tokens
+  generated and whether the reasoning closed, are wrong-signed there.
+
+**Consistency and test-retest** (consistency; reported, not gating).
+
+* **Two prompts, one quantity.** On matharena, this job's `ent_first1024` (one
+  sample, the generic prompt, 1,024 tokens) against the attempts'
+  `ent_first1024` (four samples, the `\boxed{}` prompt, the first 1,024 of
+  4,096 tokens) gives Spearman 0.866 over the 336 items both cover (0.865 over
+  270 prompts), and against the attempts' primary `tok_entropy` 0.770 (0.776).
+  On mathematics the generic prompt keeps most of what passed the attempt rule.
+* **One sample is a stable reading.** 131 matharena task texts recur under
+  other metadata, so as other units with other seeds. One pair per text gives
+  Spearman 0.845 (Pearson 0.847; mean absolute difference 0.039 against an sd
+  of 0.099 over units), and ICC(1) over all 788 units of those texts is 0.813.
+  Sampling noise would shrink a correlation by about a tenth (derived:
+  √0.813 = 0.90). The test-retest exists on matharena only.
+
+**Through the harness** (harness). The rubric's recipe: x standardised within
+benchmark, the B0 term on raw x, three placebo draws permuted within
+benchmark. Test-like ALC differences ± pair-cluster SE, with the folds nested
+selection switched on; public R1 benchmark-first / pair-uniform; within-pair r
+as above.
+
+| covariate | transferred nested | per-pair nested | transferred from B1, forced | transferred from B7, forced | per-pair s = 0.5 from B7, forced (placebo) | transferred nested, R1 | within-pair r |
+|---|---|---|---|---|---|---|---|
+| ent_first1024 (primary) | +0.00110 ± 0.00045 (1/4) | +0.00001 ± 0.00006 (3/4) | +0.00003 ± 0.00055 | +0.00015 | +0.00007 (+0.00075) | +0.00066 / +0.00037 | 0.123 |
+| ent_first256 | +0.00135 ± 0.00046 (1/4) | -0.00010 ± 0.00011 (4/4) | +0.00089 ± 0.00051 | +0.00074 | -0.00013 (+0.00077) | +0.00145 / +0.00072 | 0.093 |
+| lp_first1024 | +0.00085 ± 0.00033 (1/4) | +0.00008 ± 0.00006 (3/4) | -0.00015 ± 0.00045 | -0.00003 | +0.00018 (+0.00076) | +0.00056 / +0.00029 | 0.122 |
+| lp_first256 | +0.00113 ± 0.00037 (1/4) | -0.00002 ± 0.00004 (4/4) | +0.00067 ± 0.00042 | +0.00055 | +0.00012 (+0.00073) | +0.00148 / +0.00073 | 0.093 |
+| ent_n_tokens | -0.00001 ± 0.00001 (2/4) | 0 (0/4) | -0.00015 ± 0.00013 | -0.00008 | +0.00086 (+0.00077) | -0.00009 / -0.00017 | 0.065 |
+| ent_closed | +0.00002 ± 0.00003 (1/4) | +0.00001 ± 0.00001 (3/4) | -0.00001 ± 0.00012 | -0.00002 | +0.00026 (+0.00074) | -0.00008 / -0.00003 | 0.059 |
+
+* **Nothing passes the gate.** The primary's transferred slope is switched on
+  in one fold, the one that holds out real_webagents, and costs +0.0058 there,
+  which makes its line +0.00110. Its per-pair slope (s = 0.25 from B1, on in 3
+  folds) is level at +0.00001, with mix/whole of the other sign (-0.00027).
+  No exploratory feature passes either (verdict.exploratory_pass is empty).
+* **Why the transferred slope is off.** Forced on in every fold, the slope from
+  B1 gains on three parents (matharena -0.00095, multi_swebench -0.00079,
+  researchcodebench -0.00268) and on mix/whole and public runs (-0.0018,
+  -0.0021, -0.0029), but costs +0.0058 on real_webagents, where the entropy
+  orders nothing, and nets +0.00003 ± 0.00055 on test-like runs (placebo
+  +0.00006). Nested selection, which reads the training parents' lines, keeps
+  it off in every fold whose training parents include real_webagents, and
+  switches it on in the one fold that holds real_webagents out, which then
+  pays the +0.0058.
+* **Within a pair it orders little.** Within-pair r is 0.123 for the primary
+  and 0.06 to 0.12 for the rest. The gate table ("Acceptance harness") puts
+  0.123 between its rows for an honest r of 0.1 (0.08 within a pair) and 0.2
+  (0.16), where a transferred slope gains -0.0001 to -0.0008 and passes on at
+  most 1 of 8 noise draws.
+* **The reference** (reference; not gating) degrades honest difficulty to r
+  on the items the entropy covers, the same 4,169 keys as the rubric's, and
+  so gives the rubric's numbers: -0.00096, -0.00246 and -0.00722 transferred
+  nested at r = 0.2, 0.3 and 0.5. Reaching the gate needs an honest r of about
+  0.3 on all four parents, about 0.25 within a pair; the entropy has half of
+  that within a pair, and nothing on one parent.
+
+### Verdict on commit D: NULL, and the Kaggle line is closed
+
+entropy.verdict.call: "NULL: the declared primary ent_first1024 fails the
+gate", on the complete export (final), with the rule unchanged since 78e303e
+and the provenance check passing (six harness lines read on the table ingest
+recorded, features digest 76e7ffe4185a1d4c). keep and exploratory_pass are
+empty.
+
+* The 14B's reasoning entropy carries difficulty where it can be read off the
+  statement: matharena (+0.29 within competition, +0.40 on the 2026 contests'
+  text-bearing items) and researchcodebench (+0.33 within paper). On the two
+  agentic parents it is weak (multi_swebench +0.12) or absent (real_webagents
+  -0.03).
+* Within a test-like pair it reaches r 0.12, against the about 0.25 (honest r
+  0.3) the reference needs. No nested line comes near the gate: the
+  transferred slope is on in one fold and costs (+0.00110), and the per-pair
+  slope is level (+0.00001).
+* So no language-model item signal in this repository passes the gate, from
+  a 4B or a 14B, as a rating, a rubric, attempts or reasoning entropy.
+
+Nothing ships, and the Kaggle line is closed. The 549 attempt texts left
+(commit C) are matharena problems and cannot change any call, and no further
+commit is planned.
+
+**Caveats.**
+
+* **One sample per unit**, at temperature 0.6, in one session. On matharena a
+  single sample is reliable (ICC 0.81); elsewhere the test-retest is not
+  measured.
+* **A generic, cut prompt.** One instruction for every benchmark, no answer
+  format, and the task text cut to 3,072 tokens; for researchcodebench that
+  is the head and tail of a 30,786-token task on average.
+* **91% of the windows are full**: the features read the first 1,024 tokens
+  of reasoning, the same window as the attempts' `ent_first1024`.
+* **Standardisation and the target** are those of the rubric (above): x is
+  standardised over every covered item of a benchmark, and the target is the
+  fold-averaged honest difficulty, which slightly favours a feature.
 
 ## Meta-learned heads on frozen embeddings
 
@@ -4738,10 +4975,12 @@ pairs:
 | public R1 benchmark-first (150) | 0.2051 | 0.0285 | -0.44 | 0.67 | +0.06 -0.78 -0.49 -0.46 -0.27 +0.23 |
 | public R1 pair-uniform (100) | 0.2020 | 0.0261 | -0.36 | 0.68 | -0.24 -0.67 -0.37 -0.32 -0.13 +0.50 |
 
-(The budget z values use run 2's budgets rounded to three decimals.) One run
-cannot tell these regimes apart. Its profile is at least as close to the
-public runs as to the tuned regime: every budget is within 0.8 sd of public
-R1, while its B31 is 1.4 sd above the test-like mean.
+(The budget z values use run 2's budgets rounded to three decimals. "Formative
+run 3" places run 3 against the same regime means and sds from its exact
+budget means, and places run 2 again from its exact budgets.) One run cannot
+tell these regimes apart. Run 2's profile is at least as close to the public
+runs as to the tuned regime: every budget is within 0.8 sd of public R1, while
+its B31 is 1.4 sd above the test-like mean.
 
 Single-run sds of the shipped model by budget (B0..B31 | ALC): test-like
 0.021, 0.039, 0.037, 0.035, 0.034, 0.032 | 0.032; mix/whole 0.017, 0.040,
@@ -4789,7 +5028,8 @@ re-verifying needs the archives themselves. The inputs are `results/formative/ru
 organisers' per-pair tables as Codabench returned them, byte for byte, with
 only the surrounding chat text removed.
 
-**Two submissions have been scored.**
+**Two submissions had been scored** when this section was written; a third,
+scored on 2026-10-01, is recorded in "Formative run 3".
 
 | run | scored | model | pairs | benchmarks | subjects | evaluated subject-item pairs | ALC |
 |---|---|---|---|---|---|---|---|
@@ -4866,10 +5106,10 @@ against the observed 0.019.
   has these bytes. It is the deterministic build of b68492c, byte-identical to
   a copy written on 2026-09-24 before the upload, with every tracked member
   equal to b68492c (`record` stage, `archives.run1`).
-* **The archive now selected** (a planned run 3) is `4a882cc7…`, built at
-  4d2cc4f with the corrected floor and the floored-fit fix. Its run is planned
-  as a regression and latency check only; its score is not to select or tune
-  anything.
+* **The archive now selected** is `4a882cc7…`, built at 4d2cc4f with the
+  corrected floor and the floored-fit fix. Its run was planned as a
+  regression and latency check only, its score not to select or tune
+  anything. It ran as formative run 3, scored 2026-10-01 ("Formative run 3").
 
 **Uses of the feedback, all of them.** Run 1 set the test-like regime's
 defaults (its lower-root B31 reading gave level_mean -1.6 and sd 1.5; the
@@ -4883,7 +5123,9 @@ budgets as a sanity estimate. The audit then read run 1 per pair and moved the
 shipped level from the recommended config to the milder one ("What actually
 shipped, after the audit"): the only per-pair reading behind a shipped choice,
 and a choice of global hyperparameters only. Run 2 motivated the subject-side
-study, which shipped nothing, and this reading, which changed nothing. The
+study, which shipped nothing, and this reading, which changed nothing. Run 3
+is a regression and latency check and is read for nothing else ("Formative
+run 3"). The
 leaderboard (organisers' entry 0.1801, best 0.1172, read 2026-09-24) is used
 for placement only. Nothing is keyed on an anonymous benchmark or subject id,
 and no prediction was shaped to probe hidden labels.
@@ -5044,3 +5286,148 @@ with level_mean near -0.7 to -1.1 and level_sd near 1.8; the two regimes of
 "What actually shipped, after the audit" come close, and that experiment was
 not run. The archive paths and rebuild trees in the results file point into
 session scratch, which is not durable; the hashes are the lasting record.
+
+## Formative run 3
+
+`python experiments/formative_run3.py` (0.3 s on one process; no model is
+run and nothing in `data/` is read). Every number below is in
+`results/formative_run3.json`, its section named in brackets;
+`tests/test_formative_run3.py` (14 tests) covers the script. It records run 3
+the way the `record` stage recorded runs 1 and 2, with the parsing, summary,
+overlap and archive helpers imported from `experiments/formative_feedback.py`,
+and changes neither that script nor `results/formative_feedback.json` (a test
+checks both hashes). It writes the file only if every required check passes:
+32 checks ran, all of them required, and all passed (checks). The input is
+`results/formative/run3.txt`, the organisers' per-pair table as returned, byte
+for byte, like `run1.txt` and `run2.txt`.
+
+**What was uploaded, and why** (run3, archive). The archive selected at
+4d2cc4f, sha256
+`4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090`: hier with
+LEVEL mu0 -2.5, sigma_mu 2.5, attr_scale 0.5, the corrected multiple-choice
+floor and the floored-fit fix. The team uploaded it as a regression and
+latency check only; its score selects or tunes nothing. That purpose was
+stated before the score existed: `results/formative_feedback.json` lists run 3
+as unscored, with this archive and that purpose (`submissions`), a statement
+first committed in 00bdf04 on 2026-09-28, three days before the score
+(run3.purpose_stated_before_scoring). The file in `dist/` has these bytes,
+every tracked member equals 4d2cc4f's, its `prior.json` equals
+`submission/prior.json`, and model.py's LEVEL is -2.5 / 2.5 / 0.5. It is the
+file handed to the team for upload; unlike runs 1 and 2's archives, it was
+not downloaded back from the platform (archive.downloaded_back). `dist/` is
+gitignored and rebuilt by `tools/build_submission.py`, so re-verifying needs
+it to hold the `4a882cc7…` file: read from `dist/`, the archive checks are
+required and nothing is written without it. A copy given with `--archive` is
+recorded whatever its bytes, but a stored record whose archive matched is
+replaced by one whose archive does not only with `--replace-archive-record`.
+
+**The run** (run3.counts, run3.alc). Scored 2026-10-01: 9 pairs on 7
+benchmarks (2, 2, 1, 1, 1, 1, 1 a benchmark), 9 subjects, 485 evaluated
+subject-item pairs (44 to 72 a pair). Every pair is in every budget's table,
+every value is finite and in [0, 1], and the team reports no errors
+(run3.regression_check). The platform's headline score was not pasted, so the
+pair-mean rule pinned on runs 1 and 2 is applied here, not tested: it gives
+0.1816525778 (0.181653 at six decimals). Weighting pairs by their items would
+give 0.1789. Each pair's summary ALC and ECE-ALC match its budget rows to
+within 5.0e-7.
+
+| pair | benchmark | n | B0 | B1 | B3 | B7 | B15 | B31 | ALC | ECE (ALC-weighted) | ECE at B0 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| s1 | G | 44 | 0.2768 | 0.1941 | 0.2119 | 0.1891 | 0.1935 | 0.2067 | 0.2061 | 0.109 | 0.295 |
+| s2 | E | 60 | 0.2543 | 0.2962 | 0.3617 | 0.2578 | 0.2635 | 0.2514 | 0.2864 | 0.163 | 0.069 |
+| s3 | D | 58 | 0.2071 | 0.1307 | 0.0989 | 0.0927 | 0.0928 | 0.0947 | 0.1132 | 0.095 | 0.338 |
+| s4 | C | 56 | 0.2024 | 0.1696 | 0.1873 | 0.1755 | 0.1821 | 0.1865 | 0.1818 | 0.120 | 0.191 |
+| s5 | A | 72 | 0.2122 | 0.1377 | 0.1307 | 0.1470 | 0.1303 | 0.1178 | 0.1421 | 0.093 | 0.288 |
+| s6 | A | 53 | 0.2254 | 0.1413 | 0.1304 | 0.1233 | 0.1326 | 0.1215 | 0.1402 | 0.095 | 0.312 |
+| s7 | G | 44 | 0.2621 | 0.1619 | 0.1923 | 0.1453 | 0.1487 | 0.1508 | 0.1709 | 0.125 | 0.341 |
+| s8 | B | 54 | 0.2150 | 0.1365 | 0.1044 | 0.1090 | 0.1023 | 0.1001 | 0.1219 | 0.124 | 0.341 |
+| s9 | F | 44 | 0.2606 | 0.3136 | 0.2790 | 0.2581 | 0.2548 | 0.2500 | 0.2722 | 0.139 | 0.116 |
+| mean | | | 0.2351 | 0.1868 | 0.1885 | 0.1664 | 0.1667 | 0.1644 | 0.1817 | 0.118 | 0.254 |
+
+Letters are those of runs 1 and 2 (run3.benchmark_letters), for recording
+only. Mean ECE by budget, B0..B31: 0.254, 0.146, 0.135, 0.077, 0.073 and
+0.066. The largest pair ECE at B0 is 0.341, and the mean B0 excess over B31
+0.071 (runs 1 and 2: 0.202 and 0.054).
+
+**The low budgets** (run3.regression_check.low_budget_profile). The run's
+mean Brier falls by 0.048 from B0 to B1 and rises by 0.0017 from B1 to B3:
+the means show no B1 or B3 spike. Two pairs have B1 or B3 above their B0: s2
+(E; B0 0.254, B1 0.296, B3 0.362) and s9 (F; 0.261, 0.314, 0.279), both with a
+B31 of at least 0.25, so both near a rate of 0.5. Runs 1 and 2 had one such
+pair each (three_runs).
+
+**Overlap** (overlap). Run 3's 7 benchmark ids are those of runs 1 and 2. It
+shares no subject with run 2 and one with run 1: subject_431933 on benchmark
+A, 53 evaluated items both times (run 1's p7, run 3's s6). Over the three runs
+that makes 25 distinct subjects in 26 pair appearances. On that pair run 3's
+ALC is 0.0663 lower than run 1's, its B0 0.252 lower (0.225 against 0.477),
+and by budget the differences are -0.252, -0.153, -0.043, -0.010, +0.004 and
+-0.007. That is descriptive only: the two runs ran different models, and their
+other pairs, so the shared `labeled` list, differ. Each benchmark's item
+counts across the three runs are in overlap.all_three.n_by_benchmark.
+
+**Against the shipped model's regimes** (placement). As run 2 in "Shipped
+configuration, confirmed": the distance from each regime's mean in the shipped
+model's single-run sds, positive worse. The regimes' rows are run 2's library
+(hier 70a3a81a, the old floor, the solver before the floored-fit fix). The gap
+to run 3's archive, at most 0.00046 in ALC on runs 0 to 199
+(placement.code_gap_not_added), is not added. Run 2 is placed again from its
+exact budgets, after a check that the stored z values of `ship_confirm.json`
+(budgets rounded to three decimals) are reproduced.
+
+| regime (runs) | mean ALC | single-run sd | run 3's z | run 3's z by budget, B0..B31 | run 2's z, exact budgets | run 3 minus run 2, in sds of the difference |
+|---|---|---|---|---|---|---|
+| test-like (300) | 0.1658 | 0.0318 | +0.50 | +0.89 -0.06 +0.65 +0.39 +0.65 +0.81 | +0.84 | -0.24 |
+| test-like, mix/whole (200) | 0.1711 | 0.0329 | +0.32 | +1.01 -0.16 +0.52 +0.21 +0.40 +0.58 | +0.65 | -0.24 |
+| test-like, no date shift (100) | 0.1585 | 0.0335 | +0.69 | +0.95 +0.25 +0.69 +0.57 +0.83 +1.02 | +1.02 | -0.23 |
+| public R1 benchmark-first (150) | 0.2051 | 0.0285 | -0.82 | +0.00 -1.00 -0.70 -1.08 -0.70 -0.50 | -0.44 | -0.27 |
+| public R1 pair-uniform (100) | 0.2020 | 0.0261 | -0.78 | -0.30 -0.88 -0.62 -0.95 -0.57 -0.26 | -0.36 | -0.30 |
+
+Run 3 lies 0.50 sd above the tuned regime's mean and 0.82 below public
+benchmark-first. Its B0 is 0.89 sd above the tuned regime's and level with
+public R1 (+0.00 and -0.30); from B1 on it sits 0.3 to 1.1 sd below public R1.
+Runs 2 and 3, one draw each, both lie within 1.02 single-run sds of every
+regime's mean ALC. Run 3 minus run 2 is -0.0110 in ALC, 0.23 to 0.30 sds of
+the difference of two independent runs (sd 0.037 to 0.047). The share of a
+regime's runs at or above run 3 is not computed: `ship_confirm.json` stores no
+per-run ALC.
+
+**Three runs side by side** (three_runs).
+
+| run | model; commit | pairs (benchmarks, subjects) | items | B0 | B1 | B3 | B7 | B15 | B31 | ALC | benchmark-balanced ALC | mean ECE-ALC |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | legacy Predictor; b68492c | 9 (7, 9) | 485 | 0.3589 | 0.2539 | 0.2043 | 0.1712 | 0.1693 | 0.1568 | 0.2113 | 0.2139 | 0.170 |
+| 2 | hier, old floor; ee5085a | 8 (7, 8) | 492 | 0.2368 | 0.1947 | 0.1963 | 0.1836 | 0.1785 | 0.1833 | 0.192623 | 0.1909 | 0.100 |
+| 3 | hier, corrected floor and floored-fit fix; 4d2cc4f | 9 (7, 9) | 485 | 0.2351 | 0.1868 | 0.1885 | 0.1664 | 0.1667 | 0.1644 | 0.181653 (recomputed) | 0.1865 | 0.118 |
+
+The benchmark-balanced ALC weights the 7 shared benchmark ids equally; the
+subjects differ, so it is descriptive only. Run 1 is not placed: the shipped
+model's single-run sds do not describe the legacy Predictor.
+
+**What three runs can and cannot measure**
+(what_three_runs_can_and_cannot_measure). They confirm the per-pair scoring
+rule once more. They show that the archive selected at 4d2cc4f runs end to end
+on the platform, every pair at all six budgets with no errors reported, which
+is the regression check it was uploaded for, and that the formative evaluation
+drew on the same 7 benchmark ids each time. They cannot compare predictors or
+configurations: the subjects differ between runs, and the one recurring pair
+ran under two models with different co-sampled pairs. They cannot detect a
+change of the size measured offline: the difference of two independent runs
+has an sd of 0.037 to 0.047, against a code gap from run 2's archive to run
+3's of at most 0.00046. And they do not measure latency: the table records no
+timing, so the run finishing with every pair scored is the only latency
+evidence.
+
+**No reading, no tuning** (no_reading_or_tuning). No level reading, matching
+or tuning is done on run 3, and nothing in the model, its hyperparameters or
+the archive changes because of it. The pooled reading's preregistered rule
+("The pooled reading, under a rule fixed in advance", sha256 `0de18448…`,
+outcome "no candidate: LEVEL stays") covered runs 1 and 2 only, and run 3 is
+not added to it.
+
+**Open.** The headline score was not pasted (run3.platform_alc is null); once
+it is, the record should check that it equals the recomputed 0.181653. The
+archive record is of the file in `dist/`; a copy downloaded back from the
+platform would close it as for runs 1 and 2 (`--archive PATH --archive-how
+TEXT`). `results/formative_feedback.json` still lists run 3 as unscored: it is
+left as it is, because `experiments/script_revisions.py` audits that file.
