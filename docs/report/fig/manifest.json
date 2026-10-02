@@ -1,0 +1,163 @@
+{
+ "script": "tools/report_figures.py",
+ "script_sha256": "d15488e282765916159b771db1e87022bef5358138dc2b349217ef22773f8e95",
+ "command": "python tools/report_figures.py",
+ "versions": {
+  "python": "3.10.8",
+  "matplotlib": "3.9.2",
+  "numpy": "1.26.4"
+ },
+ "settings": {
+  "backend": "Agg",
+  "png_dpi": 200,
+  "svg_fonttype": "path",
+  "svg_hashsalt": "paiec-report-figures",
+  "font": "DejaVu Sans",
+  "width_in": 5.5
+ },
+ "figures": {
+  "learning_curves": {
+   "function": "fig_learning_curves",
+   "inputs": {
+    "results/formative_feedback.json": "9154d93b9148d1938c91193ccd4d009900350fd0fbeb4e77401e33dda179478e",
+    "results/formative_run3.json": "6b5e929e739734127bce42baf06add71aacfa9d7656b03636c4b745649434e6c",
+    "results/ship_confirm.json": "72f2f64aa44e42d3d3e3484c2345c83ef2ac83ff8f9ff8550cbea9ee2725c8cd"
+   },
+   "outputs": {
+    "learning_curves.svg": "2499aa6957878bdb3905c7387452a725422d1fd6b3e6e0447c4dff8fe7797f67",
+    "learning_curves.png": "4e6a542f914b6e8055efc45db08114ab1da0b317ffb41c68217d0d2192346421"
+   }
+  },
+  "level_surface": {
+   "function": "fig_level_surface",
+   "inputs": {
+    "results/level_audit.json": "59af852f47e72d5b6b21270e1bbc25b3b4d020c93372f48a0f321cab12326db7",
+    "results/level_calibration.json": "b9318813c2754bb40d41e9e76d2f59af31b1ec19f997665ad0dc31f906dfafe5"
+   },
+   "outputs": {
+    "level_surface.svg": "bb22f1b89b21dd6ce15d6d21b03de468489b3cf9d1ff65759e10c14971fdd59c",
+    "level_surface.png": "5c038bcf0aa671dd7d7377b3735056b4f5eeb746438b22c6ae8ef15c1f54c137"
+   }
+  },
+  "gate_curve": {
+   "function": "fig_gate_curve",
+   "inputs": {
+    "results/emb_transfer.json": "77e67bcb5670fc7cc8b03fd54673a60f3c55def4d78bc6227ad2557b4f85711d",
+    "results/finetune_encoder.json": "ad962e9f554644ef8caa8fe9a215b1057c6b035b22815f41db8ca3691bc7c959",
+    "results/harness_thresholds.json": "ed29d00abfac9202bb7c0d53694f7ed744c6957c24dfc2c904ab1f2a151e46de",
+    "results/hidden_state_probe.json": "8dd2e6034aaf6c3e593c1c538cceb030dbbc14563f668a772fffcc3c0b1e3091",
+    "results/itemcov_eval.json": "94f1622cf4a69c4cac526579df5b5711ae90047729a444dc7e13da9d3a3fcd37",
+    "results/llm4b_close.json": "03de6bc2f93b19c6cd460c29d847f7d513cd39ad7a6d74efe696cb32121306b2",
+    "results/strong_llm_eval.json": "227a340ffa93cec052f46d923643c7c8ef02dd5a3106a7faf91617b662fe5b34"
+   },
+   "outputs": {
+    "gate_curve.svg": "07aeeb3eef219ab1ceb54672d522c50ba17c98956c63d561d3c1ddeed69ff95f",
+    "gate_curve.png": "48f2360afe2cd65f7c3af73f1de0bb9d0be26cf318b8629e02a918bfbaa9dd60"
+   }
+  },
+  "regime_sensitivity": {
+   "function": "fig_regime_sensitivity",
+   "inputs": {
+    "results/regime_sensitivity.json": "74c06d5247bd59b1c4d668960b854c37a0ae501447c391309cd7b288b4d7a201"
+   },
+   "outputs": {
+    "regime_sensitivity.svg": "80d88654f2826f13ea1ba254020a45b635f671fb2ff7a72fa403dd99ba38867d",
+    "regime_sensitivity.png": "9c0f52545c91c78b6709aa489bd922266132d13767162eb816873d49be4f0efb"
+   }
+  },
+  "formative_runs": {
+   "function": "fig_formative_runs",
+   "inputs": {
+    "results/formative_feedback.json": "9154d93b9148d1938c91193ccd4d009900350fd0fbeb4e77401e33dda179478e",
+    "results/formative_run3.json": "6b5e929e739734127bce42baf06add71aacfa9d7656b03636c4b745649434e6c",
+    "results/ship_confirm.json": "72f2f64aa44e42d3d3e3484c2345c83ef2ac83ff8f9ff8550cbea9ee2725c8cd"
+   },
+   "outputs": {
+    "formative_runs.svg": "225352e4979004256acfdc8f854fc225df03ba366153e279d450f2d31fa0a361",
+    "formative_runs.png": "98268e41a28554bf45895027ba8697c4c8cf58eeb813a3f3045b240d8fb98728"
+   }
+  },
+  "level_fix_budgets": {
+   "function": "fig_level_fix_budgets",
+   "inputs": {
+    "results/level_calibration.json": "b9318813c2754bb40d41e9e76d2f59af31b1ec19f997665ad0dc31f906dfafe5",
+    "results/ship_confirm.json": "72f2f64aa44e42d3d3e3484c2345c83ef2ac83ff8f9ff8550cbea9ee2725c8cd"
+   },
+   "outputs": {
+    "level_fix_budgets.svg": "e60910ddc9b0879f19617ee15cabce341d200146f927a0658fccd524812bf7c9",
+    "level_fix_budgets.png": "40577c7ce46a7e39371467af9348ab2652799ee2795a28f7c8920e854346567e"
+   }
+  },
+  "eb_adaptation": {
+   "function": "fig_eb_adaptation",
+   "inputs": {
+    "results/level_calibration.json": "b9318813c2754bb40d41e9e76d2f59af31b1ec19f997665ad0dc31f906dfafe5",
+    "results/regime_sensitivity.json": "74c06d5247bd59b1c4d668960b854c37a0ae501447c391309cd7b288b4d7a201"
+   },
+   "outputs": {
+    "eb_adaptation.svg": "93dca931148a95c6fd32f932b834b447ea6fe12fd4267f4a89696120df74c732",
+    "eb_adaptation.png": "2e7f552e040679ee3358dd20394d88817bc08c312dbf101883a4c3be478924ce"
+   }
+  },
+  "item_gap": {
+   "function": "fig_item_gap",
+   "inputs": {
+    "results/itemsig_eval.json": "6c15d21004b8a116074e5515ee2ed6d5658d7cde446891a9c0d5cb0ea1335f6f"
+   },
+   "outputs": {
+    "item_gap.svg": "4dfc4dfdda201d174dae1331d41799e3f75979e5f09c8942ce740ce84d79b8dc",
+    "item_gap.png": "98c1962266db9cea442477f239d0d55919fb6e45d0d55be0995a060a6f7ac238"
+   }
+  },
+  "transfer": {
+   "function": "fig_transfer",
+   "inputs": {
+    "results/emb_transfer.json": "77e67bcb5670fc7cc8b03fd54673a60f3c55def4d78bc6227ad2557b4f85711d",
+    "results/harness_thresholds.json": "ed29d00abfac9202bb7c0d53694f7ed744c6957c24dfc2c904ab1f2a151e46de"
+   },
+   "outputs": {
+    "transfer.svg": "5472a2164a9ae27b7cc9d61b06331eb3f3af60c51f7760f3ad99af828c8752e4",
+    "transfer.png": "2e1fd8933a0c2519cec653580a1bc8a9422792a631bd75f952068f3a2daa91c1"
+   }
+  },
+  "empirical_mean": {
+   "function": "fig_empirical_mean",
+   "inputs": {
+    "results/official_baselines.json": "669edf4326a5c29bd92feda696871771588db9d1c56fd26c3a93e7b59771bf2a"
+   },
+   "outputs": {
+    "empirical_mean.svg": "95e0783ce6c2aa42cb734f176696723fb0ed97425121506f2d65982b6abfb682",
+    "empirical_mean.png": "d8af4ca7d8f789471d6a0f37458fa92e46005d7c44100d5450d19f51604416b4"
+   }
+  },
+  "hier_ablations": {
+   "function": "fig_hier_ablations",
+   "inputs": {
+    "results/hier_eval.json": "ed8aee01f5e0a1a5489fa51b501a30d9ddaa3530ce020e38398330dfc9ddf530"
+   },
+   "outputs": {
+    "hier_ablations.svg": "bec552fc39f75bdfd4838e2d80539a2d25093ed79b110425ba5399ce791c0d18",
+    "hier_ablations.png": "945c53ffc8db480c5e223d6895160bef259819377528a913918e12fed4f9454b"
+   }
+  },
+  "ideas_forest": {
+   "function": "fig_ideas_forest",
+   "inputs": {
+    "results/finetune_encoder.json": "ad962e9f554644ef8caa8fe9a215b1057c6b035b22815f41db8ca3691bc7c959",
+    "results/harness_thresholds.json": "ed29d00abfac9202bb7c0d53694f7ed744c6957c24dfc2c904ab1f2a151e46de",
+    "results/heads_eval.json": "fbbe5a8d479b95f011fcc9b8acc2e6a7dd0707bbd085f4757de3656554e7e9f4",
+    "results/hidden_state_probe.json": "8dd2e6034aaf6c3e593c1c538cceb030dbbc14563f668a772fffcc3c0b1e3091",
+    "results/itemcov_eval.json": "94f1622cf4a69c4cac526579df5b5711ae90047729a444dc7e13da9d3a3fcd37",
+    "results/itemsig_eval.json": "6c15d21004b8a116074e5515ee2ed6d5658d7cde446891a9c0d5cb0ea1335f6f",
+    "results/llm4b_close.json": "03de6bc2f93b19c6cd460c29d847f7d513cd39ad7a6d74efe696cb32121306b2",
+    "results/mcq_floor.json": "0deea8cd324975aa90b57dfd6cd37060e32747a88133dab9b5f3504889448938",
+    "results/strong_llm_eval.json": "227a340ffa93cec052f46d923643c7c8ef02dd5a3106a7faf91617b662fe5b34",
+    "results/subject_side.json": "bf7f49d859a755b9524d401be413bf16b853f2c2c537430994bfb6ea3a5310dc"
+   },
+   "outputs": {
+    "ideas_forest.svg": "6160b503e5e0a55670f2b2ad380202de2da52aea4f34aed3bacb71f1608d8848",
+    "ideas_forest.png": "6a7963ec1779b0f9e70d109bb59fc9e11cc807084df0948f36f35a3b84e5fb3c"
+   }
+  }
+ }
+}

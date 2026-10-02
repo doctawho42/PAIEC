@@ -66,12 +66,23 @@ multi_swebench, 0.09 on real_webagents, -0.22 on researchcodebench, 0.16 on
 swe_rebench. Correcting the target for subject mix and dropping items whose text
 carries no task content does not rescue it.
 
+(Added 2026-10-02.) These five are Pearson correlations with the naive target,
+the solve-rate logit over all items, not with Rasch difficulty. Against Rasch
+difficulty on text-bearing items they are 0.10, 0.14, -0.02, -0.16 and 0.11.
+Both sets, with group-bootstrap intervals, are in "Intervals for every transfer
+correlation" (`results/gate_and_ci.json`, `ci.rows`).
+
 Within a benchmark the same model reaches 0.73 on matharena, but most of that is
 source identification rather than difficulty: one benchmark_id contains 25
 different competitions, competition alone explains 40% of the variance, and
-removing the competition mean drops the correlation to 0.49.
+removing the competition mean drops the correlation to 0.49. (Added
+2026-10-02: 0.73 and 0.49 do not reproduce at HEAD. Refitted on text-bearing
+items, they are 0.80 [0.70, 0.86] and 0.58 [0.48, 0.66]; same section.)
 
 Subject standing from attributes, leave-one-benchmark-out: 0.48, 0.38, 0.64, 0.60.
+(Added 2026-10-02: these do not reproduce exactly at HEAD either. `transfer.py`
+prints them and writes no results file, so they are left as first recorded and
+the report does not quote them.)
 Provider, release date, size parsed from the name, reasoning effort and harness do
 not depend on the benchmark, which is exactly what the item text does not manage.
 
@@ -101,6 +112,9 @@ difficulty:
 | real_webagents | 45 | 0.210 | [-0.09, +0.47] |
 | swe_rebench | 45 | -0.128 | [-0.41, +0.17] |
 | pooled within benchmark | 180 | 0.174 | [+0.03, +0.31] |
+
+(Group-bootstrap intervals, and why a larger 4B judge run is not needed, are
+in "Intervals for every transfer correlation".)
 
 It works on mathematics and nowhere else. A control on 60 fresh multi_swebench
 items with the full issue text rather than a 450-character truncation gives
@@ -299,7 +313,9 @@ budgets 0 to 3. Pooled difficulty adds about 0.0007, all of it at B15 and B31:
 switching it off (WARMUP=1e9) leaves -0.0062. It needs 64 distinct labeled items
 on a benchmark. A run has about two pairs per benchmark, at 31 labels a pair, so
 it takes at least three pairs of one benchmark at budget 31, or five at budget
-15.
+15. ("Pooling under the verified protocol" re-measures this switch under both
+split scopes, on dense and formative-size runs and at the platform's run
+composition: on dense runs pooling is still worth 0.009 to 0.030.)
 
 The pooled anchor does not differ significantly from the smoothed mean once
 pairs are resampled. Most of its deficit comes from swe_rebench, which has a
@@ -1166,8 +1182,9 @@ models, on the item-level scale:
 | test-like, level_mean -2.0 (-1.56) | -1.12 | -3.30 | -4.07 | -4.52 | -4.69 |
 
 It stays at the public centre on public runs. On test-like runs it moves most of
-the way from its first labels (one per pair) and orders the regimes by their
-levels. Where dates are shifted it moves further than the pair logits alone
+the way from its first labels (one per pair) and orders the date-shifted
+regimes by their levels; the unshifted regime (-1.33) ends above them all.
+Where dates are shifted it moves further than the pair logits alone
 would say, because it centres the level at attribute score 0 and the inflated
 attribute standings have to be taken back. On the shifted base (mu0 -3.0) it
 moves back toward the public centre on public runs (-3.0 at B0, -2.3 at B1, -1.6
@@ -1533,7 +1550,7 @@ pairs with an oracle (public runs leave swe_rebench out):
 |---|---|---|---|---|---|---|
 | test-like, primary | 0.1384 | 0.0750 | 0.0633 ± 0.0041, 46% | +0.0003 | 0.00002 (0.03%) | 0.0003 (0.5%) |
 | test-like, mix and wholes | 0.1465 | 0.0676 | 0.0790 ± 0.0068, 54% | -0.0012 | 0.0003 (0.4%) | 0.0010 (1.3%) |
-| public, benchmark-first | 0.1706 | 0.0768 | 0.0938 ± 0.0045, 55% | -0.0025 | 0.00002 (0.02%); from the primary 0.0005 (0.5%) | 0.0013 (1.4%); from the primary 0.0012 (1.3%) |
+| public, benchmark-first | 0.1706 | 0.0768 | 0.0938 ± 0.0045, 55% | -0.0025 | 0.00002 (0.02%); from the primary 0.0005 (0.5%) | 0.0012 (1.3%; first recorded as 0.0013, 1.4%, from rounded inputs: `nested_within` B31 is -0.001248); from the primary 0.0012 (1.3%) |
 | public, pair-uniform | 0.1739 | 0.0761 | 0.0977 ± 0.0041, 56% | -0.0038 | 0.0008 (0.8%) | 0.0029 (2.9%) |
 
 At B31 the shipped hier already scores what the pair's exact rate would on
@@ -1707,6 +1724,10 @@ The gate is the plan's rule. Nested selection must be on, and must act, in at
 least 3 of the 4 folds. The test-like difference must be at most -0.002, the
 mix/whole difference of the same sign, no held-out parent above +0.002, and
 neither public weighting above +0.001.
+
+"The gate, tightened (P1.12)" adds the pass probability at each r, the gate
+read on mix/whole, when the gate was first committed, the honest difficulty's
+reliability, and every quoted correlation on the gate's within-pair scale.
 
 ### Acceptance and the honest oracle
 
@@ -4941,7 +4962,8 @@ pair-uniform) and B1 (+0.0019, +0.0015) and gains from B7 on (-0.004 to
 -0.008 a budget). By parent it loses on matharena (+0.0101 ± 0.0031
 benchmark-first, +0.0094 ± 0.0023 pair-uniform) and on the single-subject
 swe_rebench pair (+0.0099 over 130 benchmark-first appearances, +0.0114 over
-7 pair-uniform ones; one subject, so no cluster SE), and gains most on
+7 pair-uniform ones; one subject, so no cluster SE; "A single-subject
+benchmark" gives an SE over appearances and the budgets), and gains most on
 multi_swebench (-0.0134, -0.0154).
 
 ### Against the smoothed mean and the empirical mean
@@ -6069,8 +6091,768 @@ reproduce stage ran, showed one failure. It sat at the position of
 * **The rule's power is limited.** It detects gains of about 0.003 or more
   and is a coin flip at 0.002 (plan, section 7).
 * **Two baselines are missing.** onepl is not a plain 1PL, and BLE was not
-  run.
+  run. (Since then the plain 1PL has been scored on these runs, and BLE was
+  found unable to run offline: "Baselines: a plain 1PL, the organisers'
+  empirical mean and BLE".)
 * **No formative run was read.** Run 3 is not used. Runs 1 and 2 enter only
   through the stored readings that set the targets of READING, AUDIT and
   MIXTURE ("Formative feedback, runs 1 and 2", "What actually shipped, after
   the audit").
+
+## Baselines: a plain 1PL, the organisers' empirical mean and BLE (P1.9)
+
+`python experiments/baselines_p1.py ble`, then `score` (repeated while it exits
+with 75) and `summarise`. One process, at most 0.67 GB resident; the final
+pass took 21 minutes on a machine shared with other jobs. Every number below
+is in `results/baselines_p1.json`, under the key in brackets. The rows are in
+`data/baselines_p1_rows/` (gitignored, 200 files).
+`tests/test_baselines_p1.py` covers the script.
+
+**What it asks.** The internal review (`docs/report/review_v0.md`, W4 and
+P1.9) asked for the baselines that separate the level calibration from the
+modelling: a level-calibrated smoothed mean (scored by P1a, "Regime
+sensitivity at the feedback's reading"), a plain 1PL with a pooled level and
+no attributes, and the organisers' reference predictors, BLE and the
+empirical mean with BLE acquisition. It also asked to restate "calibration is
+worth far more than the modelling" against them.
+
+### Runs, configs and checks
+
+The runs are P1a's, seed 11: TUNED runs 0 to 79, and public R1 runs 0 to 59
+under both weightings (R1B benchmark-first, R1P pair-uniform), split scope
+'pair' (`plan.regimes`). Six configs are read from P1a's stored rows: SHIP,
+`legacy`, `smooth` (Beta(2,2)), `smcal` (n0 2, m0 0.25), `onepl` and
+`eb_fit`. Three are new, scored on the same checkpoints (`plan.new_configs`):
+
+| key | what it is |
+|---|---|
+| `rasch` | the plain 1PL at the shipped level, mu0 -2.5, sigma_mu 2.5 |
+| `rasch_fit` | the same 1PL at its own leave-one-parent-out level (below) |
+| `empmean` | the organisers' empirical mean, as in "Under the official protocol" |
+
+**The plain 1PL** is hier with the attributes, the identity link, the group
+effects, the multiple-choice floor and slip switched off. What remains is
+logit p = mu_b + a_sb - d_i: one pooled level per benchmark, one ability per
+(subject, benchmark) pair with prior variance sigma_theta² + sigma_attr² +
+sigma_delta², and one difficulty per item with variance sigma_d² + sigma_g²,
+integrated out. Inference is hier's, refitted from `labeled` at every
+checkpoint. It differs from `onepl` in four ways: one ability per pair (onepl
+keys ability on the canonical name), no group effects, no floor and no slip.
+Tests check that at B0 it equals the closed-form 1PL marginal, and that labels
+reach neither another benchmark nor another group.
+
+**rasch_fit's level** is `fit_hyper`'s derivation without the attribute
+shift: each training benchmark's fitted level plus its mean standing, then
+their mean, and their sd widened as for hier (`summary.rasch_fit_levels`):
+
+| held-out parent | mu0 | sigma_mu |
+|---|---|---|
+| matharena | -1.78 | 2.72 |
+| multi_swebench | -0.58 | 1.67 |
+| real_webagents | -1.36 | 3.39 |
+| researchcodebench | -1.18 | 3.37 |
+| swe_rebench | -1.56 | 3.21 |
+
+**Checks** (`checks`; `summary.regimes.<R>.reproduction_max_abs_brier` and
+`.p1a_agreement_max_abs`):
+
+* Before writing each new row, the script re-scores smooth and smcal on every
+  run, and SHIP, onepl and legacy on the first and last run of each regime.
+  All match P1a's stored Brier exactly (largest difference 0.0). The run
+  compositions match, and the library digests equal those of P1a's rows.
+* P1a's differences against SHIP, recomputed from the merged rows, agree with
+  P1a's to 0.0.
+* A first full pass is bit-identical to the final pass. The final pass was
+  rerun with the final script, so every row carries one script digest
+  (`provenance.script`, 9825bb14142d4b63).
+
+### BLE cannot run here
+
+The `ble` stage reads `third_party/paiec_baseline` at commit 82d330dd with
+`ast` and text reads only. It never imports or copies that code, and all seven
+of its checks hold (`ble`).
+
+* **Every BLE prediction is a language-model agent run.** By default it calls
+  openai/gpt-5.6-luna over the Responses API, for up to 10 turns (5 in the
+  example config), with a 240 s deadline a prediction.
+* **It needs credentials, network and a prepared payload.** It needs
+  `OPENAI_API_KEY`, network access, and a payload prepared over the network
+  from measurement-db and measurement-db-embed. To stay leave-one-parent-out,
+  that payload would have to be filtered per held-out parent.
+* **There is no offline predictor.** The only offline mode,
+  `smoke_test.py --mock`, replaces the model with scripted replies on
+  synthetic tables. It tests plumbing, not prediction.
+* **The empirical mean with BLE acquisition cannot run either.** It predicts
+  the empirical mean but chooses its labels from BLE's predictions. Under
+  random acquisition it is `empmean`, which is scored.
+* **The cost.** These runs alone hold 569,838 evaluation predictions (213,492
+  TUNED, 178,668 R1B, 177,678 R1P), before any acquisition call
+  (`ble.evaluation_predictions`).
+
+BLE and the empirical mean with BLE acquisition remain unmeasured. The best
+leaderboard entry (0.1172, "Against the live leaderboard") stays unexplained.
+
+### On identical runs
+
+ALC (`summary.regimes.<R>.configs`):
+
+| config | TUNED (80 runs) | R1B (60) | R1P (60) |
+|---|---|---|---|
+| SHIP | 0.1690 | 0.2114 | 0.1948 |
+| onepl | 0.1660 | 0.2140 | 0.1975 |
+| rasch | 0.1673 | 0.2162 | 0.1998 |
+| smcal | 0.1675 | 0.2222 | 0.2048 |
+| rasch_fit | 0.1743 | 0.2173 | 0.2027 |
+| smooth | 0.1860 | 0.2189 | 0.2075 |
+| eb_fit | 0.1999 | 0.2104 | 0.1957 |
+| empmean | 0.2029 | 0.2578 | 0.2397 |
+| legacy | 0.2124 | 0.2116 | 0.1988 |
+
+The new configs minus SHIP, ± run / cluster / stratified SE, and for rasch the
+parent-level mean ± SE (`summary.regimes.<R>.vs_ship`, `.headline`):
+
+| config | TUNED | R1B | R1P |
+|---|---|---|---|
+| rasch | -0.0017 ± 0.0007 / 0.0013 / 0.0010; parent-level -0.0002 ± 0.0041 | +0.0048 ± 0.0005 / 0.0007 / 0.0006; +0.0053 ± 0.0023 | +0.0050 ± 0.0004 / 0.0007 / 0.0006; +0.0049 ± 0.0020 |
+| rasch_fit | +0.0053 ± 0.0003 / 0.0006 / 0.0006 | +0.0059 ± 0.0007 / 0.0011 / 0.0009 | +0.0078 ± 0.0005 / 0.0009 / 0.0009 |
+| empmean | +0.0339 ± 0.0016 / 0.0030 / 0.0028 | +0.0464 ± 0.0019 / 0.0027 / 0.0026 | +0.0449 ± 0.0020 / 0.0030 / 0.0029 |
+
+* **The plain 1PL at the shipped level is level with SHIP in TUNED and behind
+  it on public runs.** In TUNED it is 0.0017 ahead (1.4 cluster SEs; the
+  parent-level mean is -0.0002 ± 0.0041). On public runs it trails by 0.0048
+  and 0.0050, 6.5 to 7.5 cluster SEs.
+* **At its own fitted level the 1PL trails SHIP everywhere,** by 0.005 in
+  TUNED and by 0.006 and 0.008 on public runs.
+* **The organisers' empirical mean trails SHIP by 0.034 in TUNED and by 0.045
+  to 0.046 on public runs.** In TUNED it is ahead of the legacy Predictor by
+  0.0095: -0.0095 ± 0.0025 / 0.0049 / 0.0043, 1.9 cluster SEs, with a
+  parent-level mean of -0.0029 ± 0.0120 (`summary.regimes.TUNED.vs_legacy.empmean`). The legacy
+  Predictor's mean B0 prediction there is 0.68, against SHIP's 0.42
+  (`summary.regimes.TUNED.configs.<config>.q0`): its attribute prior turns
+  the synthetic date shift into optimism, which costs it more than the
+  empirical mean loses by jumping to 0 or 1 at B1.
+* **Cost.** rasch takes 0.73 to 0.81 ms a call (slowest 0.13 to 0.18 s) and
+  rasch_fit 0.72 to 0.81 ms (slowest 0.15 s), on one process of a shared
+  machine (`summary.regimes.<R>.configs.rasch|rasch_fit`, `mean_call_ms` and
+  `max_call_s`). SHIP's 1.2 to 1.5 ms a call in the same file is read from
+  P1a's rows, so it was timed in P1a's tasks, not in these. Read across the
+  two, SHIP takes about 1.7 to 1.9 times as long (derived, no SE).
+
+### How much of SHIP's gain is the level calibration
+
+In TUNED, SHIP minus legacy is -0.0434 ± 0.0019 / 0.0037 / 0.0034, with a
+parent-level mean of -0.0393 ± 0.0076. The share that is "level calibration"
+depends on the order in which the steps are taken
+(`summary.regimes.TUNED.decomposition`; each step ± run / cluster / stratified
+SE, and its share of the total with a 95% bootstrap interval):
+
+| path | step | difference | share |
+|---|---|---|---|
+| calibration first | calibrated level (smcal - legacy) | -0.0448 ± 0.0028 / 0.0052 / 0.0045 | 1.03 [0.94, 1.10] |
+| | the model at a calibrated level (SHIP - smcal) | +0.0015 ± 0.0010 / 0.0019 / 0.0015 | -0.03 [-0.10, 0.06] |
+| model first | the model at its fitted level (eb_fit - legacy) | -0.0124 ± 0.0008 / 0.0024 / 0.0022 | 0.29 [0.19, 0.39] |
+| | calibration within hier (SHIP - eb_fit) | -0.0309 ± 0.0018 / 0.0035 / 0.0026 | 0.71 [0.61, 0.81] |
+| the 1PL path | the 1PL at its fitted level (rasch_fit - legacy) | -0.0380 ± 0.0019 / 0.0038 / 0.0035 | 0.88 [0.84, 0.91] |
+| | calibration within the 1PL (rasch - rasch_fit) | -0.0070 ± 0.0007 / 0.0013 / 0.0011 | 0.16 [0.12, 0.20] |
+| | hier's extras at LEVEL (SHIP - rasch) | +0.0017 ± 0.0007 / 0.0013 / 0.0010 | -0.04 [-0.08, 0.02] |
+
+The chain between the calibrated predictors (`.decomposition.chain`): rasch -
+smcal -0.0003 ± 0.0004 / 0.0009 / 0.0008; onepl - rasch -0.0013 ± 0.0001 /
+0.0002 / 0.0002; SHIP - onepl +0.0030 ± 0.0007 / 0.0012 / 0.0010.
+
+* **No order-free share exists.** Calibrating first gives the calibration the
+  whole gain, modelling first gives it 0.71, and on the 1PL path a 1PL at its
+  own public level already takes 0.88 before any calibration.
+* **What holds in every order: at a calibrated level, in TUNED, hier adds
+  nothing.** SHIP - smcal is +0.0015 (cluster SE 0.0019) and SHIP - rasch
+  +0.0017 (0.0013). smcal, rasch, onepl and SHIP lie within 0.003 of one
+  another.
+* **Most of the legacy Predictor's TUNED deficit is its own prior.** A plain
+  1PL at its fitted public level, with no calibration at all, beats the legacy
+  Predictor by 0.0380 (cluster SE 0.0038). hier at its fitted level beats it
+  by only 0.0124. The legacy Predictor's B0 centre (0.68) is the date shift's
+  attribute optimism. This sharpens review W1: the regime's headline is
+  largely set by the date shift.
+
+**On public runs the total is within noise,** so no share is given: SHIP
+minus legacy is -0.0002 ± 0.0010 / 0.0020 / 0.0017 on R1B and -0.0039 ±
+0.0010 / 0.0019 / 0.0017 on R1P (z -2.1 on the cluster SE). The steps offset
+each other, because there the calibration costs and the model gains:
+
+| step | R1B | R1P |
+|---|---|---|
+| smcal - legacy | +0.0106 ± 0.0015 / 0.0028 / 0.0025 | +0.0060 ± 0.0015 / 0.0031 / 0.0027 |
+| SHIP - smcal | -0.0108 ± 0.0010 / 0.0014 / 0.0012 | -0.0100 ± 0.0010 / 0.0018 / 0.0016 |
+| eb_fit - legacy | -0.0013 ± 0.0006 / 0.0012 / 0.0009 | -0.0030 ± 0.0008 / 0.0010 / 0.0009 |
+| SHIP - eb_fit | +0.0010 ± 0.0006 / 0.0010 / 0.0010 | -0.0009 ± 0.0005 / 0.0011 / 0.0010 |
+| rasch_fit - legacy | +0.0057 | +0.0039 |
+| rasch - rasch_fit | -0.0011 | -0.0029 |
+| rasch - smcal | -0.0060 | -0.0050 |
+| onepl - rasch | -0.0023 | -0.0023 |
+| SHIP - onepl | -0.0025 ± 0.0003 / 0.0005 / 0.0005 | -0.0027 ± 0.0002 / 0.0004 / 0.0004 |
+
+So on public runs, at the same level, hier's modelling adds 0.010 over a
+calibrated smoothed mean and 0.005 over a plain 1PL: about half from the
+groups, the floor, slip and ability keyed on the model's name (onepl - rasch),
+half from the subject prior (SHIP - onepl).
+
+### At budgets 0 and 1
+
+Brier differences, cluster SE in brackets (`summary.regimes.<R>.budgets_0_1`).
+In TUNED rasch's B0 centre is lower than SHIP's (mean B0 prediction 0.31
+against 0.42), so SHIP - rasch there mixes the attribute prior with the centre:
++0.0114 (0.0050) at B0 and +0.0049 (0.0024) at B1, in rasch's favour. Where the
+mean B0 predictions match, SHIP beats the 1PL at B0 and B1:
+
+| comparison | mean B0 prediction | B0 | B1 |
+|---|---|---|---|
+| TUNED, SHIP - rasch_fit | 0.42 and 0.42 | -0.0151 (0.0026) | -0.0093 (0.0014) |
+| R1B, SHIP - rasch | 0.30 and 0.31 | -0.0097 (0.0021) | -0.0046 (0.0011) |
+| R1P, SHIP - rasch | 0.31 and 0.31 | -0.0113 (0.0020) | -0.0044 (0.0009) |
+
+About 0.0013 to 0.0017 of these B0 gaps separates onepl from rasch at B0 (the
+groups, the floor, slip, and ability keyed on the model's name); the rest is
+mostly the attribute prior. This is the
+attribute prior's share at B0 and B1 that W4 asked for, with the centre held
+level.
+
+### What this changes
+
+* **"Calibration is worth far more than the modelling" cannot be stated as a
+  share.** The split depends on the order of the steps. What can be stated:
+  in the tuned regime every predictor whose level is set for that regime
+  (smcal, rasch, onepl, SHIP) lands within 0.003 of the others, so the model
+  adds nothing measurable there at a calibrated level. On public runs, where
+  the calibration costs, hier's modelling adds 0.010 over a calibrated
+  smoothed mean and 0.005 over a plain 1PL at the same level.
+* **Nothing ships differently.** The 1PL was not scored under P1a's rule, and
+  it trails SHIP on public runs by 0.005.
+
+### Caveats
+
+* **rasch borrows hier's calibrated mu0** (-2.5), which was chosen with the
+  attribute prior on. No 1PL-specific level calibration was run. On public
+  runs rasch_fit costs +0.0039 to +0.0057 against the legacy Predictor.
+* **TUNED favours the configs calibrated to it.** Its seed-11 runs redraw the
+  catalogue that chose LEVEL and smcal (P1a's caveat), which favours SHIP,
+  smcal and rasch there.
+* **BLE is unmeasured** (above).
+* **The rows are in the row export** ("Row files for release"), not yet hosted.
+
+## Pooling under the verified protocol: run size, not the information set (P1.11)
+
+`python experiments/pooling_decomposition.py score`, `recheck`, then
+`summarise`. 208 tasks in 5,065 s (about 84 minutes) on one process, under 1 GB
+resident (`provenance`). Every number below is in
+`results/pooling_decomposition.json`, under the key in brackets. The rows are
+in `data/pooling_decomposition_rows/` (gitignored).
+`tests/test_pooling_decomposition.py` covers the script.
+
+**What it asks.** The report's first contribution said that pooled item
+difficulty, worth about 0.020 ALC on the legacy replica ("The predictor
+ladder"), was worth about 0.0007 at formative size under the verified protocol
+("Under the official protocol"), and put the drop down to the legacy replica's
+wrong information set. The review (W5, P1.11) noted that the two numbers also
+differ in run size and split scope. It asked for pooling on and off, under
+both split scopes, on dense and on formative-size runs of the official replica.
+
+**Variants** (`design.variants`):
+
+| key | what it is |
+|---|---|
+| `ship` | hier as shipped (LEVEL); every prior fitted with the target's parent left out |
+| `ship_nolevel` | the same with a level per pair (`pool_mu` off), to separate the pooled level's share from the items' |
+| `ship_own` | the same with pooling off: `labeled` restricted to the target pair's own entries (same subject key and benchmark_id) |
+| `legacy`, `legacy_nopool` | the legacy Predictor with its pooled difficulty on and off (WARMUP 1e9), the switch behind the 0.0007 |
+| `smooth` | the smoothed mean, Beta(2,2) |
+
+hier has no switch for item pooling alone. `ship_own` is therefore a
+research-only wrapper in the script (`OwnOnly`), and the library and the
+shipped defaults are unchanged. It also drops the subject's labels on other
+benchmarks, but on pairs alone on their benchmark that difference is 0.000000
+± 0.000006, so it does not matter.
+
+**Runs** (`design`):
+
+* **Formative size.** 100 runs of `official.sample_run` (seed 11,
+  benchmark-first), each scored under both split scopes, with the same seeds
+  for on and off. Runs 0 to 59 reproduce P1a's stored runs bit for bit. They
+  hold 880 pair appearances, 8.8 a run over 4.34 benchmarks: 193 alone on
+  their benchmark, 220 with one companion and 467 with two or more
+  (`formative.pair.describe`).
+* **The platform's composition.** In formative runs 1 to 3, 16 of 26 pair
+  appearances were alone on their benchmark, 10 had one companion and none had
+  more (`platform_mix`). The "platform mix" rows reweight the formative
+  differences to those shares.
+* **Dense.** `official.dense_run` of the four multi-subject benchmarks, under
+  both scopes. On researchcodebench, matharena and multi_swebench, each pair's
+  Brier is scored on at most 32 evaluation items, a fixed digest-ranked subset
+  (`design.eval_cap`). The `labeled` list is the full dense run's, so the
+  predictions are unchanged; fewer targets are scored. real_webagents is
+  scored whole.
+* **Not run: swe_rebench.** It has one subject, so pooling on and off coincide.
+
+### Pooling on minus off
+
+ALC differences, negative where pooling helps (`reading`). Formative rows give
+± run / cluster / stratified SE and then the parent-level mean ± SE. Platform
+mix rows give ± cluster / stratified SE. Dense rows give the mean ± SE across
+the four benchmarks.
+
+| what is pooled | formative, scope 'pair' | formative, 'benchmark' | platform mix, 'pair'; 'benchmark' | dense, 'pair' | dense, 'benchmark' |
+|---|---|---|---|---|---|
+| hier, everything taken from other subjects (ship - ship_own) | -0.0033 ± 0.0004 / 0.0006 / 0.0005; -0.0037 ± 0.0022 | -0.0020 ± 0.0004 / 0.0005 / 0.0004; -0.0022 ± 0.0013 | -0.0010 ± 0.0003 / 0.0003; -0.0004 ± 0.0003 / 0.0002 | -0.0300 ± 0.0099 | -0.0142 ± 0.0059 |
+| hier, the pooled level (ship - ship_nolevel) | -0.0015 ± 0.0003 / 0.0004 / 0.0004 | -0.0012 ± 0.0003 / 0.0003 / 0.0003 | -0.0007 ± 0.0003 / 0.0002; -0.0003 ± 0.0002 / 0.0002 | -0.0043 ± 0.0014 | -0.0029 ± 0.0009 |
+| hier, pooled item difficulty (ship_nolevel - ship_own) | -0.0018 ± 0.0002 / 0.0003 / 0.0002 | -0.0008 ± 0.0002 / 0.0002 / 0.0002 | -0.0004 ± 0.0001 / 0.0001; -0.0002 ± 0.0001 / 0.0001 | -0.0258 ± 0.0088 | -0.0114 ± 0.0055 |
+| legacy Predictor, pooled difficulty (legacy - legacy_nopool) | -0.0010 ± 0.0001 / 0.0002 / 0.0001; -0.0011 ± 0.0005 | -0.0004 ± 0.0001 / 0.0001 / 0.0001 | exactly 0; exactly 0 | -0.0237 ± 0.0065 | -0.0086 ± 0.0038 |
+
+hier's total by how many pairs of its benchmark the run holds (formative,
+scope 'pair'): alone 0.0000 (193 appearances; also 0.0000 on the 106 left
+without swe_rebench, which is alone in every run), two -0.0027 ± 0.0007
+(220), three or more -0.0053 ± 0.0009 (467).
+
+By budget, hier's total (Brier):
+
+| budget | formative, 'pair' | dense, 'pair' (mean of 4) | dense, 'benchmark' (mean of 4) |
+|---|---|---|---|
+| B0 | 0 | 0 | 0 |
+| B1 | -0.0034 | -0.020 | -0.019 |
+| B3 | -0.0037 | -0.025 | -0.016 |
+| B7 | -0.0032 | -0.034 | -0.017 |
+| B15 | -0.0034 | -0.044 | -0.014 |
+| B31 | -0.0059 | -0.055 | -0.011 |
+
+At formative size the level's share sits at B1 to B7 and the items' at B7 to
+B31. The legacy switch acts only at B15 (-0.0012) and B31 (-0.0077), where a
+benchmark can reach 64 distinct labeled items.
+
+Ratios, descriptive and without SE: formative parent-level over dense, hier
+0.12 ('pair') and 0.15 ('benchmark'), legacy 0.047 and 0.057; dense
+'benchmark' over 'pair', hier 0.47 and legacy 0.36.
+
+### What this says about the first replica
+
+* **Pooling across subjects is still a large lever on dense runs.** Under the
+  verified protocol it is worth 0.009 to 0.030 ALC there, depending on split
+  scope and predictor. That brackets the legacy ladder's 0.020. Most of hier's
+  dense value is pooled item difficulty (0.026 of 0.030 under 'pair').
+* **At formative size the same switches are worth 0.002 to 0.003 for hier and
+  0.0004 to 0.001 for the legacy Predictor.** At the platform's composition
+  they are worth 0.0004 to 0.001 for hier and exactly 0 for the legacy
+  Predictor, whose pooled difficulty needs 64 distinct labeled items on a
+  benchmark, which two pairs never reach.
+* **The value grows with company,** from nothing for a pair alone on its
+  benchmark to 0.005 with two or more companions.
+* **Per-benchmark splits halve what is left on dense runs** (ratios 0.47 and
+  0.36).
+
+So run size, not the information set, removed the lever, and per-benchmark
+splits halve it again. The 0.0007 of "Under the official protocol" was
+measured under split scope 'pair' only (600 runs, seed 0). Its like-for-like
+value here is the 'pair' scope's 0.0010 ± 0.0002 (cluster SE; 100 runs,
+seed 11): same scope, other seeds and run counts.
+
+### Dense runs per benchmark, and hier's cost there
+
+| benchmark (items scored) | pairs | hier, everything pooled: 'pair' / 'benchmark' | SHIP - legacy: 'pair' | 'benchmark' | SHIP's mean call; slowest |
+|---|---|---|---|---|---|
+| real_webagents (all) | 26 | -0.0126 / -0.0083 | -0.0035 ± 0.0031 | -0.0081 ± 0.0043 | 2.0 to 2.1 ms; 0.08 s |
+| researchcodebench (at most 32) | 31 | -0.0415 / -0.0130 | -0.0054 ± 0.0024 | +0.0068 ± 0.0020 | 3.6 to 3.8 ms; 0.16 s |
+| matharena (at most 32) | 81 | -0.0521 / -0.0312 | -0.0006 ± 0.0021 | -0.0007 ± 0.0026 | 7.5 to 9.4 ms; 0.39 s |
+| multi_swebench (at most 32) | 82 | -0.0139 / -0.0045 | -0.0207 ± 0.0029 | -0.0169 ± 0.0037 | 3.1 to 4.6 ms; 0.21 s |
+
+(`dense.<benchmark>.<scope>.comparisons` and `.variants.ship`; SEs are over
+the benchmark's pairs, conditional on one shared `labeled` list and one
+split.) These are the first dense matharena and multi_swebench runs of the
+shipped hier, and so the first measurement of its worst-case call time (review
+Q12): at most 9.4 ms a call on average, and 0.39 s for the slowest single
+call, on one process of a shared machine. Each call sees the full dense
+`labeled` list, about 2,500 entries at B31. The legacy Predictor's slowest
+call was 1.44 s (dense multi_swebench).
+
+### Not explained
+
+* **Low-budget costs, not investigated.** On dense real_webagents with
+  per-pair splits, hier's pooling costs +0.015 ± 0.010 of Brier at B1 (the
+  item share +0.0058 ± 0.0025) before it gains from B3 on. The legacy
+  Predictor's pooled difficulty costs +0.0043 ± 0.0016 and +0.0093 ± 0.0019
+  at B1 on dense multi_swebench ('pair', 'benchmark'). A cost at B1 is the
+  signature the repository's notes say to check first for a mishandled
+  second-order term.
+* **At the platform's composition SHIP is not distinguishable from the legacy
+  Predictor on these public runs:** +0.0024 ± 0.0023 / 0.0017 ('pair', z
+  about 1.0 on the cluster SE) and +0.0045 ± 0.0024 / 0.0015 ('benchmark'),
+  against -0.0010 ± 0.0008 / 0.0019 / 0.0015 and +0.0004 ± 0.0007 / 0.0019 /
+  0.0015 unweighted (`reading["ship - legacy"]`). By company (scope 'pair',
+  cluster SE), SHIP minus legacy is +0.0050 ± 0.0030 for the 'alone' class,
+  -0.0019 ± 0.0025 with one companion and -0.0034 ± 0.0019 with more
+  (`formative.pair.comparisons["ship - legacy"].by_companions`).
+* **That 'alone' class is 45% swe_rebench.** The single-subject benchmark is
+  alone in every run by construction: 87 of the 193 'alone' appearances
+  (`single_subject_confound.appearances`). Without them SHIP minus legacy is
+  +0.0019 ± 0.0033 ('pair') and +0.0030 ± 0.0028 ('benchmark') for the
+  'alone' class (106 appearances), and +0.0004 ± 0.0026 / 0.0024 and
+  +0.0017 ± 0.0022 / 0.0022 at the platform's composition
+  (`single_subject_confound.comparisons["ship - legacy"]`). So most of the
+  'alone' class's cost, and of the platform-mix cost, is the single-subject
+  benchmark's (+0.010 there; "A single-subject benchmark", P1.15), not pairs
+  alone on a multi-subject benchmark, where the residual is within about one
+  cluster SE (0.6 and 1.1 for the 'alone' class, 0.2 and 0.8 for the mix).
+
+### Checks and provenance
+
+* No fallback fired and no fit is unconverged (`checks.failures`,
+  `.unconverged`).
+* The three hier variants are identical at B0, and the two legacy variants
+  below WARMUP (`checks.identities`).
+* Dense real_webagents matches `results/hier_eval.json`'s stored rows to
+  within 5e-7 (`checks.dense_crosscheck`).
+* All 208 tasks' rows carry the script digest b4504d05; the summary code
+  changed after them, twice (the platform mix and reading table, then the
+  single-subject readings; the script is now 4143835a). The `recheck` stage
+  re-scored five stored tasks with the current script, bit-identical
+  (`checks.recheck`, rerun after the second change), and every number the
+  summary held before the second change is unchanged.
+
+### Caveats
+
+* **Dense SEs are conditional.** They are over pairs, given one `labeled`
+  list and one split, and the across-benchmark SE rests on four benchmarks.
+  Three dense benchmarks are scored on at most 32 items a pair.
+* **The platform's composition rests on 26 pair appearances** from three
+  runs. The replica's five-benchmark catalogue puts many more pairs together
+  on a benchmark than the platform does.
+
+## The gate, tightened (P1.12)
+
+`python experiments/gate_and_ci.py --stage S` for S = `gate`, `evidence`,
+`scale` (by family: `reliability`; `ratings judge4b`; `strong14b entropy`;
+`embeddings`; `tfidf`), `ci` and `single`. Each stage ran as one process under
+0.7 GB; the longest, the TF-IDF refit, took 206 s (`passes`). The script
+replays no predictor. It reads stored results, rows and features, and refits
+only the text maps (TF-IDF, embedding ridge and kNN) and the Rasch
+difficulties. Every number below is in `results/gate_and_ci.json`, under the
+key in brackets. `tests/test_gate_and_ci.py` covers the script.
+
+**What it asks.** The review (W6, P1.12) asked to drop "pre-registered" or
+evidence it, to give the pass probability at r = 0.3, to report the gate under
+mix/whole, to put every correlation on one scale with the honest difficulty's
+reliability, and to correct the B1 statement.
+
+**Reproduction.** All six claims about the gate table that the draft's §4.5
+makes hold against `results/harness_thresholds.json` (`gate.draft_checks`).
+The within-pair r of every 4B, 14B and entropy feature equals its stored
+`r_within_pair_tl`. All 28 embedding point estimates and leave-one-out group
+intervals of `results/emb_transfer.json` reproduce exactly. The five-fold
+Rasch refits match `data/strong_llm_eval/targets.json` exactly.
+
+### Pass probability
+
+For the transferred line, a covariate is one noise draw (`gate.lines["transferred
+nested"].asked`). "Draws passing" is the stored count with its Jeffreys 95%
+interval. P(clear -0.002) is the chance that one draw's test-like line clears
+the bar, from the 8 draws' mean and sd, under a normal model and under a t
+predictive. P(full gate) also models the other conditions.
+
+| honest r | draws passing | Jeffreys 95% | P(clear -0.002), normal | t predictive | P(full gate), model |
+|---|---|---|---|---|---|
+| 0.2 | 1/8 | [0.01, 0.45] | 0.09 | 0.12 | 0.09 |
+| 0.3 | 6/8 | [0.41, 0.94] | 0.79 | 0.76 | 0.68 |
+| 0.4 | 7/8 | [0.55, 0.99] | 1.00 | 0.99 | 0.87 |
+| 0.5 | 8/8 | [0.74, 1.00] | 1.00 | 1.00 | 1.00 |
+
+* **At r = 0.3 a covariate passes about two times in three.** The mean is
+  -0.00255 with a draw sd of 0.00068. Of the two failing draws, one misses
+  the bar and the other fails the worst-parent condition. That second failure
+  is inferred: the other four conditions hold, and a draw's worst parent is
+  not stored.
+* **The r a covariate needs** (`gate.lines.<line>.r_for_probability`). A
+  per-draw chance of 0.5, 0.8 or 0.95 of clearing the bar needs an honest r
+  of 0.27, 0.305 or 0.335 on test-like runs, which is a within-pair r of
+  about 0.22 to 0.28 (interpolated in the gate table). The per-pair line needs
+  0.455 to 0.475.
+* **Read on mix/whole** (bar read on mix/whole, selection kept on test-like
+  runs), the same chances need 0.215, 0.24 and 0.255, and the per-pair line
+  0.365 to 0.39. The pass counts there are 4/8 at r = 0.2 and 8/8 from 0.3.
+  They are upper bounds, because a draw's mix/whole worst parent is not
+  stored.
+* **The full gate under mix/whole was not run.** It needs `harness.py --stage
+  table` with SELECT_ON = 'mix', the gate reading mix/whole's estimate and
+  worst parent, and each draw's worst parent kept. The rows exist, so only
+  the table stage reruns, about 25 minutes on one process
+  (`gate.full_mix_gate`). It was deferred because it needs that code change
+  in `experiments/harness.py`'s `gate()` and `average_lines()`, outside this
+  study's scripts, and because it would only move the degraded oracles'
+  pass counts. The stored mix/whole nested lines of the 44 measured
+  covariates the draft's Figure 2 (b) draws (transferred and per-pair,
+  selection kept on test-like runs) are all above -0.002, the best being the 14B's
+  time_log_minutes at -0.0014 (`results/strong_llm_eval.json`,
+  `harness.time_log_minutes.lines["transferred nested"].mix`). A full
+  mix/whole gate could pass a covariate only where selection on mix/whole
+  switched on one that test-like selection did not.
+
+### What the gate can see at B0 and B1
+
+A centred covariate is zero at B0. At B1 a per-pair slope is zero too,
+because the pair's single label is its own centre. A slope transferred from
+other benchmarks acts at B1 about as much as at later budgets (`gate.b1`):
+
+* the honest oracle's transferred line gains 0.0360 of Brier at B1 (cluster
+  SE 0.0040), and its per-pair line exactly 0;
+* at the gate's r = 0.3 the transferred line gains 0.0026 of Brier at B1,
+  against 0.0027 to 0.0030 at B3 to B31;
+* the uncentred B0 term gains -0.0027 ALC even for the honest oracle, and
+  fails the gate.
+
+### When the gate was fixed
+
+"Pre-registered" overstates what the repository shows (`evidence`):
+
+* **The gate first appears in commit f7e7d87** (2026-09-27 04:45 UTC),
+  together with `harness_thresholds.json`, `itemcov_eval.json` and
+  `subject_side.json`. For those three the repository shows only that gate and
+  results were committed at once.
+* **`itemsig_eval.json` was committed a day earlier** (bd0be67), before any
+  commit held the gate.
+* **The 14B's data came after it.** The rubric and attempt data were produced
+  13.6 hours after f7e7d87, and the entropy job's (commit D) 83.8 hours after.
+  The entropy job's own reading rule was committed in 78e303e, before its
+  data.
+* **The other probes were committed after the gate** (`llm4b_close.json`,
+  `attempt_probe.json`, `hidden_state_probe.json`, `icl_probe.json`,
+  `finetune_encoder.json` in 4d2cc4f, `heads_eval.json` in 00bdf04). The
+  repository does not record when their inputs were produced.
+
+### One correlation scale
+
+**The honest difficulty is reliable** (`scale.families.reliability`).
+Split-half Rasch refits give 0.87 to 0.95 and the fold-overlap formula 0.84
+to 0.95. A correlation against full-sample difficulty is therefore only 0.5%
+to 1.6% higher than against the honest one (shrink factor 0.984 to 0.995).
+The implied within-pair reliability is 0.80 to 0.92.
+
+**Every quoted correlation on the gate's within-pair scale.** The bar is
+0.247 at an honest r of 0.3 and 0.33 at 0.4 (`scale.families.<family>.covariates.<covariate>.within_pair`):
+
+| covariate | within-pair r | 95% cluster interval |
+|---|---|---|
+| TF-IDF, leave one benchmark out | 0.065 | [0.03, 0.10] |
+| embedding ridge, leave one benchmark out | -0.106 | [-0.13, -0.08] |
+| embedding kNN, leave one benchmark out | -0.040 | [-0.06, -0.02] |
+| embedding ridge fitted within the same benchmark (not transferable) | 0.251 | [0.23, 0.27] |
+| 4B judge, four features (absolute value; the harness fits the sign) | 0.04 to 0.09 | |
+| 14B primary head (rubric ridge) | 0.108 | [0.08, 0.14] |
+| 14B judged solve share | 0.127 | [0.10, 0.16] |
+| 14B rubric sum | 0.129 | [0.10, 0.16] |
+| 14B rubric scales and time, the highest two (work; time_log_minutes) | 0.148; 0.145 | [0.12, 0.17]; [0.12, 0.17] |
+| 14B attempts' entropy (matharena only; x varies on 20% of appearances) | 0.315 | [0.27, 0.35] |
+| 14B reasoning entropy, ent_first1024 (commit D) | 0.123 | [0.09, 0.15] |
+
+On the scale the gate's honest r is defined on (Pearson with the honest
+difficulty over a parent's items, mean over the four parents with a
+stratified group interval; `.parent_scale.mean_over_parents`): TF-IDF 0.03
+[-0.05, 0.13], embedding ridge -0.10, the 14B primary head 0.19 [0.11, 0.26],
+the judged solve share 0.21, and the reasoning entropy 0.19 [0.12, 0.25]
+(0.32, 0.13, -0.01 and 0.32 by parent). The blind ratings reach 0.30 [0.18,
+0.44] on the rated items only, and 0.02 to 0.08 as the harness would read them,
+with unrated items at the mean.
+
+**What made the draft's numbers generous is the unit, not the target.** A
+degraded oracle keeps 0.82 of its r within a pair (0.81 to 0.87 over the
+gate table's rows; `ci.unit_ratio.oracle`). The 14B's primary head, judged
+solve share, rubric sum and expert-time estimate and the reasoning entropy's
+primary keep only 0.57 to 0.65 (`ci.unit_ratio.named`). Over every covariate
+whose parent-scale interval excludes 0 the share runs from 0.30
+(rubric_interaction) to 1.02 (the transferred embedding ridge, negative on
+both scales), with ent_first256 at 1.01 (`ci.unit_ratio.clear`). For TF-IDF,
+the 4B judge and the embedding kNN the parent-scale r is near 0, so the
+quotient means nothing (`ci.unit_ratio.not_clear`). The correlations the
+draft quoted were taken over a parent's whole range, within groups
+(Spearman), or over text-bearing subsets, while the gate reads a covariate
+within test-like pairs.
+
+## Intervals for every transfer correlation (P1.13)
+
+The `ci` stage of `experiments/gate_and_ci.py` stores a 105-row table
+(`ci.rows`). Each row has a group-bootstrap, an item-bootstrap and a Fisher
+interval (2,000 resamples), recomputed where the study stored none and taken
+from its results file where it did. Groups are item_features groups
+(competition, language, website, paper). Group intervals over multi_swebench's
+8 languages are indicative only.
+
+**TF-IDF, leave one benchmark out** ("What transfers between benchmarks").
+The quoted values are Pearson correlations with transfer.py's naive target,
+the solve-rate logit over all items, not with Rasch difficulty:
+
+| benchmark | naive target, all items | group 95% | Rasch target, text-bearing items | group 95% |
+|---|---|---|---|---|
+| matharena | 0.14 | [0.06, 0.23] | 0.10 | [0.01, 0.20] |
+| multi_swebench | 0.23 | [0.16, 0.27] | 0.14 | [0.09, 0.23] |
+| real_webagents | 0.09 | [-0.13, 0.31] | -0.02 | [-0.40, 0.28] |
+| researchcodebench | -0.22 | [-0.47, 0.07] | -0.16 | [-0.44, 0.10] |
+| swe_rebench | 0.16 | item [0.13, 0.18] (no groups) | 0.11 | item [0.09, 0.14] |
+
+**TF-IDF within matharena** (5-fold, text-bearing items, groups are
+competitions): 0.80 [0.70, 0.86], and 0.58 [0.48, 0.66] with the competition
+mean removed. "What transfers between benchmarks" quotes 0.73 and 0.49; those
+do not reproduce at HEAD.
+
+**Embeddings** (Qwen3-Embedding-0.6B; "Neural embeddings do not carry
+difficulty to an unseen benchmark"), Pearson with group 95% intervals, for
+matharena, multi_swebench, real_webagents and researchcodebench:
+
+| map | matharena | multi_swebench | real_webagents | researchcodebench |
+|---|---|---|---|---|
+| ridge, leave one benchmark out | -0.16 [-0.29, -0.03] | -0.03 [-0.16, 0.04] | -0.23 [-0.43, -0.01] | -0.02 [-0.31, 0.26] |
+| kNN, leave one benchmark out | -0.08 [-0.21, 0.06] | -0.01 [-0.06, 0.02] | -0.02 [-0.22, 0.20] | +0.16 [-0.11, 0.38] |
+| ridge, 5-fold within the benchmark | 0.66 [0.56, 0.73] | 0.27 [0.20, 0.34] | 0.38 [0.19, 0.52] | 0.51 [0.30, 0.66] |
+| item_features group mean alone | 0.57 [0.39, 0.69] | 0.12 [-0.06, 0.23] | 0.41 [0.19, 0.55] | 0.52 [0.30, 0.67] |
+| ridge, whole groups held out | 0.40 [0.29, 0.51] | 0.16 [0.09, 0.25] | -0.02 [-0.19, 0.15] | -0.09 [-0.30, 0.11] |
+
+**Blind ratings** ("Language-model difficulty judgement"; n = 45 a
+benchmark): the Fisher intervals reproduce. Group-bootstrap intervals are
+matharena [0.25, 0.64], multi_swebench [-0.17, 0.48] and real_webagents
+[0.12, 0.41]. The pooled within-benchmark value is 0.17 with a Fisher interval
+of [0.03, 0.31] at n = 180. `experiments/llm_rating/analysis.py`'s pooled
+interval subtracts 3 from n twice (`ci(r, len(df) - 3)`); the difference does
+not show at two decimals.
+
+**The 4B judge, the 14B's heads and features, and the reasoning entropy:** the
+stored intervals are collected in `ci.rows`. For the entropy (Spearman within
+group, group 95%): matharena +0.29 [0.16, 0.40], multi_swebench +0.12 [0.06,
+0.16], real_webagents -0.03 [-0.19, 0.15], researchcodebench +0.33 [0.17,
+0.45]. For the 14B primary head (Pearson, leave one parent out): +0.23 [0.04,
+0.40], +0.01 [-0.08, 0.11], +0.19 [0.11, 0.28], +0.33 [0.12, 0.51]. The 14B's
+attempt entropy on all attempted texts: 0.35 [0.25, 0.45].
+
+**The 4B probe heads and the fine-tuned encoder** are not in `ci.rows`; their
+own results files store the intervals. Leave one benchmark out, the entropy
+head's random-effects mean over the four parents is -0.05 [-0.24, 0.14] and
+the hidden-state head's +0.12 [-0.004, 0.24]
+(`results/hidden_state_probe.json`, `heads.entropy|hidden.random_effects`).
+The fine-tuned encoder's held-out Pearson with honest difficulty is -0.08
+[-0.22, 0.06], +0.05 [-0.01, 0.10], -0.09 [-0.32, 0.15] and -0.11 [-0.41,
+0.10] (matharena, multi_swebench, real_webagents, researchcodebench; group
+intervals), random effects -0.05 [-0.14, 0.05]
+(`results/finetune_encoder.json`,
+`eval.per_cov.finetuned.per_parent.<parent>.honest.pearson` and
+`.random_effects`). The known-sign cues' sign checks carry SEs, not
+intervals ("Item covariates with a known sign").
+
+**No interval is computable** (`ci.not_computable`) for swe_rebench on the
+harness scales (one subject: no subject folds and no test-like pairs), for the
+blind ratings within a pair (too sparse) or on researchcodebench (none rated),
+for the 4B judge on real_webagents and researchcodebench (not extracted), and
+for the 14B's attempts outside matharena.
+
+**Powering the 4B judge is not needed** (`ci.power_4b`). The review (W7)
+asked to run the local 4B judge on several hundred items a benchmark, because
+the blind ratings' intervals include r = 0.3 outside mathematics.
+
+* **The item count no longer limits the answer.** The 14B has since rated
+  every item of the four parents, the same judged solve share included.
+  Excluding r = 0.3 at 80% power would take 258 items on multi_swebench, but
+  847 on real_webagents, which has 233 items in all.
+* **Where items are plentiful, both local judges sit well below the bar.** On
+  multi_swebench the 14B's solve share is 0.07 [-0.04, 0.19] (Pearson with
+  fold-averaged difficulty) and the 4B's rating 0.11 [0.06, 0.21] (Spearman
+  within group, sign as declared; stored for the raw rating as -0.11 [-0.21,
+  -0.06]). The draft's Figure 2 (c) draws the rating's Pearson over all rated
+  items, 0.11 [0.06, 0.18] as declared: another statistic from the same
+  entry of `results/llm4b_close.json`.
+* **Where items are few, the 14B still fails the gate.** Its solve share is
+  0.34 [0.13, 0.52] on researchcodebench (the one parent where it reaches
+  0.3) and 0.18 [-0.03, 0.39] on real_webagents against fold-averaged
+  difficulty, but only 0.13 within a test-like pair, and its best nested line
+  is -0.00084.
+
+More 4B items could narrow an interval. They could not move a covariate that
+the stronger judge, at full coverage, does not carry through the gate.
+
+## A single-subject benchmark (P1.15)
+
+`python experiments/gate_and_ci.py --stage single` (4 s, 0.38 GB). It reads
+the stored rows of `experiments/ship_confirm.py`'s matched arms and of P1a.
+Every number below is in `results/gate_and_ci.json`, `single`.
+
+swe_rebench is the one public benchmark with a single subject (6,306 items).
+In public R1 runs the 1,000-item cap cuts its evaluation half to a different
+subset in every run: on runs 0 to 99, 86 appearances have a mean pairwise
+Jaccard overlap of 0.026. The SE below is therefore over appearances, which
+resample this one subject's items. It is not a cluster SE.
+
+Shipped minus comparator, ALC per appearance, ± SE over appearances:
+
+| library, runs | appearances | minus legacy Predictor | minus smoothed Beta(2,2) |
+|---|---|---|---|
+| run 2's archive (seed 0), benchmark-first, runs 0-149 | 130 | +0.0101 ± 0.0012 (weighted +0.0099) | +0.0130 ± 0.0014 (weighted +0.0127) |
+| run 2's archive (seed 0), pair-uniform, runs 0-99 | 7 | +0.0121 ± 0.0065 (weighted +0.0114) | +0.0151 ± 0.0077 |
+| current archive (seed 11, P1a), benchmark-first, runs 0-59 | 51 | +0.0094 ± 0.0016 | +0.0117 ± 0.0018 |
+| current archive (seed 11, P1a), pair-uniform, runs 0-59 | 9 | +0.0024 ± 0.0042 | +0.0043 ± 0.0045 |
+
+("Weighted" weights each appearance by 1 / its run's pair count, as
+`results/ship_confirm.json` does.)
+
+* **The loss sits at B0 to B3.** Against the legacy Predictor, benchmark-first
+  at seed 0, it is +0.024 at B0, +0.018 at B1 and +0.013 at B3, and under
+  0.006 from B7 on.
+* **It is a small part of the public regimes' difference.** swe_rebench
+  carries +0.0010 of benchmark-first's -0.0017 against the legacy Predictor
+  (seed 0).
+* **Against P1a's alternatives** (seed 11, benchmark-first;
+  `single.seed11_current_library.R1B.vs`): SHIP does better than sigma_mu 5
+  (by 0.0073 ± 0.0010), the calibrated smoothed mean (0.0062 ± 0.0006), the
+  neighbouring configuration (0.0032 ± 0.0004), sigma_mu 3.5 (0.0025 ±
+  0.0004), the adaptive EB level on mu0 -3.0 (0.0015 ± 0.0008) and hier
+  without its subject prior (0.0009 ± 0.0001). The two wider level priors
+  gain at B0 (by 0.005 and 0.012 of Brier) and lose from B1 on. The adaptive
+  EB level on SHIP's own prior is level (+0.0004 ± 0.0008). hier with its
+  fitted EB hyperparameters does better than SHIP, by 0.0022 ± 0.0010, as do
+  the legacy Predictor and the smoothed mean.
+
+**What it cannot say** (`single.not_measured`): variation between subjects or
+between single-subject benchmarks is not measured, so no interval generalises
+to a hidden single-subject benchmark. swe_rebench is excluded from test-like
+runs by default, so the tuned-regime gains say nothing about such
+benchmarks. Its pair accuracy is about 0.49, near the public centre, so a
+single-subject benchmark far from it is not covered either.
+
+## Row files for release (P1.17)
+
+`python tools/export_rows.py` writes eight deterministic tar.xz archives (sorted
+members, mtime 0, owner 0, mode 0644), a `MANIFEST.json` with every member's
+sha256, and `SHA256SUMS` to `data/release_rows/`, which is gitignored with the
+rest of `data/`. `verify` checks the archives and members against the
+manifest, and `restore` unpacks them into `data/`, checking every member.
+
+| set | read by |
+|---|---|
+| `subject_side_rows` | `ship_confirm.py`, `subject_side.py --summarise`, `formative_feedback.py`, `level_audit.py`, `script_revisions.py --stage reread` |
+| `regime_sensitivity_rows` | `regime_sensitivity.py summarise` and `review` |
+| `harness_rows` | `harness.py --stage table` and `eval`, `llm4b_close.py`, `strong_llm_eval.py`, `hidden_state_probe.py`, `finetune_encoder.py`, `gate_and_ci.py` |
+| `harness_rows_legacy` | `heads_eval.py --rows legacy`, `itemcov_eval.py`, `mcq_floor.py` |
+| `hier_floor` | `hier_floor_replay.py --stage summary` |
+| `strong_llm_eval` | the 14B's derived tables (features, entropy, honest targets, the heads' out-of-fold predictions), `gate_and_ci.py` |
+| `baselines_p1_rows` | `baselines_p1.py summarise` (with `regime_sensitivity_rows`) |
+| `pooling_decomposition_rows` | `pooling_decomposition.py summarise` and `recheck` |
+
+The export never copies measurement-db itself, `data/features` (item
+features, embeddings, the Kaggle exports) or `third_party/`. The manifest
+states that the rows derive from measurement-db, whose gated CC-BY-SA terms
+apply to them. Re-run on rows restored from the archives,
+`experiments/ship_confirm.py` passes every check with identical numbers, and
+`baselines_p1.py summarise` and `pooling_decomposition.py summarise` give
+summaries identical to `results/baselines_p1.json` and
+`results/pooling_decomposition.json` except for timestamps and wall times
+(and `baselines_p1.json`'s `ble` section, which the `ble` stage writes from
+`third_party/`, not from the rows). Re-exported with the two new sets, the
+six older archives are byte-identical to the first export.
+
+Still open:
+
+* **Hosting, TODO(team).** The archives exist locally only. They need a home
+  (a Hugging Face dataset or Zenodo) under measurement-db's CC-BY-SA terms.
+  That needs network access and the team's sign-off on publishing derived
+  rows of a gated dataset, so it is left to the team.
+* **The itemsig rows cannot be exported.** They were written to a scratch
+  `--rows` directory and are not in `data/`.
