@@ -520,7 +520,7 @@ X minus SHIP in ALC, with the cluster SE in brackets:
 4. lose at most 0.001 on public runs, and at most 0.003 against the legacy Predictor there;
 5. take at most twice SHIP's time a call.
 
-**No configuration is a candidate, so SHIP stays.** That outcome assumes deviation D1 (§4.4). Read literally, without D1, the rule was not applied, and neither reading has a candidate.
+**No configuration is a candidate, so SHIP stays.** That outcome assumes deviation D1 (§4.4), which the team accepted. Read literally, without D1, the rule was not applied, and neither reading has a candidate.
 
 What the rows show:
 
