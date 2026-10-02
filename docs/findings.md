@@ -1305,6 +1305,10 @@ centre: 0.029 at a realised level of -0.77 and 0.022 at -0.59, against 0.042
 at the tuned regime's -1.29. Without a level tilt the Predictor with a moved
 prior does as well as any hier config. The level_mean -2.0 regime, where AGGR
 should do best, has never been scored for MILD, and nor has level_mean -1.2.
+(Regimes set to the feedback's level readings were scored later, on fresh
+seeds and under a rule fixed in advance. AGGR scores worse than MILD in every
+one of them but the tuned regime, by +0.0005 to +0.0033: "Regime sensitivity
+at the feedback's reading".)
 
 attr_scale below 1 is a bet that the attribute prior is inflated for hidden
 subjects (the regime reproduces the feedback's B0 optimism with a synthetic date
@@ -1358,7 +1362,9 @@ The earlier caveats still hold, and two become blocking:
   and the sensitivities bound it. The gain comes mostly from B0 and B1 (0.031 of
   0.044), which the next formative feedback will show directly.
 * sigma_mu 2.5 and attr_scale 0.25 sit on the edges of what was scored: no wider
-  level prior and no smaller attr_scale were tried.
+  level prior and no smaller attr_scale were tried. (sigma_mu 3.5 and 5, at
+  the shipped mu0 and attr_scale, were scored later and do not do better:
+  "Regime sensitivity at the feedback's reading".)
 * hier's hyperparameters, like the Predictor's, were set with the public
   benchmarks in view, and the public guard runs are the ones hier_eval.py
   already used.
@@ -4998,7 +5004,9 @@ Single-run sds of the shipped model by budget (B0..B31 | ALC): test-like
   and its mix/whole variant, 0.014 without the date shift, and 0.022 to 0.029
   in the two regimes nearer the per-pair feedback reading ("What actually
   shipped, after the audit"). The level_mean -1.2 and -2.0 sensitivities were
-  never scored for the shipped config.
+  never scored for the shipped config. (Regimes at the feedback's readings
+  were scored later: the gain there is 0.025 to 0.031, "Regime sensitivity at
+  the feedback's reading".)
 * Against the smoothed mean the gain is 0.017 in the tuned regime and 0.009 on
   public runs.
 * The single-subject case (open since "Verdict: ship hier with the level moved
@@ -5123,7 +5131,10 @@ budgets as a sanity estimate. The audit then read run 1 per pair and moved the
 shipped level from the recommended config to the milder one ("What actually
 shipped, after the audit"): the only per-pair reading behind a shipped choice,
 and a choice of global hyperparameters only. Run 2 motivated the subject-side
-study, which shipped nothing, and this reading, which changed nothing. Run 3
+study, which shipped nothing, and this reading, which changed nothing. This
+reading and the audit's reading of run 1 later set the level targets of the
+READING, AUDIT and MIXTURE regimes of "Regime sensitivity at the feedback's
+reading", which also changed nothing. Run 3
 is a regression and latency check and is read for nothing else ("Formative
 run 3"). The
 leaderboard (organisers' entry 0.1801, best 0.1172, read 2026-09-24) is used
@@ -5284,7 +5295,8 @@ of the audit's reasoning is to score the shipped config, the recommended one,
 the EB level, a calibrated smoothed mean and the legacy Predictor in a regime
 with level_mean near -0.7 to -1.1 and level_sd near 1.8; the two regimes of
 "What actually shipped, after the audit" come close, and that experiment was
-not run. The archive paths and rebuild trees in the results file point into
+not run. (It has since been run, under a rule fixed before scoring, and found
+no candidate; LEVEL stays: "Regime sensitivity at the feedback's reading".) The archive paths and rebuild trees in the results file point into
 session scratch, which is not durable; the hashes are the lasting record.
 
 ## Formative run 3
@@ -5431,3 +5443,634 @@ archive record is of the file in `dist/`; a copy downloaded back from the
 platform would close it as for runs 1 and 2 (`--archive PATH --archive-how
 TEXT`). `results/formative_feedback.json` still lists run 3 as unscored: it is
 left as it is, because `experiments/script_revisions.py` audits that file.
+
+## Regime sensitivity at the feedback's reading (P1.10, P1.16)
+
+`python experiments/regime_sensitivity.py S` for S = `lock`, `smcal`,
+`regimes --grid` and `reproduce`, then `score --shard 0/2` and
+`score --shard 1/2` side by side, then `summarise`. The `review` stage was
+added after scoring; its commands are in the script's header. A scoring task
+(one run, every config) took 31 to 40 s on average (`summary.rows.task_s`).
+The 520 rows were written between 16:44:02 and 19:15:28 UTC on 2026-10-01,
+on two processes of a machine shared with other jobs, at most 1.0 GB resident
+each (`summary.rows.max_rss_gb`). Every number below is in
+`results/regime_sensitivity.json`, under the key in brackets. The rows are in
+`data/regime_sensitivity_rows/` (gitignored, 520 files).
+`tests/test_regime_sensitivity.py` (51 tests) covers the script. The plan,
+with the rule quoted verbatim and amendments appended after review, is
+`docs/plans/p1a_regime_sensitivity.md`. `paiec/testlike.py` gained one
+option for the study, `Regime.level_mix`, a Gaussian-mixture level target.
+When the option is empty the sampler is unchanged.
+
+**Outcome.** No config is a candidate, so the shipped configuration stays
+(`rule.outcome`: "no candidate: SHIP stays").
+
+* A wider level prior does not do better (`rule.p116`).
+* Neither adaptive empirical-Bayes level is a candidate (`rule.eb`).
+* Every config is recorded as a negative result (`rule.negative`).
+
+That outcome assumes deviation D1, which changed how one reproduction check
+was compared before any scoring-seed row existed ("Provenance and
+deviations", below). Without D1, the rule read literally gives "rule not
+applied: check failed" (`rule.literal_reading`). Neither reading has a
+candidate, because no config meets condition (a). D1 needs the team's
+acceptance, but the conclusion does not depend on it. Nothing in
+`submission/` changed.
+
+**What it asks.** The audit moved the archive to the milder level because the
+hidden levels "look spread both ways" ("What actually shipped, after the
+audit"). The pooled reading of runs 1 and 2 then put them near the public
+centre ("Formative feedback, runs 1 and 2"). No regime with that level and
+spread had been scored for the shipped configuration. The internal review
+(`docs/report/review_v0.md`) asked three questions:
+
+* **W3, Q3 and P1.10.** How do the shipped configuration, the recommended
+  -3.0/0.25, the empirical-Bayes level, a calibrated smoothed mean and the
+  legacy Predictor rank in regimes at the feedback's level reading, and under
+  a two-component mixture?
+* **P1.16.** Does sigma_mu 3.5 or 5, at the shipped mu0 and attr_scale, do
+  better?
+* **W4 and P1.9** (descriptive here). How much of the gain do a
+  level-calibrated smoothed mean and hier without its subject prior recover?
+
+### The plan and the rule, and when they were fixed
+
+The plan and its decision rule were fixed at 14:56:59 UTC on 2026-10-01, at
+HEAD 380fecf, before any run of the scoring seed was drawn
+(`lock.fixed_at_utc`). Three hashes pin them:
+
+* the rule's text, sha256 `47e4735c…`;
+* the plan file as fixed, `0a857944…`;
+* the script's constants block, `c28c19d6…`, which holds the rule, the
+  configs, the regimes, the seeds, the run counts and the thresholds.
+
+The `lock` stage checks all three, and 12 of 12 lock checks pass
+(`lock.checks`).
+
+Nothing was committed before scoring, so the time stamp is self-reported. The
+evidence for it is local, file mtimes and copies in session scratch, not a
+commit (`review.provenance.evidence`):
+
+| UTC, 2026-10-01 | event |
+|---|---|
+| 14:50:26 | the planner's rule text last written (its sha256 is the rule's) |
+| 14:56:59 | the plan fixed (`FIXED_AT_UTC`, and the plan file's mtime) |
+| 15:26:54 | seed 11 first drawn, by the regimes stage (run composition only, no predictor) |
+| 15:40:07 | the first reproduce run ends; D1 is found |
+| 16:26:39 | reproduce passes with D1's fix |
+| 16:44:02 | the first scoring-seed row |
+| 16:56:16 | a dry run of summarise on the 19 rows scored so far |
+| 19:15:28 | the last of the 520 rows |
+| 19:16:01 | summarise runs, and the rule is applied once |
+
+Scratch is not durable. The hashes and times copied into the results file are
+the lasting record.
+
+**The rule** is quoted verbatim in section 8 of the plan. Its terms:
+
+* D(X, R) is a config's mean run ALC minus SHIP's, on the same runs of
+  regime R.
+* U95 is D plus 1.96 cluster SEs.
+* Pq is the difference over parent q's pair appearances, each weighted by
+  1 / its run's pair count.
+* PL is the mean of Pq over the four multi-subject parents.
+
+A config is a candidate to replace SHIP only if all six conditions hold:
+
+* (a) in READING and in AUDIT, D ≤ -0.002 and U95 < 0;
+* (b) in READING and in AUDIT, PL < 0, and no multi-subject parent above
+  +0.004;
+* (c) in TUNED, MIXTURE and FLAT, D ≤ +0.002;
+* (d) on both public weightings, D ≤ +0.001, and X minus the legacy
+  Predictor ≤ +0.003;
+* (e) X's mean evaluation call takes at most 2.0 times SHIP's, and no single
+  call of X takes over 2.0 s;
+* (f) every reproduction and realisation check passed, and every planned run
+  was scored.
+
+A candidate would go to the team, not into the archive. Beyond the task's
+floor, the plan added the parent-level sign in (b), FLAT in (c), the legacy
+guard in (d), and conditions (e) and (f), the same for every config. (b)'s
+per-parent cap of +0.004 is looser than the +0.002 of the pooled reading's
+gate. No config reached (a), so the cap decided nothing.
+
+The plan's power estimate (section 7) assumed hier-versus-hier cluster SEs
+near 0.001. A config truly 0.004 better then passes (a) in one regime with
+probability about 0.98, one 0.003 better about 0.84, and one 0.002 better
+about 0.5.
+
+Formative run 3 is used for nothing here.
+
+**Seeds.** The regime knobs were set on seed 10 by run composition alone,
+with no predictor. Every scored run uses seed 11: runs 0 to 79 of each
+test-like regime and 0 to 59 of each public weighting, 520 tasks in all.
+Neither seed had been used before.
+
+Fresh seeds are not fresh data, though. Every test-like regime redraws the
+catalogue cut from the same four parents. The public runs redraw the same
+221 pairs that chose LEVEL and the recommended config, and guarded them. So
+TUNED and the guards of (c) and (d) carry that selection's optimism, toward
+SHIP or the recommended config, and do not replicate it independently.
+
+### Configs
+
+Every hier config uses `prior.build` fitted without the target's parent
+benchmark. So do the legacy Predictor's attribute prior and every
+empirical-Bayes hyperparameter (`plan.configs`).
+
+| key | what it is |
+|---|---|
+| `ship` (SHIP) | hier, LEVEL mu0 -2.5, sigma_mu 2.5, attr_scale 0.5; the reference |
+| `aggr` | hier, mu0 -3.0, sigma_mu 2.5, attr_scale 0.25; the config "Calibrating for the hidden test" recommended |
+| `eb_fit` | hier with the hyperparameters `prior.build` fits with the target's parent held out, nothing overridden (attr_scale 1) |
+| `eb_adapt` | the pair-level empirical-Bayes level of "Calibrating for the hidden test", on mu0 -3.0, sigma_mu 2.5, attr_scale 0.5; centre and scale are re-estimated from `labeled` at every checkpoint, with tau 2 |
+| `eb_ship` | the same adaptation on SHIP's level; identical to SHIP at B0, so its difference from SHIP is the adaptation alone |
+| `wide35`, `wide50` | SHIP with sigma_mu 3.5 and 5.0 (P1.16) |
+| `legacy` | the legacy Predictor, the first submission |
+| `smooth` | the smoothed mean, Beta(2,2) |
+| `smcal` | a smoothed mean with a calibrated prior, (k + n0 m0) / (n + n0) on the pair's own labels (below) |
+| `onepl` | hier at SHIP's level with the attribute prior and identity link off: a pooled level, item difficulty, group effects and the multiple-choice floor, and no subject prior |
+
+**smcal's prior** was chosen by LEVEL's own rule, on LEVEL's own runs
+(`smcal`).
+
+* **The grid.** n0 in {0.5, 1, 2, 4, 8, 16, 32} times m0 in {0.05, 0.10, ...,
+  0.50}, 70 points.
+* **The rule.** Take the best ALC on test-like seed 2 runs 0 to 99, among the
+  points that lose at most 0.003 against the legacy Predictor's stored rows
+  on public seed 0 runs 0 to 99, on both weightings.
+* **No point passes the guard.** The smallest losses are +0.0023
+  (benchmark-first) and +0.0040 (pair-uniform), both at (4, 0.4).
+* **So smcal is the unguarded best.** As the plan fixed, smcal is the best
+  point on the selection half regardless of the guard: n0 2 and m0 0.25, ALC
+  0.1588. It is flagged `guard_failed`, and it loses +0.0077 and +0.0096 on
+  the guard. Beta(2,2) scores 0.1788 there, with guard losses of +0.0070 and
+  +0.0075, as in "Calibrating for the hidden test".
+* **The guard's reference is stale, and the choice stands.** The stored
+  legacy rows predate the corrected multiple-choice floor. Against the
+  current legacy Predictor every guard loss grows, the best point's to
+  +0.0027 and +0.0047. No point passes and the choice is unchanged
+  (`review.smcal_guard`).
+
+smcal's level is calibrated to the tuned regime only, and was chosen in
+sample on its catalogue. TUNED is therefore the smoothed mean's best case.
+
+**onepl's centre.** With the attribute prior off, mu0 is no longer measured
+from an attribute score of 0, and the date shift's attribute optimism is
+gone. onepl's mean B0 prediction is 0.31, against SHIP's 0.42, on test-like
+runs (`summary.configs.<regime>.<config>.q0`). onepl minus SHIP therefore
+mixes the subject prior with a lower centre. It is also not the plain 1PL the
+review asks for, which would drop the group effects and the floor as well.
+
+### Regimes and what they realised
+
+Every test-like regime is `testlike.Regime()` at its defaults, except for the
+level knobs named: the 1.25-year date shift, swe_rebench excluded, and a
+benchmark-level tilt. The realised level is the continuity-corrected logit of
+each pair appearance's evaluated responses, as in `testlike_check` and the
+pooled reading. Its mean and sd are taken over every appearance
+(`summary.realised`, `review.levels`).
+
+| regime | knobs | target | seed 10 (1,000 draws), mean / sd | seed 11, scored: mean (cluster SE) / sd | share below -3 / -4 |
+|---|---|---|---|---|---|
+| TUNED | the defaults (level_mean -1.6, level_sd 1.5) | -1.290 / 1.696, realised (`testlike_check.json`) | -1.273 / 1.731 | -1.276 (0.152) / 1.621 | 0.121 / 0.028 |
+| READING | level_mean -0.85, level_sd 1.75 | -0.715 / 1.772, the mean of the pooled reading's K 15 and K 40 values | -0.729 / 1.793 | -0.627 (0.169) / 1.678 | 0.076 / 0.015 |
+| AUDIT | level_mean -1.8, level_sd 2.1 | -1.10 / 2.00, the review's statement of the audit's reading | -1.102 / 1.997 | -0.930 (0.219) / 2.054 | 0.136 / 0.060 |
+| MIXTURE | `level_mix` (0.20, -4.38, 0.171) + (0.80, -0.75, 1.151) | share below -3 of 0.118 and a rest mean of -0.226, from the reading's two-component fits | -0.705 / 2.062 (share 0.118, rest -0.227) | -0.642 (0.188) / 2.126 (share 0.110, rest -0.201) | 0.110 / 0.057 |
+| FLAT | no level tilt | none | -0.338 / 2.287 | -0.280 (0.216) / 2.225 | 0.098 / 0.031 |
+| R1B | public R1, benchmark-first, split scope 'pair' | none | | -0.556 (0.116) / 1.346 | 0.055 / 0.019 |
+| R1P | public R1, pair-uniform, split scope 'pair' | none | | -0.767 (0.115) / 1.465 | 0.080 / 0.025 |
+
+Each knob was set by a search over run composition on seed 10. `regimes
+--grid` re-ran that search over the full knob grid. Its argmin is the fixed
+knob for READING, AUDIT and MIXTURE (`regimes.grid`).
+
+The scored runs passed the realisation checks, whose bounds were fixed before
+scoring: ±0.30 for the mean and the sd, ±0.04 for the share and ±0.25 for the
+rest mean. The largest shift from seed 10 is AUDIT's mean, +0.173
+(`regimes.checks`).
+
+* **The feedback regimes realised milder levels than they targeted.** READING
+  and AUDIT span -0.63 to -0.93 on the scored runs, not the planned -0.7 to
+  -1.1. Together they bracket the pooled reading's means (-0.65 and -0.78),
+  but they fall short of the -1.10 the review gave for the audit's reading.
+* **MIXTURE's low mode exists, but it is narrow.** 36 of its 627 appearances
+  (0.057) sit below -4, against 0.015 in READING. 26 of the 36 come from two
+  multi_swebench pseudo-benchmarks (`q1of3` and `q1of2`), and 8 more from
+  `real_webagents::all`. Its share below -3 (0.110) is lower than TUNED's
+  (0.121) and AUDIT's (0.136). As a stress test it is weaker than its name.
+  Its main component is also wider than the reading's (rest sd 1.80 against
+  1.15), because the catalogue cannot realise a tight high mode.
+* **FLAT is the most central test-like regime** (-0.28), more central than
+  public R1 (-0.56 and -0.77). All five test-like regimes keep the synthetic
+  date shift.
+* **The parents set the level.** In every test-like regime matharena sits
+  high (+0.09 in TUNED to +1.68 in FLAT) and multi_swebench low (-1.81 to
+  -2.34). Leaving one parent out moves READING's mean anywhere from -1.11
+  (matharena out) to -0.06 (multi_swebench out).
+
+### Checks
+
+* **smcal.** The grid's (4, 0.5) column reproduces `level_calibration.json`'s
+  smoothed rows to 5.5e-6, on 300 runs and 2,539 pairs (`smcal.check`).
+* **Reproduction**, on test-like seed 2 runs 0 to 4 (`reproduce.checks`):
+  * SHIP's per-pair Brier matches `data/harness_rows` to at most 1.4e-16
+    (tolerance 1e-9).
+  * The smoothed mean matches `level_calibration.json` to at most 4.9e-6
+    (tolerance 1e-5).
+  * The legacy Predictor, off matharena, matches `testlike_check.json` to
+    4.7e-7 to 5.0e-7. That fails the planned 1e-9 and passes at the
+    comparator's six stored decimals (D1, below).
+* **After scoring** (`summary.checks`):
+  * Every planned task was scored, 400 test-like and 120 public.
+  * All 520 rows carry one set of library digests and one script digest, and
+    their run compositions match the regimes stage's.
+  * The TUNED consistency check compared SHIP minus the legacy Predictor,
+    -0.0434 ± 0.0019 / 0.0037 (run / cluster SE), with the -0.0415 ± 0.0034
+    of "Shipped configuration, confirmed". That is z -0.37, against a bound
+    of 3 (`summary.tuned_consistency`). The two numbers come from different
+    libraries (below) and different seeds.
+
+**Which code these numbers describe.** Every hier config ran on
+`paiec/hier.py` d9a95612, the code of the archive now selected (built at
+4d2cc4f, sha256 `4a882cc7…`), which has the corrected multiple-choice floor
+and the floored-fit fix. The rows record the digests of the library they ran
+on (`summary.rows.library_digests`). These equal the files at 4d2cc4f for
+`paiec/hier.py`, `prior.py`, `subjects.py`, `mcq.py`, `predict.py`,
+`fitting.py`, `official.py` and `submission/model.py`. Only
+`paiec/testlike.py`, which does not ship, differs, by `level_mix`. "Shipped
+configuration, confirmed" used rows of run 2's library. The gap between the
+two libraries was measured there at under 0.0005.
+
+### Configs against SHIP
+
+X minus SHIP in ALC (lower is better), with the cluster SE in brackets. SHIP's
+own ALC ± run SE is in the first row (`summary.vs_ship.<regime>.<config>.exact`,
+`summary.configs`).
+
+| config | TUNED | READING | AUDIT | MIXTURE | FLAT | R1B | R1P |
+|---|---|---|---|---|---|---|---|
+| SHIP, ALC | 0.1690 ± 0.0030 | 0.1881 ± 0.0029 | 0.1650 ± 0.0034 | 0.1830 ± 0.0031 | 0.1739 ± 0.0030 | 0.2114 ± 0.0030 | 0.1948 ± 0.0033 |
+| aggr | -0.0034 (0.0010) | +0.0015 (0.0011) | +0.0005 (0.0014) | +0.0017 (0.0012) | +0.0033 (0.0014) | +0.0025 (0.0004) | +0.0020 (0.0005) |
+| eb_adapt | -0.0027 (0.0006) | +0.0003 (0.0004) | -0.0005 (0.0007) | -0.0001 (0.0004) | +0.0003 (0.0004) | +0.0017 (0.0002) | +0.0020 (0.0002) |
+| eb_ship | -0.0014 (0.0004) | +0.0003 (0.0003) | -0.0002 (0.0004) | -0.0001 (0.0003) | -0.0001 (0.0004) | +0.0006 (0.0003) | +0.0014 (0.0003) |
+| wide35 | +0.0009 (0.0003) | +0.0006 (0.0003) | -0.0003 (0.0004) | +0.0005 (0.0004) | -0.0010 (0.0005) | +0.0007 (0.0003) | +0.0008 (0.0003) |
+| wide50 | +0.0031 (0.0007) | +0.0023 (0.0007) | +0.0006 (0.0008) | +0.0022 (0.0008) | -0.0007 (0.0009) | +0.0026 (0.0007) | +0.0025 (0.0007) |
+| onepl | -0.0030 (0.0012) | +0.0026 (0.0014) | +0.0016 (0.0017) | +0.0031 (0.0014) | +0.0049 (0.0017) | +0.0025 (0.0005) | +0.0027 (0.0004) |
+| smcal | -0.0015 (0.0019) | +0.0078 (0.0021) | +0.0043 (0.0024) | +0.0071 (0.0021) | +0.0103 (0.0024) | +0.0108 (0.0014) | +0.0100 (0.0018) |
+| eb_fit | +0.0309 (0.0035) | +0.0173 (0.0032) | +0.0233 (0.0042) | +0.0164 (0.0028) | +0.0140 (0.0038) | -0.0010 (0.0010) | +0.0009 (0.0011) |
+| smooth | +0.0170 (0.0022) | +0.0096 (0.0018) | +0.0142 (0.0024) | +0.0110 (0.0020) | +0.0103 (0.0018) | +0.0075 (0.0029) | +0.0127 (0.0021) |
+| legacy | +0.0434 (0.0037) | +0.0248 (0.0037) | +0.0313 (0.0049) | +0.0263 (0.0037) | +0.0200 (0.0044) | +0.0002 (0.0020) | +0.0039 (0.0019) |
+
+**The two regimes the rule reads first**, ± run / cluster / stratified SE,
+with U95, the parent-level mean ± SE and the range of the four parents' Pq
+(`summary.vs_ship.<regime>.<config>.table.parent_level`):
+
+| config | READING: X minus SHIP | U95 | parent-level | parents | AUDIT: X minus SHIP | U95 | parent-level | parents |
+|---|---|---|---|---|---|---|---|---|
+| aggr | +0.0015 ± 0.0006 / 0.0011 / 0.0009 | +0.0037 | +0.0016 ± 0.0033 | -0.0058 to +0.0103 | +0.0005 ± 0.0006 / 0.0014 / 0.0011 | +0.0033 | +0.0015 ± 0.0046 | -0.0080 to +0.0142 |
+| eb_adapt | +0.0003 ± 0.0003 / 0.0004 / 0.0004 | +0.0012 | +0.0005 ± 0.0010 | -0.0025 to +0.0020 | -0.0005 ± 0.0003 / 0.0007 / 0.0006 | +0.0008 | +0.0002 ± 0.0020 | -0.0051 to +0.0041 |
+| eb_ship | +0.0003 ± 0.0003 / 0.0003 / 0.0003 | +0.0010 | +0.0005 ± 0.0005 | -0.0004 to +0.0016 | -0.0002 ± 0.0003 / 0.0004 / 0.0004 | +0.0006 | +0.0002 ± 0.0009 | -0.0023 to +0.0021 |
+| wide35 | +0.0006 ± 0.0002 / 0.0003 / 0.0003 | +0.0012 | +0.0007 ± 0.0006 | -0.0006 to +0.0017 | -0.0003 ± 0.0002 / 0.0004 / 0.0003 | +0.0004 | -0.0000 ± 0.0010 | -0.0026 to +0.0020 |
+| wide50 | +0.0023 ± 0.0005 / 0.0007 / 0.0007 | +0.0037 | +0.0027 ± 0.0011 | +0.0004 to +0.0047 | +0.0006 ± 0.0004 / 0.0008 / 0.0007 | +0.0021 | +0.0012 ± 0.0021 | -0.0036 to +0.0053 |
+| onepl | +0.0026 ± 0.0007 / 0.0014 / 0.0012 | +0.0054 | +0.0028 ± 0.0040 | -0.0064 to +0.0131 | +0.0016 ± 0.0007 / 0.0017 / 0.0014 | +0.0049 | +0.0028 ± 0.0055 | -0.0088 to +0.0176 |
+| smcal | +0.0078 ± 0.0010 / 0.0021 / 0.0016 | +0.0119 | +0.0083 ± 0.0066 | -0.0083 to +0.0238 | +0.0043 ± 0.0010 / 0.0024 / 0.0019 | +0.0090 | +0.0062 ± 0.0081 | -0.0118 to +0.0274 |
+| eb_fit | +0.0173 ± 0.0017 / 0.0032 / 0.0024 | +0.0237 | +0.0156 ± 0.0118 | -0.0067 to +0.0488 | +0.0233 ± 0.0017 / 0.0042 / 0.0030 | +0.0315 | +0.0175 ± 0.0153 | -0.0136 to +0.0595 |
+| smooth | +0.0096 ± 0.0009 / 0.0018 / 0.0016 | +0.0132 | +0.0091 ± 0.0035 | +0.0022 to +0.0189 | +0.0142 ± 0.0010 / 0.0024 / 0.0021 | +0.0189 | +0.0118 ± 0.0062 | -0.0003 to +0.0290 |
+| legacy | +0.0248 ± 0.0020 / 0.0037 / 0.0032 | +0.0321 | +0.0239 ± 0.0100 | +0.0011 to +0.0498 | +0.0313 ± 0.0020 / 0.0049 / 0.0040 | +0.0408 | +0.0265 ± 0.0153 | -0.0099 to +0.0648 |
+
+How close the configs come to SHIP in these two regimes (`review.headline`):
+
+* **Three configs sit within ±0.0006 of SHIP in both READING and AUDIT:**
+  wide35, eb_adapt and eb_ship. Their cluster SEs are 0.0003 to 0.0007,
+  smaller than the 0.001 the plan assumed. For these three, then, missing (a)
+  most likely means any gain is under 0.002, not that the test lacked power.
+  The closest call is eb_adapt in AUDIT, -0.0005 with a cluster SE of 0.0007.
+* **aggr, wide50 and onepl lose 0.0005 to 0.0026,** with cluster SEs of
+  0.0007 to 0.0017.
+* **Across every hier config** the cluster SEs run from 0.0003 to 0.0042.
+
+### Per parent
+
+Every config with a lower centre than SHIP trades the same two parents:
+
+| config, against SHIP | multi_swebench | matharena |
+|---|---|---|
+| aggr | gains 0.0055 to 0.0085 | loses 0.0054 in TUNED and 0.0103 to 0.0159 elsewhere |
+| smcal | gains 0.0070 to 0.0130 | loses 0.0172 to 0.0319 |
+| onepl | gains 0.0059 to 0.0093 | loses 0.0077 to 0.0196 |
+| eb_adapt | gains 0.0021 to 0.0058 | loses 0.0011 to 0.0041 |
+
+(Each range runs over the five test-like regimes; source:
+`summary.vs_ship.<regime>.<config>.table.per_parent`.)
+
+multi_swebench is the lowest parent in every regime and matharena the
+highest. The ranking therefore turns on how a regime weights these two
+parents. The parent-level SE, which sees that, is two to four times the
+cluster SE.
+
+SHIP against the legacy Predictor shows the same split
+(`summary.vs_legacy.<regime>.ship.per_parent`):
+
+* On matharena, SHIP's difference moves from -0.0241 in TUNED to +0.0099 in
+  AUDIT and +0.0160 in FLAT, where SHIP loses on that parent.
+* On multi_swebench it stays between -0.050 and -0.065.
+
+### Against the legacy Predictor and the smoothed means
+
+SHIP minus each comparator on the same runs, ± run / cluster / stratified SE
+(`summary.vs_legacy.<regime>.ship`, `summary.vs_smooth.<regime>.ship`,
+`summary.decomposition.<regime>`):
+
+| regime (realised level) | SHIP ALC | legacy ALC | SHIP minus legacy | parent-level | parents (range) | runs won | SHIP minus smoothed Beta(2,2) | SHIP minus smcal |
+|---|---|---|---|---|---|---|---|---|
+| TUNED (-1.28) | 0.1690 | 0.2124 | -0.0434 ± 0.0019 / 0.0037 / 0.0034 | -0.039 ± 0.008 | -0.060 to -0.024 | 100% | -0.0170 ± 0.0010 / 0.0022 / 0.0021 | +0.0015 ± 0.0010 / 0.0019 / 0.0015 |
+| READING (-0.63) | 0.1881 | 0.2130 | -0.0248 ± 0.0020 / 0.0037 / 0.0032 | -0.024 ± 0.010 | -0.050 to -0.001 | 90% | -0.0096 ± 0.0009 / 0.0018 / 0.0016 | -0.0078 ± 0.0010 / 0.0021 / 0.0016 |
+| AUDIT (-0.93) | 0.1650 | 0.1963 | -0.0313 ± 0.0020 / 0.0049 / 0.0040 | -0.026 ± 0.015 | -0.065 to +0.010 | 97.5% | -0.0142 ± 0.0010 / 0.0024 / 0.0021 | -0.0043 ± 0.0010 / 0.0024 / 0.0019 |
+| MIXTURE (-0.64) | 0.1830 | 0.2093 | -0.0263 ± 0.0019 / 0.0037 / 0.0032 | -0.027 ± 0.010 | -0.054 to -0.004 | 93.8% | -0.0110 ± 0.0009 / 0.0020 / 0.0018 | -0.0071 ± 0.0010 / 0.0021 / 0.0018 |
+| FLAT (-0.28) | 0.1739 | 0.1940 | -0.0200 ± 0.0020 / 0.0044 / 0.0036 | -0.022 ± 0.015 | -0.059 to +0.016 | 83.8% | -0.0103 ± 0.0009 / 0.0018 / 0.0016 | -0.0103 ± 0.0011 / 0.0024 / 0.0019 |
+| R1B (-0.56) | 0.2114 | 0.2116 | -0.0002 ± 0.0010 / 0.0020 / 0.0017 | -0.002 ± 0.005 | -0.010 to +0.012 | 51.7% | -0.0075 ± 0.0012 / 0.0029 / 0.0021 | -0.0108 ± 0.0010 / 0.0014 / 0.0012 |
+| R1P (-0.77) | 0.1948 | 0.1988 | -0.0039 ± 0.0010 / 0.0019 / 0.0017 | -0.004 ± 0.005 | -0.015 to +0.009 | 71.7% | -0.0127 ± 0.0013 / 0.0021 / 0.0020 | -0.0100 ± 0.0010 / 0.0018 / 0.0016 |
+
+* **The gain over the legacy Predictor follows the level.** It is 0.043 in
+  TUNED, 0.031 in AUDIT, 0.025 and 0.026 in READING and MIXTURE, and 0.020 in
+  FLAT. That agrees with the audit's two extra regimes, 0.029 at a realised
+  -0.77 and 0.022 at -0.59 ("What actually shipped, after the audit").
+* **On public runs SHIP is level with the legacy Predictor or slightly
+  ahead:** -0.0002 benchmark-first and -0.0039 pair-uniform (0.1 and 2.1
+  cluster SEs). Seed 0 gave -0.0017 and -0.0018 ("Shipped configuration,
+  confirmed").
+* **Against the smoothed mean,** which has no level to tune, SHIP gains 0.010
+  to 0.017 in every test-like regime, and 0.008 and 0.013 on public runs.
+* **Against smcal,** see "What a calibrated level alone recovers", below.
+
+### The rule, config by config
+
+The numbers that decide each condition are given in the order the condition
+names its regimes (`rule.table.<config>`). Under "fails", "both" means the
+condition fails in both of its regimes. (f) holds for every config under D1.
+
+| config | (a) READING, AUDIT: D | (b) | (c) | (d) R1B, R1P: D; minus legacy | (e) time ratio; slowest call | holds | candidate |
+|---|---|---|---|---|---|---|---|
+| aggr | +0.0015, +0.0005 | fails both: PL +0.0016, +0.0015; matharena +0.0103, +0.0142 | fails FLAT +0.0033 | +0.0025, +0.0020; +0.0022, -0.0019 | 0.98; 0.64 s | e, f | no |
+| eb_fit | +0.0173, +0.0233 | fails both: PL +0.0156, +0.0175; multi_swebench +0.0488, +0.0595 | fails TUNED +0.0309, MIXTURE +0.0164, FLAT +0.0140 | -0.0010, +0.0009; -0.0013, -0.0030 | 0.97; 0.45 s | d, e, f | no |
+| eb_adapt | +0.0003, -0.0005 (U95 +0.0012, +0.0008) | fails both: PL +0.0005, +0.0002; matharena +0.0041 in AUDIT | holds | +0.0017, +0.0020; +0.0014, -0.0019 | 1.19; 0.59 s | c, e, f | no |
+| eb_ship | +0.0003, -0.0002 (U95 +0.0010, +0.0006) | fails both: PL +0.0005, +0.0002 | holds | +0.0006, +0.0014; +0.0004, -0.0026 | 1.18; 0.70 s | c, e, f | no |
+| wide35 | +0.0006, -0.0003 (U95 +0.0012, +0.0004) | fails READING: PL +0.0007 | holds | +0.0007, +0.0008; +0.0005, -0.0031 | 0.95; 0.56 s | c, d, e, f | no |
+| wide50 | +0.0023, +0.0006 | fails both: PL +0.0027, +0.0012; real_webagents +0.0047, researchcodebench +0.0053 | fails TUNED +0.0031, MIXTURE +0.0022 | +0.0026, +0.0025; +0.0023, -0.0014 | 0.95; 0.42 s | e, f | no |
+| onepl | +0.0026, +0.0016 | fails both: PL +0.0028, +0.0028; matharena +0.0131, +0.0176 | fails MIXTURE +0.0031, FLAT +0.0049 | +0.0025, +0.0027; +0.0023, -0.0013 | 0.93; 0.45 s | e, f | no |
+| smcal | +0.0078, +0.0043 | fails both: PL +0.0083, +0.0062; matharena +0.0238, +0.0274 | fails MIXTURE +0.0071, FLAT +0.0103 | +0.0108, +0.0100; +0.0106, +0.0060 | 0.01; 0.06 s | e, f | no |
+| smooth | +0.0096, +0.0142 | fails both: PL +0.0091, +0.0118 | fails all three | +0.0075, +0.0127; +0.0073, +0.0088 | 0.01; 0.08 s | e, f | no |
+| legacy | +0.0248, +0.0313 | fails both: PL +0.0239, +0.0265 | fails all three | +0.0002, +0.0039; 0, 0 | 0.82; 1.86 s | e, f | no |
+
+No config meets (a) in either regime. wide35 comes nearest: it meets (c) to
+(f) and misses (a) by D +0.0006 and -0.0003, against the -0.002 required.
+
+### Ranks (Q3, descriptive)
+
+Configs by ALC in each regime. A config is counted as tied with SHIP when its
+paired difference from SHIP is under 1.96 cluster SEs (`summary.ranks`).
+
+| regime | order, best first | SHIP's place; tied with SHIP |
+|---|---|---|
+| TUNED | aggr, onepl, eb_adapt, smcal, eb_ship, SHIP, wide35, wide50, smooth, eb_fit, legacy | 6th; smcal |
+| READING | SHIP, eb_adapt, eb_ship, wide35, aggr, wide50, onepl, smcal, smooth, eb_fit, legacy | 1st; eb_adapt, eb_ship, wide35, aggr, onepl |
+| AUDIT | eb_adapt, wide35, eb_ship, SHIP, aggr, wide50, onepl, smcal, smooth, eb_fit, legacy | 4th; every config except smooth, eb_fit and legacy |
+| MIXTURE | eb_adapt, eb_ship, SHIP, wide35, aggr, wide50, onepl, smcal, smooth, eb_fit, legacy | 3rd; eb_adapt, eb_ship, wide35, aggr |
+| FLAT | wide35, wide50, eb_ship, SHIP, eb_adapt, aggr, onepl, smooth, smcal, eb_fit, legacy | 4th; wide50, eb_ship, eb_adapt |
+| R1B | eb_fit, SHIP, legacy, eb_ship, wide35, eb_adapt, aggr, onepl, wide50, smooth, smcal | 2nd; eb_fit, legacy |
+| R1P | SHIP, wide35, eb_fit, eb_ship, aggr, eb_adapt, wide50, onepl, legacy, smcal, smooth | 1st; eb_fit |
+
+Two regimes have configs ahead of SHIP by more than 1.96 cluster SEs:
+
+* TUNED: aggr, onepl, eb_adapt and eb_ship.
+* FLAT: wide35, at -0.0010 (cluster SE 0.0005).
+
+In every other regime, SHIP is first or tied with the first.
+
+### What a calibrated level alone recovers (W4, descriptive)
+
+**In TUNED, the calibrated smoothed mean matches SHIP.**
+
+* SHIP minus smcal is +0.0015 ± 0.0010 / 0.0019 / 0.0015, with a parent-level
+  mean of -0.0010.
+* smcal minus the legacy Predictor is -0.0448 ± 0.0028 / 0.0052 / 0.0045,
+  against SHIP's -0.0434.
+
+smcal is a smoothed mean with a prior mean of 0.25 and a strength of two
+labels. It has no item model and no subject prior, yet in that regime it
+takes the whole of the gain over the legacy Predictor. Its prior was chosen
+on the same catalogue, so this is its best case, and it fails the public
+guard.
+
+**Away from the level it was tuned for, smcal falls behind.** SHIP beats it
+by 0.0043 (AUDIT) to 0.0103 (FLAT) in the other test-like regimes, and by
+0.0108 and 0.0100 on public runs.
+
+**By budget** (`summary.vs_ship.<regime>.smcal.table.budgets`), smcal predicts
+0.25 at B0 everywhere:
+
+* In TUNED it is ahead of SHIP at B0 and B1 (-0.0138 and -0.0079).
+* In every regime it is behind from B7 on. At B31 it is behind by +0.0069 in
+  TUNED and +0.0089 in READING.
+
+In READING, smcal is barely better than plain Beta(2,2) (-0.0018 ±
+0.0017 / 0.0036 / 0.0031), and in FLAT it is level with it (+0.0000)
+(`summary.vs_smooth`).
+
+So the tuned regime's headline does not show what hier adds: a moved level
+alone produces it. What hier adds over a calibrated level is what it keeps
+when the hidden level is not the one it was tuned for, 0.004 to 0.010 in
+these regimes. It also stays level with the legacy Predictor on public runs,
+where smcal loses 0.006 to 0.011.
+
+**The subject prior (onepl).** In every regime but TUNED, SHIP beats onepl,
+by 0.0016 to 0.0049 on test-like runs and by 0.0025 and 0.0027 on public runs
+(cluster SEs 0.0005 and 0.0004). In TUNED, onepl is ahead by 0.0030 ±
+0.0007 / 0.0012 / 0.0010 (`summary.decomposition`).
+
+* **onepl's TUNED gain is at B0 and B1** (-0.0132 and -0.0055), where its
+  lower centre helps on low pairs.
+* **At B0 it loses everywhere else,** by +0.0023 to +0.0207.
+
+Because onepl also moves the centre, this does not isolate the subject prior.
+It bounds what the attribute prior at attr_scale 0.5 and SHIP's centre are
+worth together outside the tuned regime: 0.002 to 0.005.
+
+### The empirical-Bayes level (descriptive)
+
+**eb_ship** differs from SHIP only by re-estimating the level from `labeled`
+at each checkpoint.
+
+* In TUNED it is ahead: -0.0014 ± 0.0003 / 0.0004 / 0.0004.
+* In READING, AUDIT, MIXTURE and FLAT it is level: -0.0002 to +0.0003.
+* On public runs it is behind: +0.0006 and +0.0014.
+
+**eb_adapt**, on a lower base (mu0 -3.0), is ahead in TUNED by 0.0027, level
+in the feedback regimes, and costs +0.0017 and +0.0020 on public runs.
+
+**Where eb_ship's centre moves.** The centre is averaged over each run's
+per-parent models (`summary.eb_traces`). It starts at -2.5 at B0. By B31 it
+has moved:
+
+* down, to -3.7 in TUNED and -3.2 in AUDIT;
+* slightly down, to -2.8 in READING and MIXTURE;
+* up, to -2.3 in FLAT and to -1.4 and -1.7 on public runs (benchmark-first,
+  pair-uniform).
+
+It orders the regimes as before ("The empirical-Bayes level adapts the right
+way"). Where the levels spread both ways, though, it gains nothing over the
+fixed level. The review expected EB to beat any fixed shift there, and it
+does not.
+
+So the decision not to ship EB now rests on this measurement, not only on its
+code size and slowest call.
+
+**eb_fit**, the fitted level with no LEVEL override, loses 0.014 to 0.031 in
+the test-like regimes and is level on public runs (-0.0010 and +0.0009), as in
+"Calibrating for the hidden test".
+
+### P1.16: a wider level prior
+
+**wide35 stays within 0.001 of SHIP everywhere.** It differs by -0.0010 to
++0.0009 in the test-like regimes and by +0.0007 and +0.0008 on public runs.
+With cluster SEs of 0.0003 to 0.0005 some of those differences are real, but
+all are small. It gains
+only in FLAT and AUDIT (-0.0010 and -0.0003), whose realised sds are 2.23 and
+2.05; MIXTURE, at 2.13, is not among them.
+
+**wide50 is worse in five of the seven regimes.** It costs 0.0022 to 0.0031
+in TUNED, READING, MIXTURE and on both public weightings. It is level in
+AUDIT and FLAT (+0.0006 and -0.0007).
+
+**By budget**, both trade B0 against B1 on public runs. wide35 gains at B0
+(-0.0032 and -0.0020) and loses from B1 on (+0.0026 and +0.0029 at B1).
+
+Both fail (a). At the shipped mu0 and attr_scale, the grid's edge at sigma_mu
+2.5 does not bind. The answer to P1.16 is no, and no other width is chosen
+from these results.
+
+### Latency
+
+Pooled over every task (`summary.latency.all`, `rule.table.<config>.conditions.e`):
+
+| config | mean time per call | ratio to SHIP | slowest single call |
+|---|---|---|---|
+| SHIP | 1.34 ms | 1 | 0.56 s |
+| other hier configs | 1.25 to 1.59 ms | 0.93 to 1.19 (the two EB configs slowest) | 0.42 to 0.70 s |
+| legacy Predictor | 1.10 ms | | 1.86 s |
+| smoothed means | 0.01 ms | | |
+
+Every config passes (e).
+
+No fallback fired: the failure and unconverged counts are 0 for every config
+in every regime (`summary.configs`).
+
+The times were taken with two processes on a machine shared with other jobs.
+The ratios compare configs timed in the same tasks.
+
+### Provenance and deviations
+
+**D1, the legacy reproduction check.**
+
+* **What happened.** The check was planned at a tolerance of 1e-9 against
+  `testlike_check.json`, which stores each Brier rounded to six decimals. The
+  stored differences were 4.7e-7 to 5.0e-7, all within half a unit of the
+  sixth decimal (`review.provenance.d1`).
+* **The fix.** The check now compares at the stored precision. It passed at
+  16:26:39, before the first scoring-seed row (16:44:02), and no row depends
+  on it.
+* **What it can change.** D1 touches only (f).
+  * Read literally, (f) fails, and the outcome is "rule not applied: check
+    failed".
+  * With D1, the outcome is "no candidate: SHIP stays".
+  * Neither reading has a candidate.
+* **Left to the team.** Accept D1, or record the study as not applied.
+  Future plans should set tolerances at the comparator's stored precision.
+
+**The lock** rests on local mtimes and scratch copies (above), not on a
+commit made before scoring.
+
+**Script versions.**
+
+* smcal and regimes ran under script digest dbbf63b6, reproduce under
+  316f8e91, and all 520 rows and the summary under 0bef6bf0
+  (`review.provenance.stages`).
+* Re-run under the final script, the three earlier stages give identical
+  numbers (366, 205 and 150 numbers compared, largest difference 0.0) and the
+  same composition digest (`review.rerun`).
+* Every edit made after scoring sits in a block marked "after review".
+  Cutting those blocks out gives back the scored script byte for byte
+  (`review.provenance.script`, checked by a test). The blocks add the
+  `review` stage, and let the lock accept the amendments appended to the
+  plan while still pinning the fixed text.
+
+**A dry run on a partial set.** At 16:56:16, 19 rows into scoring, a dry run
+of summarise ran into a scratch copy of the results. It printed the
+structure, the checks and the outcome "rule not applied: the planned set is
+not complete". Every row, the dry run and the summary carry one script
+digest, so no code, constant or run count changed after it
+(`review.provenance.dry_run`).
+
+**Re-scoring.** The last planned run of each regime was re-scored with every
+config, and each matches its row exactly (largest Brier difference 0.0). The
+EB traces inside a row are ordered by iterating a set, an order that depends
+on PYTHONHASHSEED: 0 of 14 match as stored, and 14 of 14 once sorted. The
+summary uses only their aggregates (`review.rescore`).
+
+**smcal's guard reference** predates the corrected floor (above;
+`smcal.guard_reference_note_after_review`).
+
+**pytest.** A first full run, with default BLAS threads and while the
+reproduce stage ran, showed one failure. It sat at the position of
+`tests/test_hier.py::test_formative_size_is_fast`, a 5 s wall-clock bound
+(`review.provenance.first_pytest`). Single-threaded full runs pass.
+
+### What this means for the shipped configuration
+
+* **It stays, and nothing scored here is a better bet.** In the two regimes
+  set to the feedback's readings, no config beats SHIP by the 0.002 the rule
+  required. The three closest, wide35, eb_adapt and eb_ship, sit within
+  0.0006 of it, with cluster SEs of 0.0003 to 0.0007. SHIP is first, or tied
+  with the first, in READING, AUDIT, MIXTURE and on both public weightings.
+* **The audit's move is supported where its reasoning applies.**
+  * aggr, the config the calibration recommended, beats SHIP only in TUNED
+    (-0.0034 ± 0.0006 / 0.0010 / 0.0008). That is the regime and catalogue
+    it was selected on.
+  * It loses in the four other test-like regimes (+0.0005 to +0.0033) and on
+    public runs (+0.0025 and +0.0020), and its losses sit on matharena, the
+    high-level parent.
+  * Across the test-like regimes its difference rises with the realised
+    level, from -0.0034 at -1.28 to +0.0033 at -0.28.
+* **P1.16: no.** sigma_mu 3.5 stays within 0.001 of 2.5, and 5.0 is worse in
+  five of the seven regimes.
+* **EB: no.** It gains only in the tuned regime and costs on public runs.
+* **The gain over the legacy Predictor depends on where the level sits.** It
+  is 0.043 in TUNED, 0.020 to 0.031 at the other test-like regimes' realised
+  levels (-0.28 to -0.93), and level on public runs.
+* **In TUNED, a calibrated smoothed mean takes the same gain.** SHIP's margin
+  over it, 0.004 to 0.011, appears only away from the level it was tuned for.
+  The case for hier over a moved level is robustness to where the hidden
+  level sits, not the tuned-regime headline.
+
+### What this cannot settle
+
+* **Four parents carry every test-like number.** The ranking turns on
+  matharena against multi_swebench, and the parent-level SEs are two to four
+  times the cluster SEs.
+* **Fresh seeds, same data** (above). TUNED and the guards do not replicate
+  the original selection independently.
+* **The date shift is in every test-like regime.** attr_scale's role
+  therefore stays conditional on it (review Q10). The regime without the
+  shift was not scored here.
+* **The feedback regimes realised milder levels than targeted,** -0.63 and
+  -0.93. level_mean -2.0 was not scored for SHIP, and MIXTURE's low mode
+  rests on two pseudo-benchmarks.
+* **The rule's power is limited.** It detects gains of about 0.003 or more
+  and is a coin flip at 0.002 (plan, section 7).
+* **Two baselines are missing.** onepl is not a plain 1PL, and BLE was not
+  run.
+* **No formative run was read.** Run 3 is not used. Runs 1 and 2 enter only
+  through the stored readings that set the targets of READING, AUDIT and
+  MIXTURE ("Formative feedback, runs 1 and 2", "What actually shipped, after
+  the audit").

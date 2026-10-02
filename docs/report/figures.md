@@ -156,6 +156,7 @@ Per regime (test-like, mix/whole, R1 benchmark-first, R1 pair-uniform), three ba
 The EB level centre by budget (0, 1, 3, 7, 31), one line per regime: public benchmark-first, public pair-uniform, test-like with no shift, level_mean -1.2, default and -2.0. Mark each regime's mean pair logit.
 
 - `results/level_calibration.json`, `summary.eb_adaptation`.
+- Optional second panel: the P1a regimes' EB centre by budget for both adaptive configurations, with each regime's realised level. Sources: `results/regime_sensitivity.json`, `summary.eb_traces["eb_ship | <regime>"]` and `["eb_adapt | <regime>"]` (`mu0`, `sigma_mu` by budget), and `summary.realised.<regime>.mean`. These traces come from fresh-seed runs at the current library and should be labelled apart from the level calibration's.
 
 ### Fig. A2: Split scope decides what dense runs can read (§2.4)
 
@@ -183,6 +184,25 @@ A forest plot of each ablation and sensitivity minus hier's default on the prima
 The gain over no pooling against the number of subjects (3 to 80), on log axes, with the N^0.7 guide. Label it as a legacy-replica measurement.
 
 - `docs/findings.md`, "How fragile the pooling gain is" (`experiments/pool_robustness.py`).
+
+### Fig. A6: The shipped level at the feedback's reading, P1a (§5.3)
+
+Draw a forest plot with one panel per regime, ordered by realised level: TUNED, AUDIT, MIXTURE, READING, FLAT, then R1 benchmark-first and R1 pair-uniform. Head each panel with the regime's realised mean and sd.
+
+- **Rows:** one per alternative, plotting X minus the shipped configuration with its cluster-SE bar.
+- **Rules:** a vertical rule at 0 in every panel. In READING and AUDIT, add the decision rule's bar at -0.002. In TUNED, MIXTURE and FLAT, add the +0.002 loss bound. In the two public panels, add the +0.001 loss bound.
+- **Second marker:** the parent-level mean, drawn hollow.
+- **The point:** no alternative crosses -0.002 in READING or AUDIT, the neighbouring configuration wins only in TUNED, and the calibrated smoothed mean is level with the shipped model only in TUNED.
+- **Caption:** say that every regime redraws the catalogue that chose the level. Say that READING and AUDIT realised -0.63 and -0.93, milder than targeted.
+
+Sources, all in `results/regime_sensitivity.json`:
+
+- `summary.vs_ship.<regime>.<config>.exact`: `D`, `cluster_se`, `U95` and `PL`;
+- `summary.vs_ship.<regime>.<config>.table.parent_level`: `mean`, `se` and `range`;
+- `summary.realised.<regime>`: `mean` and `sd`;
+- `rule.thresholds`: the bars.
+
+The SHIP ALC per regime is `summary.configs.<regime>.ship.ALC`.
 
 ---
 

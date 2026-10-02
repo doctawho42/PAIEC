@@ -116,6 +116,15 @@ Knobs (Regime):
            feedback at B0/B1, 0.63, 0.62 and 0.83 with B31 added, and the
            budgets not used in tuning (B3, B7, B15) lean to -1.2 (0.32, 0.76,
            1.12). Repeat any downstream choice at -1.2 and -2.0.
+  level_mix  a Gaussian-mixture target in place of level_mean / level_sd:
+           (weight, mean, sd) triples, weights positive and summing to 1. Each
+           component is tilted as one Gaussian target would be (with
+           tilt='benchmark' at sd sqrt(max(sd^2 - within^2, min_level_sd^2)),
+           with tilt='pair' at sd), the target density is their weighted sum,
+           and level_mean and level_sd are ignored. Empty (the default) leaves
+           the sampler exactly as without it; one component of weight 1 is the
+           Gaussian tilt. experiments/regime_sensitivity.py's MIXTURE regime
+           uses it for the two-mode reading of the formative feedback.
   min_release, recency  subjects released on or after min_release (undated
            ones excluded), weighted exp(recency * years since min_release);
            recency is 0 by default and untested against the feedback.
@@ -521,6 +530,7 @@ class Regime:
     bandwidth: float = 0.7
     min_level_sd: float = 0.3
     max_tilt: float = 20.0
+    level_mix: tuple = ()
 
     def with_(self, **kw):
         return replace(self, **kw)
@@ -528,6 +538,22 @@ class Regime:
 
 def _npdf(x, m, s):
     return np.exp(-0.5 * ((np.asarray(x, float) - m) / s) ** 2) / s
+
+
+def _mixture(level_mix):
+    """Regime.level_mix checked: a tuple of (weight, mean, sd) float triples,
+    weights positive and summing to 1, sds positive; () when empty."""
+    out = []
+    for c in level_mix:
+        if len(c) != 3:
+            raise ValueError(f"level_mix takes (weight, mean, sd) triples, got {c!r}")
+        w, m, s = (float(x) for x in c)
+        if not (w > 0) or not (s > 0) or not math.isfinite(m) or not math.isfinite(s):
+            raise ValueError(f"level_mix needs a positive weight and sd and a finite mean, got {c!r}")
+        out.append((w, m, s))
+    if out and abs(sum(w for w, _, _ in out) - 1.0) > 1e-9:
+        raise ValueError(f"level_mix weights must sum to 1, got {sum(w for w, _, _ in out)!r}")
+    return tuple(out)
 
 
 class Sampler:
@@ -543,6 +569,7 @@ class Sampler:
             raise ValueError(f"kinds must be among {KINDS}, got {r.kinds!r} / {tuple(kw)!r}")
         if any(not (w > 0) for w in kw.values()):
             raise ValueError("kind weights must be positive; leave a kind out of `kinds` to drop it")
+        mix = _mixture(r.level_mix)
         if r.n_pairs[1] * r.min_kept > r.cap:
             raise ValueError(f"{r.n_pairs[1]} pairs of >= {r.min_kept} items cannot fit a cap "
                              f"of {r.cap}")
@@ -592,7 +619,29 @@ class Sampler:
         share = ws / wsum[jj]               # subject share within its pseudo-benchmark
         within = float(np.sqrt(np.sum(base[jj] * share * (ell - level[jj]) ** 2)
                                / np.sum(base[jj] * share)))
-        if r.level_mean is None:
+        if mix:
+            # a Gaussian-mixture target: each component tilted as the one-
+            # Gaussian branches below tilt theirs, the densities summed by weight
+            if r.tilt == "benchmark":
+                sd_b = tuple(math.sqrt(max(s ** 2 - within ** 2, r.min_level_sd ** 2))
+                             for _, _, s in mix)
+                L = level[live]
+                f0 = (base[live][None, :] * _npdf(L[:, None], L[None, :], r.bandwidth)).sum(1) \
+                    / base[live].sum()
+                dens = sum(w * _npdf(L, m, s) for (w, m, _), s in zip(mix, sd_b))
+                t = np.zeros(J)
+                t[live] = dens / f0
+                t[live] = np.minimum(t[live], r.max_tilt * np.sum(base[live] * t[live])
+                                     / base[live].sum())
+                omega = base[jj] * t[jj] * share
+            else:
+                sd_b = tuple(s for _, _, s in mix)
+                pi = base[jj] * share
+                f0 = (pi[None, :] * _npdf(ell[:, None], ell[None, :], r.bandwidth)).sum(1) / pi.sum()
+                t = sum(w * _npdf(ell, m, s) for w, m, s in mix) / f0
+                t = np.minimum(t, r.max_tilt * np.sum(pi * t) / pi.sum())
+                omega = pi * t
+        elif r.level_mean is None:
             omega = base[jj] * share
             sd_b = None
         elif r.tilt == "benchmark":
