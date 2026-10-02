@@ -2,7 +2,15 @@
 
 Technical report for the Predictive AI Evaluation Competition (PAIEC), NeurIPS 2026 [PAIEC organisers 2026].
 
-Authors: TODO(team). Code: TODO(link to the public release).
+Author: Nikita L. Polomoshnov
+
+Affiliation: Moscow State University
+
+Email: nikitapol@fbb.msu.ru
+
+Code: https://github.com/doctawho42/PAIEC (MIT License)
+
+Keywords: predictive evaluation, item response theory, Brier score, cold start, PAIEC
 
 Every number traces to `docs/findings.md` (cited as F§ and a section title), `docs/protocol.md` (P§) or a committed `results/` file, through the script that produced it. Appendix H gives the convention and maps each number to its code.
 

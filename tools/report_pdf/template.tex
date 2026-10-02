@@ -1,0 +1,226 @@
+% tools/report_pdf/template.tex: the pandoc LaTeX template for the technical report.
+% Built by tools/build_report_pdf.py with XeLaTeX; tools/report_pdf/report.lua fills
+% the variables below from the title block of docs/report/draft.md.
+% A NeurIPS-like single-column article: 11pt, 1in margins on US letter, a Times-like
+% serif with Greek and Cyrillic (see Fonts below), unnumbered LaTeX sections whose
+% titles carry the draft's own numbers, which the text cites.
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{iftex}
+\ifXeTeX\else
+  \errmessage{This template needs XeLaTeX (tools/build_report_pdf.py runs it)}
+\fi
+\usepackage{fontspec}
+% Text copied or searched in the PDF gets the source characters, not the font's glyph
+% names: Times New Roman's ToUnicode map sends the semicolon to U+037E, the Greek
+% question mark (the build's text check fails on that character).
+\XeTeXgenerateactualtext=1
+\usepackage{xcolor}
+\usepackage{amsmath}
+% Fonts. The text face must have static bold and italic (XeTeX cannot instance a
+% variable font such as macOS's STIX Two Text, so its bold would print regular) and
+% cover the draft's Greek, Cyrillic and symbols: Times New Roman where installed
+% (macOS, Windows), else STIXGeneral, else TeX Gyre Termes (TeX Live; no Cyrillic, which
+% the build reports as missing glyphs). Arrows and relations come from the math font
+% where the face may lack them.
+\newif\ifreportsymbolfont
+\IfFontExistsTF{Times New Roman}{%
+  \setmainfont{Times New Roman}%
+}{%
+  \reportsymbolfonttrue
+  \IfFontExistsTF{STIXGeneral}{%
+    \setmainfont{STIXGeneral}%
+  }{%
+    \setmainfont{TeX Gyre Termes}%
+  }%
+}
+\IfFontExistsTF{Menlo}{%
+  \setmonofont{Menlo}[Scale=MatchLowercase,HyphenChar=None]%
+}{%
+  \setmonofont{Latin Modern Mono}[Scale=MatchLowercase,HyphenChar=None]%
+}
+\usepackage{newunicodechar}
+\ifreportsymbolfont
+  \IfFontExistsTF{STIX Two Math}{%
+    \newfontfamily\reportsymbols{STIX Two Math}%
+  }{%
+    \newfontfamily\reportsymbols{TeX Gyre Termes Math}%
+  }
+  \newunicodechar{→}{{\reportsymbols\symbol{"2192}}}
+  \newunicodechar{←}{{\reportsymbols\symbol{"2190}}}
+  \newunicodechar{≈}{{\reportsymbols\symbol{"2248}}}
+  \newunicodechar{≤}{{\reportsymbols\symbol{"2264}}}
+  \newunicodechar{≥}{{\reportsymbols\symbol{"2265}}}
+  \newunicodechar{≠}{{\reportsymbols\symbol{"2260}}}
+\fi
+\usepackage[protrusion=true,expansion=false]{microtype}
+
+% Paragraphs as in the NeurIPS style: no indent, 5.5pt between paragraphs.
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5.5pt plus 1pt minus 1pt}
+\setlength{\emergencystretch}{3em}
+\clubpenalty=10000
+\widowpenalty=10000
+
+% Headings: bold, flush left, no LaTeX numbers (the titles carry the draft's numbers).
+\setcounter{secnumdepth}{-\maxdimen}
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\large\bfseries\raggedright}{}{0pt}{}
+\titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{4pt plus 2pt}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries\raggedright}{}{0pt}{}
+\titlespacing*{\subsection}{0pt}{8pt plus 3pt minus 2pt}{2pt plus 1pt}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries\itshape\raggedright}{}{0pt}{}
+\titlespacing*{\subsubsection}{0pt}{6pt plus 2pt minus 1pt}{1pt plus 1pt}
+% \secnum{5.4}: the draft's section number with a gap after it; a plain space in bookmarks.
+\newcommand{\secnum}[1]{\texorpdfstring{#1\hspace{0.7em}}{#1 }}
+
+% Lists
+\usepackage{enumitem}
+\setlist{itemsep=2pt,parsep=1pt,topsep=3pt,partopsep=0pt}
+\setlist[itemize]{leftmargin=1.4em}
+\setlist[enumerate]{leftmargin=1.8em}
+\providecommand{\tightlist}{\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}}
+
+% Tables: pandoc writes every pipe table as a longtable; report.lua sets the column
+% widths and wraps each table in a group with a smaller font.
+\usepackage{longtable,booktabs,array}
+\usepackage{calc}
+\setlength{\LTpre}{4pt}
+\setlength{\LTpost}{4pt}
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% \reportneed{N\baselineskip}: start a new page unless N is left on this one (keeps a
+% table with its caption or lead-in). It is needspace's exact \Needspace. Plain
+% \needspace puts N of stretch at its break point; these pages have little stretch
+% elsewhere, so TeX's page builder preferred to break there and ended pages early.
+\usepackage{needspace}
+\newcommand{\reportneed}[1]{\Needspace{#1}}
+
+% Code: inline code breaks after / _ . , = : - | (report.lua inserts the points);
+% code blocks wrap long lines, and a hook arrow marks each continuation line, so a
+% reader copying a command sees that the next line is not a command of its own.
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{reportcode}{Verbatim}{%
+  breaklines=true,breakafter={/,=},fontsize=\small,xleftmargin=1.5em,%
+  breaksymbolleft={\tiny\ensuremath{\hookrightarrow}},breaksymbolsepleft=0.4em,%
+  breaksymbolindentleft=2em,breakindent=0pt}
+\newcommand{\codebreak}{\penalty100\relax}
+
+% Figures: report.lua writes each one as a float with the draft's caption.
+\usepackage{graphicx}
+\makeatletter
+\newcommand{\reportfig}[2]{% #1 natural width, #2 file; never wider than the line
+  \setlength{\@tempdima}{#1}%
+  \ifdim\@tempdima>\linewidth\setlength{\@tempdima}{\linewidth}\fi
+  \includegraphics[width=\@tempdima]{#2}}
+\makeatother
+\newcommand{\reportcaption}[2]{%
+  \par\vspace{5pt}{\small\textbf{#1}\enspace #2\par}}
+\setlength{\textfloatsep}{12pt plus 3pt minus 3pt}
+\setlength{\floatsep}{10pt plus 3pt minus 2pt}
+\setlength{\intextsep}{10pt plus 3pt minus 2pt}
+\renewcommand{\topfraction}{0.7}
+\renewcommand{\bottomfraction}{0.5}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.6}
+% a page of floats only starts at the top, as body pages do, instead of centring them
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{12pt plus 2fil}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+\usepackage[section]{placeins}
+
+% References: author-year list with a hanging indent.
+\newenvironment{reportrefs}{%
+  \small
+  \begin{list}{}{%
+    \setlength{\leftmargin}{1.5em}\setlength{\itemindent}{-1.5em}%
+    \setlength{\itemsep}{2pt}\setlength{\parsep}{0pt}\setlength{\topsep}{2pt}}%
+  \raggedright}{\end{list}}
+
+% Appendices: a clear page, then a short list of them with page numbers.
+\newcommand{\reportappendixstart}{%
+  \FloatBarrier\clearpage\phantomsection\label{report:appendix-start}}
+\newenvironment{reportappendixcontents}{%
+  \par\noindent{\large\bfseries Appendices\par}\vspace{3pt}%
+  \begin{list}{}{\setlength{\leftmargin}{0pt}\setlength{\itemsep}{1pt}%
+    \setlength{\parsep}{0pt}\setlength{\topsep}{0pt}}\small}{\end{list}\vspace{8pt}}
+\newcommand{\reportappendixentry}[2]{%
+  \item \hyperref[#1]{#2}\dotfill\pageref{#1}}
+
+% Links: coloured text, no boxes; URLs break anywhere.
+\definecolor{reportlink}{HTML}{1A4F8B}
+\usepackage{xurl}
+\urlstyle{same}
+\usepackage{hyperref}
+\hypersetup{
+  unicode=true,
+  colorlinks=true,
+  linkcolor=reportlink,
+  urlcolor=reportlink,
+  citecolor=reportlink,
+  pdftitle={$title-plain$},
+  pdfauthor={$author-plain$},
+  pdfsubject={$subject-plain$},
+  pdfkeywords={$keywords-plain$},
+  pdfcreator={pandoc and XeLaTeX (tools/build\textunderscore report\textunderscore pdf.py)},
+  bookmarksnumbered=false,
+  bookmarksopen=true,
+  bookmarksopenlevel=1,
+  pdfdisplaydoctitle=true,
+  pdfstartview=FitH,
+}
+\usepackage{bookmark}
+
+\AtEndDocument{\label{report:end}}
+
+\begin{document}
+\pagestyle{plain}
+\pdfbookmark[1]{Title}{report-title}
+\begingroup
+\centering
+\rule{\linewidth}{4pt}\par
+\vspace{0.16in}
+{\LARGE\bfseries $title$\par}
+\vspace{0.14in}
+\rule{\linewidth}{1pt}\par
+$if(subtitle)$
+\vspace{0.12in}
+{\normalsize\itshape $subtitle$\par}
+$endif$
+\vspace{0.16in}
+{\large\bfseries $author$\par}
+$if(affiliation)$
+\vspace{2pt}
+{$affiliation$\par}
+$endif$
+$if(email)$
+\vspace{2pt}
+{\small\href{mailto:$email$}{\nolinkurl{$email$}}\par}
+$endif$
+$if(code)$
+\vspace{4pt}
+{\small Code: $code$\par}
+$endif$
+\vspace{0.12in}
+\endgroup
+$if(note)$
+{\small\leftskip=0.5in\rightskip=0.5in
+$note$
+\par}
+\vspace{4pt}
+$endif$
+$if(abstract)$
+\phantomsection\pdfbookmark[1]{Abstract}{abstract}
+\begin{center}{\large\bfseries Abstract}\end{center}
+\vspace{-6pt}
+{\leftskip=0.5in\rightskip=0.5in
+$abstract$
+\par}
+\vspace{8pt}
+$endif$
+$body$
+\end{document}

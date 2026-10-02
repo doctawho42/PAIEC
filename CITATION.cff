@@ -1,0 +1,44 @@
+# Citation metadata for this repository and the technical report it accompanies.
+# license: MIT covers this repository's own code and docs only; README.md, "License
+# and third-party material", lists what it does not cover (measurement-db and the
+# excerpts of it in results/, the organisers' code, formative tables and inventory rows).
+# version: the release tag (docs/release.md, section 6), not the Python package's
+# version in pyproject.toml.
+# keywords: the same list as the "Keywords:" line of docs/report/draft.md, which fills
+# the PDF's metadata (tests/test_build_report_pdf.py checks they agree).
+cff-version: 1.2.0
+message: "If you use this code or its results, please cite the technical report below."
+type: software
+title: "Calibrating a hierarchical response model for a benchmark-level cold start"
+abstract: >-
+  Code, results and report source for an entry to the Predictive AI Evaluation
+  Competition (PAIEC) at NeurIPS 2026: a replica of the organisers' streaming
+  evaluator, a hierarchical item-response predictor fitted from the revealed
+  labels alone, the calibration of its prior on a new benchmark's level on
+  test-like runs built from public data, and one script per reported number.
+authors:
+  - family-names: Polomoshnov
+    given-names: Nikita L.
+    affiliation: Moscow State University
+    email: nikitapol@fbb.msu.ru
+version: "1.0.0"
+license: MIT
+repository-code: "https://github.com/doctawho42/PAIEC"
+keywords:
+  - predictive evaluation
+  - item response theory
+  - Brier score
+  - cold start
+  - PAIEC
+preferred-citation:
+  type: report
+  title: "Calibrating a hierarchical response model for a benchmark-level cold start"
+  authors:
+    - family-names: Polomoshnov
+      given-names: Nikita L.
+      affiliation: Moscow State University
+      email: nikitapol@fbb.msu.ru
+  year: 2026
+  notes: "Technical report for the Predictive AI Evaluation Competition (PAIEC), NeurIPS 2026."
+  repository-code: "https://github.com/doctawho42/PAIEC"
+  license: MIT

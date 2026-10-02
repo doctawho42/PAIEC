@@ -19,3 +19,16 @@ third_party/
 
 # written by tools/build_submission.py from the gated data; rebuild instead of committing
 submission/prior.json
+
+# more credentials: the Kaggle API key file, if it is ever copied here
+kaggle.json
+
+# Kaggle kit: `kaggle kernels output ... -p ./kaggle_out` (kaggle/strong_probe/README.md);
+# its exports are copied under data/features/, which data/ already covers
+kaggle_out/
+
+# local tool state and OS files
+.DS_Store
+.ruff_cache/
+.remember/
+.claude/settings.local.json

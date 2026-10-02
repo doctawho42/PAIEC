@@ -1,0 +1,14 @@
+# tools/report_pdf/defaults.yaml: pandoc defaults for the technical report PDF.
+# Used by tools/build_report_pdf.py, which adds the input, the output and a metadata
+# file (figure files and widths, the filter's report path). The draft is GitHub
+# Markdown, so it is read as GFM, as GitHub renders it (a "\|" in a table cell is a
+# pipe, bare URLs are links), plus smart punctuation. Emoji shortcodes, dollar math
+# and YAML front matter are off: the draft uses none, and a "$" or ":word:" in it
+# should stay text.
+from: gfm+smart-emoji-tex_math_dollars-tex_math_gfm-yaml_metadata_block
+to: latex
+standalone: true
+template: ${.}/template.tex
+filters:
+  - ${.}/report.lua
+wrap: preserve
