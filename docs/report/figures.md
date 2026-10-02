@@ -23,28 +23,28 @@ Conventions for all panels:
 
 ## Placement in the draft
 
-`docs/report/draft.md` embeds the PNGs (`fig/<name>.png`, relative to the draft) where the text discusses them, numbered in order of appearance, with a short caption that points back here for the full one. The captions below are the full ones; the draft's are condensed from them and quote no other number.
+`docs/report/draft.md` embeds the PNGs (`fig/<name>.png`, relative to the draft) where the text discusses them, with a short caption; the draft's App H.1 points readers here for the full captions and this table's map from draft figures to drawn ones (the captions no longer carry file pointers, which a PDF reader could not follow). Main-text figures are numbered 1 to 7 in order of appearance; appendix figures carry their appendix's letter (A1, B1, D1, E1, F1). The captions below are the full ones; the draft's are condensed from them and quote no other number. The draft names the models as in its §2.1 (LegacyP, hier-ship, hier-rec, hier-fit, Smooth, Smooth-cal, hier-EB, hier-nosubj); the drawn legends keep the older names ("legacy Predictor", "shipped hier", "neighbouring config" and so on), and each draft caption gives both. The pre-trim draft, `docs/report/draft_v1_long.md`, numbered the same figures 1 to 12 in its own order (D10, D3, D1, D5, D2, D6, D7, D4, D11, D12, D9, D8).
 
-| draft figure | section | drawn figure | file |
-|---|---|---|---|
-| Figure 1 | §2.5 | D10 | `empirical_mean` |
-| Figure 2 | §4.5 | D3 | `gate_curve` |
-| Figure 3 | §5.1 | D1 | `learning_curves` |
-| Figure 4 | §5.1 | D5 | `formative_runs` |
-| Figure 5 | §5.3 | D2 | `level_surface` |
-| Figure 6 | §5.3 | D6 | `level_fix_budgets` |
-| Figure 7 | §5.3 | D7 | `eb_adaptation` |
-| Figure 8 | §5.3 | D4 | `regime_sensitivity` |
-| Figure 9 | §5.5 | D11 | `hier_ablations` |
-| Figure 10 | §6 | D12 | `ideas_forest` |
-| Figure 11 | §6.1 | D9 | `transfer` |
-| Figure 12 | §6.3 | D8 | `item_gap` |
+| draft figure | section | drawn figure | file | the claim it carries |
+|---|---|---|---|---|
+| Figure 1 | §5.1 | D1 | `learning_curves` | the formative runs sit within single-run noise of both the tuned and the public regimes |
+| Figure 2 | §5.3 | D2 | `level_surface` | a flat plateau; the widest level prior wins; the guard, not the selection half, decides |
+| Figure 3 | §5.4 | D6 | `level_fix_budgets` | the tuned gain is at B0 and B1; on public runs hier-ship pays at B0 and recovers from B7 |
+| Figure 4 | §5.4 | D4 | `regime_sensitivity` | at the feedback's readings no alternative beats hier-ship by the rule's 0.002 |
+| Figure 5 | §6.1 | D3 | `gate_curve` | a transferred slope needs an honest r of about 0.3; no measured covariate reaches the gate |
+| Figure 6 | §6.2 | D12 | `ideas_forest` | no idea's nested line reaches -0.002 |
+| Figure 7 | §6.3 | D8 | `item_gap` | the item-level headroom is large, and the itemsig layer recovers 0.5% of it |
+| Figure A1 | App A.4 | D10 | `empirical_mean` | the replica agrees with the analytic ALC of the empirical mean |
+| Figure B1 | App B.3 | D11 | `hier_ablations` | which of hier's components pull their weight on public runs |
+| Figure D1 | App D.2 | D5 | `formative_runs` | the per-pair spread of each formative run |
+| Figure E1 | App E.3 | D7 | `eb_adaptation` | the EB centre moves the right way, and the date shift moves it further down |
+| Figure F1 | App F.2 | D9 | `transfer` | item difficulty from text maps does not transfer between benchmarks |
 
-Two notes for readers of the draft. D9's and D3 (c)'s TF-IDF bars are `experiments/emb_transfer.py`'s TF-IDF+SVD ridge against full-sample Rasch difficulty, not the `experiments/transfer.py` map the draft's §6.1 quotes (whose target is the naive solve-rate logit; `results/gate_and_ci.json`, `ci.rows`). And the P1 results files of 2026-10-02 (`results/baselines_p1.json`, `results/pooling_decomposition.json`, `results/gate_and_ci.json`) are not read by any figure yet; candidates are a gate panel with the pass probabilities, a pooling-by-company panel (plan Fig. 7, now from `results/pooling_decomposition.json`) and a decomposition bar for P1.9.
+Two notes for readers of the draft. D9's and D3 (c)'s TF-IDF bars are `experiments/emb_transfer.py`'s TF-IDF+SVD ridge against full-sample Rasch difficulty, not the `experiments/transfer.py` map the draft's §6.3 and App F.2 quote (whose target is the naive solve-rate logit; `results/gate_and_ci.json`, `ci.rows`). And the P1 results files of 2026-10-02 (`results/baselines_p1.json`, `results/pooling_decomposition.json`, `results/gate_and_ci.json`) are not read by any figure; the draft's tables carry those claims (the pass probabilities in §6.1, pooling by company in §2.4 and App A.2, the decomposition in §5.5), so the candidate panels (a gate panel with the pass probabilities, a pooling-by-company panel, plan Fig. 7, and a decomposition bar for P1.9) are not planned.
 
 ## Drawn figures
 
-Each entry: the file in `docs/report/fig/` (`.svg` and `.png`), the plan entry it implements, a caption for the report, and the keys it reads. Which library the shipped hier's replica rows come from differs by figure. In D1, D2, D5, D6, D7 (a) and D8 they are formative run 2's (`paiec/hier.py` 70a3a81a: the old multiple-choice floor, before the floored-fit fix); the corrected floor and the fix move ALC by at most 0.0005 (`results/ship_confirm.json`, `code_gap`; draft §5.4). D3's harness rows (library 3f75a549, except the known-sign cues, scored on the legacy rows 0c05d35e) and the P1a runs of D4 and D7 (b, c) (`paiec/hier.py` d9a95612, the archive's code at `4d2cc4f`) have both fixes. Run sets differ between files and are named in each caption (review m6).
+Each entry: the file in `docs/report/fig/` (`.svg` and `.png`), the plan entry it implements, a caption for the report, and the keys it reads. Which library the shipped hier's replica rows come from differs by figure. In D1, D2, D5, D6, D7 (a) and D8 they are formative run 2's (`paiec/hier.py` 70a3a81a: the old multiple-choice floor, before the floored-fit fix); the corrected floor and the fix move ALC by at most 0.0005 (`results/ship_confirm.json`, `code_gap`; draft App E.7 and App H.2). D3's harness rows (library 3f75a549, except the known-sign cues, scored on the legacy rows 0c05d35e) and the P1a runs of D4 and D7 (b, c) (`paiec/hier.py` d9a95612, the archive's code at `4d2cc4f`) have both fixes. Run sets differ between files and are named in each caption (review m6).
 
 ### D1. `learning_curves`: Brier by budget, by regime, with the formative runs (review m8 and P2.20 item 1; plan Fig. 3)
 
@@ -134,6 +134,8 @@ Each entry: the file in `docs/report/fig/` (`.svg` and `.png`), the plan entry i
 ---
 
 ## Plan
+
+Section numbers in the plan entries below are those of the pre-trim draft, `docs/report/draft_v1_long.md`; the table under "Placement in the draft" gives the current placement.
 
 ## Main text
 
