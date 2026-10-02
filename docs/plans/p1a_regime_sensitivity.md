@@ -734,3 +734,8 @@ and no test file up to it has changed since. The single-thread full run passes.
    * the realised levels;
    * the scoped closeness statements;
    * the smcal guard note.
+
+### Decision (2026-10-02)
+
+The team accepted D1. The recorded outcome of P1a is "no candidate: SHIP
+stays".

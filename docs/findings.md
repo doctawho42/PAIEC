@@ -5473,9 +5473,9 @@ That outcome assumes deviation D1, which changed how one reproduction check
 was compared before any scoring-seed row existed ("Provenance and
 deviations", below). Without D1, the rule read literally gives "rule not
 applied: check failed" (`rule.literal_reading`). Neither reading has a
-candidate, because no config meets condition (a). D1 needs the team's
-acceptance, but the conclusion does not depend on it. Nothing in
-`submission/` changed.
+candidate, because no config meets condition (a). The team accepted D1 on
+2026-10-02, so the recorded outcome is "no candidate: SHIP stays"; the
+conclusion does not depend on it. Nothing in `submission/` changed.
 
 **What it asks.** The audit moved the archive to the milder level because the
 hidden levels "look spread both ways" ("What actually shipped, after the
@@ -5985,8 +5985,8 @@ The ratios compare configs timed in the same tasks.
     failed".
   * With D1, the outcome is "no candidate: SHIP stays".
   * Neither reading has a candidate.
-* **Left to the team.** Accept D1, or record the study as not applied.
-  Future plans should set tolerances at the comparator's stored precision.
+* **Decided.** The team accepted D1 on 2026-10-02. Future plans should set
+  tolerances at the comparator's stored precision.
 
 **The lock** rests on local mtimes and scratch copies (above), not on a
 commit made before scoring.
