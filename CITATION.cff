@@ -1,7 +1,7 @@
 # Citation metadata for this repository and the technical report it accompanies.
 # license: MIT covers this repository's own code and docs only; README.md, "License
-# and third-party material", lists what it does not cover (measurement-db and the
-# excerpts of it in results/, the organisers' code, formative tables and inventory rows).
+# and third-party material", lists what it does not cover (measurement-db, the
+# organisers' code, formative tables and inventory rows).
 # version: the release tag (docs/release.md, section 6), not the Python package's
 # version in pyproject.toml.
 # keywords: the same list as the "Keywords:" line of docs/report/draft.md, which fills

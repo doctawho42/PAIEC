@@ -152,6 +152,16 @@ other hardware (report App G.3). There a rebuild takes about 1.5 minutes and
 1 GB of memory; one from a `git archive` export of `3e6b770` on 2026-10-03
 reproduced `4a882cc7…` byte for byte.
 
+The history of this repository was rewritten once before publication, to
+replace the e-mail address in its commits and to remove quoted measurement-db
+item text and an access token (`docs/release.md`, section 9). Every commit id
+changed. Seven-character commit ids written before the rewrite, here, in the
+report, the scripts and the results files, are kept as they were, and each
+resolves through a lightweight tag of the same name. Seven results files also
+record the full 40-character old id of the commit they ran at (their `head`
+fields). Those resolve by their first seven characters, and
+`docs/commit-map.txt` lists every old full id with its new one.
+
 ## Rerun the experiments
 
 The report's App G.4 lists the command, wall time and output of every result;
@@ -249,18 +259,14 @@ license does not cover:
   own terms: per its dataset card, the curation is licensed
   [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) and each
   benchmark's content keeps its upstream licence. Accept the terms yourself
-  before fetching it.
-  <!-- TODO(team): docs/release.md section 3.1 decides whether the two files below are published; if they are removed, drop the rest of this bullet. -->
-  Two committed results files quote it: the blind-rating samples
-  `results/rate2_truth.json` (180 items, 45 each from matharena,
-  multi_swebench, real_webagents and swe_rebench) and `results/ctrl_truth.json`
-  (60 multi_swebench items) hold the text of 239 items from measurement-db,
-  some in full and the rest cut to their first 700 or 4,000 characters. These
-  excerpts are not covered by the MIT License. The upstream licences recorded
-  in the dataset's `benchmarks` tables are CC-BY-NC-SA-4.0 AND CC-BY-SA-4.0
-  (matharena), Apache-2.0 (multi_swebench) and CC-BY-4.0 (swe_rebench); for
-  real_webagents the dataset records the licence as unknown, so no licence is
-  known to cover its 45 excerpts.
+  before fetching it. No item text from it is in this repository, apart from a
+  40-character example in one code comment (`docs/release.md`, section 9). The
+  blind-rating files `results/rate2_truth.json` (180 items, 45 each from
+  matharena, multi_swebench, real_webagents and swe_rebench) and
+  `results/ctrl_truth.json` (60 multi_swebench items) keep, for each rated
+  item, its measurement-db item id, its Rasch target and the sha256 digest and
+  length of the excerpt that was rated. `docs/release.md` (section 9) rebuilds
+  the excerpts from the dataset and checks them against the digests.
 - **The organisers' baseline repository** (`third_party/paiec_baseline`). It
   has no license and is not included; clone it yourself as shown above.
   `paiec/official.py` and `paiec/baselines.py` re-implement its streaming client
@@ -271,7 +277,8 @@ license does not cover:
 - **The organisers' formative-feedback tables** in `results/formative/`,
   stored verbatim as a record.
 - **Rows of the organisers' benchmark inventory.** `results/inventory.csv`
-  holds 161 of them (titles, authors, code and dataset links, venue), and
+  holds 161 of them (titles, authors, code and dataset links, venue; one code
+  link is stored without its access token), and
   `results/inventory_hand_labels.csv` and `results/inventory_classes.csv`
   repeat titles from the organisers' sheet. They were inputs to the analyses
   of report §2.2 and App A.1, F.6 and F.8.

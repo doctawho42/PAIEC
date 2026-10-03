@@ -299,6 +299,8 @@ Against the scratch outputs, every feedback-matching number, group mean, public 
   - Author Nikita L. Polomoshnov.
   - Trailers `Co-Authored-By: Claude Opus 5` and `Claude-Session: https://claude.ai/code/session_01SfDQKV6PCMssu2UQX8KxXL`.
 
+Added 2026-10-03: the history rewrite of that date replaced the `text` value of every record of both files, in every commit, by the marker `redacted sha256:<hex> chars:<n>`, the sha256 of the excerpt and its length in characters; the other fields are unchanged (`docs/release.md`, section 9). The seven-character commit ids of this repository in this file are those of the history before the rewrite, and each resolves through a lightweight tag of the same name (`docs/commit-map.txt` lists the old and new ids). The sha256 of `results/inventory.csv` in section 2.2 (`58336933…`) is of the file before the rewrite, which replaced one access token in it; `docs/release.md`, section 9.5, re-checks it.
+
 **What the repository says about the protocol.** Only `analysis.py`'s docstring: the ratings "were produced by reading the item texts with the true difficulty withheld"; the main sample is "truncated to 450-700 characters"; the control is "60 fresh multi_swebench items with full text".
 
 Measured from the truth files:

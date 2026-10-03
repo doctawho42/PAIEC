@@ -860,7 +860,7 @@ The item counts in the formative feedback suggest that the platform splits after
 - We check `default_policy` decision for decision against the organisers' `run_streaming`, and the two match [P§ Interfaces].
 - The platform hands each call its own copy of the arguments, and these copies do not change results. On one run, the replica with platform-like argument copies and 16 simulated workers gives per-pair Brier and ECE (expected calibration error) bit-identical to its fast path, one worker without copies. This holds for all six predictors in the baseline table of F§ "Under the official protocol": the baselines and LegacyP with its strict and its LOPO prior.
 - The empirical mean's ALC follows from base rates, $\mathrm{ALC} \approx 0.025 + 1.2118\,\mathbb E[p(1-p)]$, where $p$ is a pair's true success rate, and the replica agrees with this formula. Once the split and stream order are salted per run, the replica's residual against the exact expectation is -0.0005 ± 0.0006 (F§ "The empirical mean's ALC is a function of base rates"; Figure A1).
-- `tests/test_official.py` (34 test functions) pins the replica's protocol invariants. In this revision's working tree the test suite has 501 test functions over 23 files (699 collected tests), to be recounted at the tag (App I). The suite runs on synthetic data and needs no download.
+- `tests/test_official.py` (34 test functions) pins the replica's protocol invariants. At the release commit (to be tagged `v1.0.0`, App I), the test suite has 528 test functions over 24 files (729 collected tests). The suite runs on synthetic data and needs no download.
 
 ![Figure A1: the empirical mean's ALC against base rates](fig/empirical_mean.png)
 
@@ -1583,7 +1583,7 @@ The organisers' baseline repository (validator and streaming client) has no lice
 
 At that commit, `tools/streaming_ingestion.py` has sha256 `c6f2610f…` and `check_submission_zip.py` has `abe3cae0…`.
 
-`pytest` needs neither the data nor the baseline repository; it runs on synthetic data. This revision's working tree has 501 test functions over 23 files and 699 collected tests. Both counts are to be recounted at the tagged commit.
+`pytest` needs neither the data nor the baseline repository; it runs on synthetic data. At the release commit the suite has 528 test functions over 24 files and 729 collected tests. All 729 passed on 2026-10-03 with the data and the baseline repository present.
 
 ### G.3 Rebuilding the submission
 
@@ -1639,6 +1639,8 @@ Wall times are as recorded on the shared machine above. Every results file recor
 | figures (Figures 1 to 7, A1, B1, D1, E1, F1) | `python tools/report_figures.py`, `--check` to rebuild and compare | about 5 s, under 300 MB; reads `results/*.json` only | `docs/report/fig/*.svg`, `*.png`, `manifest.json` |
 | legacy-replica results (App F.8) | `python experiments/ceilings.py`, `ladder.py --seeds 4`, `transfer.py`, `order_sensitivity.py`, `pool_robustness.py`, `acquisition.py --seeds 4` | minutes each | printed |
 | offline bank (App F.8) | `python experiments/inventory_scan.py` (needs network: clones repositories; App G.6) | not recorded; it ran before 2026-09-23 19:14 UTC | `results/inventory.csv`, `results/clone_scan.csv` |
+
+The rating study's input files, `results/rate2_truth.json` and `results/ctrl_truth.json`, hold no item text. For each rated item they keep its measurement-db item id, its Rasch difficulty and the sha256 digest and length of the excerpt the rater read. `docs/release.md`, section 9, rebuilds the excerpts from measurement-db.
 
 The scripts above regenerate the large per-row files, which are gitignored: `data/harness_rows`, `data/harness_rows_legacy`, `data/itemsig_eval_rows`, `data/subject_side_rows`, `data/hier_floor`, `data/regime_sensitivity_rows`, `data/baselines_p1_rows` and `data/pooling_decomposition_rows`. The one exception is `data/harness_rows_legacy`, which comes from `experiments/harness.py --stage collect` run at a checkout of `bd0be67` (library `0c05d35e…`). At the current commit the collection writes `data/harness_rows`, which differs on 157 of 300 test-like runs (F§ "Acceptance harness", Provenance). The numbers of `heads_eval.py --rows legacy`, `itemcov_eval.py` and `mcq_floor.py` depend on the legacy rows. `experiments/ship_confirm.py`, `formative_feedback.py`, `level_audit.py` and `script_revisions.py --stage reread` read `data/subject_side_rows`, so they need `experiments/subject_side.py`'s rows first.
 
@@ -1708,12 +1710,14 @@ The report uses these internal labels:
 - Archive-1 is `8e28d930…` (LegacyP, run 1), archive-2 is `2c64eaad…` (hier-ship, run 2) and archive-3 is `4a882cc7…` (hier-ship, run 3), the archive selected at the time of writing, which may not be the final selection.
 - The "run-2 library" is hier 70a3a81a with the old multiple-choice floor and the solver before the floored-fit fix. The "current library" is that of `4d2cc4f`.
 - The harness collected its "legacy rows" at `bd0be67` (library `0c05d35e…`) and its "current rows" at the head of the report's branch at the time of writing.
-- In the labels above and in App H.2, a seven-character hexadecimal id is a commit of this repository. An eight-character id after "hier", "library" or "script", and each archive id above, with or without a trailing "…", is the start of a sha256 of that file's contents (for "library", of the library's files concatenated). Elsewhere, `82d330dd` is a commit of the organisers' baseline repository and `bc8204d8…` the dataset revision.
+- In the labels above and in App H.2, a seven-character hexadecimal id names a commit of this repository's history before its one rewrite, on 2026-10-03; a tag of the same name resolves it (see the paragraph after this list). An eight-character id after "hier", "library" or "script", and each archive id above, with or without a trailing "…", is the start of a sha256 of that file's contents (for "library", of the library's files concatenated). Elsewhere, `82d330dd` is a commit of the organisers' baseline repository and `bc8204d8…` the dataset revision.
 - F§ and P§ cite sections of `docs/findings.md` and `docs/protocol.md` by title.
 - "The precision deviation" is the review's deviation D1: the RS study's reproduction check compared at stored precision (App C.3).
 - "The entropy job" is the 14B's second Kaggle session, called "commit D" in its README.
 - "The 4B", "the 14B" and "the blind rater" are the judges of §6.3.
 - App I maps the items of the internal review (`docs/report/review_v0.md`) to sections.
+
+We rewrote the repository's history once before publishing it, on 2026-10-03 (`docs/release.md`, section 9). Otherwise the history would have published the e-mail address of the development machine's git configuration, the measurement-db item text quoted in two results files and a third-party access token. The rewrite set the author and committer address of every commit to the address of the title block. It replaced the item excerpts in `results/rate2_truth.json` and `results/ctrl_truth.json` by their sha256 digests and lengths, and the access token in one link of `results/inventory.csv` by a marker. No other file changed, but every commit id did. Each seven-character commit id in this report resolves in the published repository through a lightweight tag of the same name, and `docs/commit-map.txt` lists the earlier and the rewritten ids. The digests recorded for the three files are of their earlier bytes, and `docs/release.md`, section 9, shows how to re-check them.
 
 ### H.2 Which code produced each number
 
@@ -1767,7 +1771,7 @@ The record behind this report has these gaps:
 
 Draft v1 is dated 2026-09-28. We revised it on 2026-10-01 (the 14B's entropy job, formative run 3 and the RS study) and on 2026-10-02 for the remaining P1 items of the internal review (its second priority level: what a sound, complete analysis needs). Those items were the missing baselines, the pooling decomposition, the gate's tightening and intervals, the single-subject breakout, the row export and the figures. On 2026-10-02 we also restructured the report for the review's P2 items, which concern clarity, presentation and length. We cut the main text to sections 1 to 7, moved detail to these appendices, and used one name per model and one SE format. We kept the pre-trim text as `docs/report/draft_v1_long.md`. A verification pass the same day restored caveats lost in the trim, labelled the headline table in plain words, completed the references and recorded the submission requirements with their sources (App I). The pass changed no reported result.
 
-We wrote the report against branch `official-protocol`. Every script, results file and test it cites is committed there, except the report's own files, which are to be committed with the report (App I). We committed the P0 revision (the answers to the review's items blocking submission) in `00bdf04`, and the Kaggle record in the commit after it. The entropy job's kit and rule are in `78e303e`, the entropy job's output and formative run 3 in `380fecf`, the RS study in `7fb7450` and the P1 records in `dd3e372`. The submission archive's code is that of `4d2cc4f`.
+We wrote the report against branch `official-protocol`. Every script, results file and test it cites is committed there, and so are the report's own files. We committed the P0 revision (the answers to the review's items blocking submission) in `00bdf04`, and the Kaggle record in the commit after it. The entropy job's kit and rule are in `78e303e`, the entropy job's output and formative run 3 in `380fecf`, the RS study in `7fb7450` and the P1 records in `dd3e372`. The submission archive's code is that of `4d2cc4f`.
 
 ---
 
@@ -1775,7 +1779,7 @@ We wrote the report against branch `official-protocol`. Every script, results fi
 
 - `TODO(team)` Confirm how the five inventory repositories were judged to publish raw or graded outputs, and whether any of their files was opened (App F.8, App G.6).
 - `TODO(team)` Confirm the two conduct statements of "Code, data and conduct" as they are worded there. In short, they say that the formative feedback set global quantities only and that nothing from the inventory scan enters `paiec/`, `submission/` or `tools/`. Both statements follow App G.6.
-- `TODO(team)` Tag the commit that the final archive is built from, and update the test counts of App A.4 and App G.2 at that commit. Every script, results file and test this draft cites is committed, except this revision's own records. Those are to be committed with this revision: `docs/report/draft.md`, `docs/report/figures.md`, `docs/report/draft_v1_long.md` (the pre-trim text, App H.4) and `docs/report/references_check.md` (the references' verification record). The committed records are in these commits:
+- The release commit is to be tagged `v1.0.0` (`docs/release.md`, sections 6 and 7). Its archive code equals that of `4d2cc4f`, and the test counts of App A.4 and App G.2 are those of the release commit. Every script, results file and test this draft cites is committed, and so are the report's own records: `docs/report/draft.md`, `docs/report/figures.md`, `docs/report/draft_v1_long.md` (the pre-trim text, App H.4) and `docs/report/references_check.md` (the references' verification record). The committed records are in these commits:
   - the P0 revision: `00bdf04`
   - the Kaggle record: the next commit
   - the entropy job's kit and rule: `78e303e`
@@ -1802,7 +1806,6 @@ We wrote the report against branch `official-protocol`. Every script, results fi
 - The pooled interval of `experiments/llm_rating/analysis.py` subtracts 3 from $n$ twice (`ci(r, len(df) - 3)`). The difference does not show at two decimals (App F.3).
 - Figs. 1 (a schematic), 2, 4, 7, A2 and A5 of the figure plan (`docs/report/figures.md`, "Open questions") are not drawn.
 - `experiments/harness.py --stage verify --scratch` still expects the scratch row format of the meta-learned heads study (F§ "Meta-learned heads on frozen embeddings", Caveat).
-- `TODO(team)` Fill in the authors, the affiliations and the public code link. Include measurement-db's terms in the release notes.
 
 - The submission requirements below are still open. We read them on 2026-10-02 from the competition page (https://aimslab.stanford.edu/competition) and from the OpenReview submission form, and they are recorded in `docs/report/report_requirements.md`. The form is the invitation `NeurIPS.cc/2026/Workshop/PAIEC/-/Submission` of the venue https://openreview.net/group?id=NeurIPS.cc/2026/Workshop/PAIEC, which we read through https://api2.openreview.net/invitations?id=NeurIPS.cc/2026/Workshop/PAIEC/-/Submission. Everything is due by 30 October 2026 23:59 AoE (the form's due time, 2026-10-31 11:59 UTC).
   - One PDF of at most 50 MB, built from this Markdown, with the appendices in the same file.

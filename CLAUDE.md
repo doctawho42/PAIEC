@@ -34,7 +34,7 @@ Data lives in `data/<benchmark>/{response,items,subjects}.parquet` (gitignored);
 
 **Research-only modules** (not shipped): `paiec/testlike.py` builds test-like runs (pseudo-benchmarks, ~one pair per benchmark, tuned to the real formative feedback) and is the primary regime for choices aimed at the hidden test; `paiec/itemsig.py` (similarity-based residual layer) measured null and is not shipped; `paiec/llmfeat.py` + `experiments/llm_features.py` extract local-LLM item features into gitignored `data/features/`.
 
-**Experiments** — one script per result in `experiments/`; `_*_legacy.py` are earlier versions kept for reproducibility of older numbers. `experiments/llm_rating/` is the LLM-judged difficulty study; its samples/truth are in `results/`.
+**Experiments**: one script per result in `experiments/`; `_*_legacy.py` are earlier versions kept for reproducibility of older numbers. `experiments/llm_rating/` is the LLM-judged difficulty study; its truth files in `results/` (`rate2_truth.json`, `ctrl_truth.json`) hold item keys, Rasch targets and sha256 digests of the rated excerpts, no item text.
 
 ## Conventions that matter here
 
@@ -43,3 +43,4 @@ Data lives in `data/<benchmark>/{response,items,subjects}.parquet` (gitignored);
 - Negative results are recorded as negative in `docs/`, each with the script that produced it. Keep docs numbers in sync with a runnable script.
 - Recurring bug signature: a spike in Brier at budgets 1 and 3 means the second-order term is mishandled (MAP without Laplace integration, standardizing after shrinkage, a Hessian missing a factor `n`). Check that first when low-budget numbers look wrong.
 - Only binary item-level benchmarks are eligible in the test; `mmdocrag` (fraction) is excluded, `matharena` ('mixed') is used after dropping its non-binary responses, `swe_rebench` has a single subject.
+- Never write measurement-db item text into a committed file; record item ids and sha256 digests instead. Commit with the address nikitapol@fbb.msu.ru, which the repository's local git config sets (the global config does not). Seven-character commit ids from before the history rewrite of 2026-10-03 resolve through lightweight tags of the same name; full old ids (the `head` fields of results files) map through `docs/commit-map.txt` (`docs/release.md` section 9).

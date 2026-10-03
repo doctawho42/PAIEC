@@ -127,10 +127,14 @@ budgets. It is just not a lever.
 
 **How the ratings were made, and what is not recorded.** The 180 main and 60
 control ratings are hard-coded in `experiments/llm_rating/ratings_main.py` and
-`ratings_control.py`; the texts and Rasch targets are in
-`results/rate2_truth.json` and `results/ctrl_truth.json`. All of them entered
-the repository in its first commit (165b4c0, 2026-09-23), co-authored by Claude
-Opus 5 in a Claude Code web session, and have not changed since. The rating
+`ratings_control.py`; the Rasch targets are in `results/rate2_truth.json` and
+`results/ctrl_truth.json`. The rated texts are no longer in those files: since
+the history rewrite of 2026-10-03 each record keeps the sha256 digest and the
+length of its excerpt instead (`docs/release.md`, section 9). The two scripts and the two truth files
+entered the repository in its first commit (165b4c0, 2026-09-23), co-authored
+by Claude Opus 5 in a Claude Code web session, and each has one version in
+every commit (the rewrite replaced the truth files' version in all commits, the
+first included). The rating
 model, its version, the prompt, the date, the sampling settings and how the
 rater was kept from the targets are recorded nowhere. The team confirmed on
 2026-09-28 that the rater was the Claude model of that coding session (the
