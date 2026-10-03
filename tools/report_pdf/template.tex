@@ -16,13 +16,23 @@
 % question mark (the build's text check fails on that character).
 \XeTeXgenerateactualtext=1
 \usepackage{xcolor}
+% Math. The draft's TeX math, which pandoc writes as \(...\) inline and \[...\] for
+% display (report.lua writes an amsmath display environment such as align as itself,
+% starred), is set by unicode-math, loaded after amsmath and fontspec, in an OpenType
+% math font that matches the text face: STIX Two Math (a Times design, shipped with
+% macOS) where installed, else TeX Gyre Termes Math (TeX Live, found by its file name).
+% Copied or searched math text then gets Unicode characters (U+2212 for a minus,
+% mathematical italic letters), which the build's text check folds back (NFKC).
+% Letters stay italic and capital Greek upright, as in plain TeX. (No dollar sign in
+% these comments: pandoc's template language would read it as a variable.)
 \usepackage{amsmath}
 % Fonts. The text face must have static bold and italic (XeTeX cannot instance a
 % variable font such as macOS's STIX Two Text, so its bold would print regular) and
 % cover the draft's Greek, Cyrillic and symbols: Times New Roman where installed
-% (macOS, Windows), else STIXGeneral, else TeX Gyre Termes (TeX Live; no Cyrillic, which
-% the build reports as missing glyphs). Arrows and relations come from the math font
-% where the face may lack them.
+% (macOS, Windows), else STIXGeneral, else TeX Gyre Termes (TeX Live, by its file names,
+% which XeTeX finds where a font name may not be; no Cyrillic, which the build reports
+% as missing glyphs). Arrows and relations come from the math font where the face may
+% lack them.
 \newif\ifreportsymbolfont
 \IfFontExistsTF{Times New Roman}{%
   \setmainfont{Times New Roman}%
@@ -31,7 +41,8 @@
   \IfFontExistsTF{STIXGeneral}{%
     \setmainfont{STIXGeneral}%
   }{%
-    \setmainfont{TeX Gyre Termes}%
+    \setmainfont{texgyretermes}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,
+      ItalicFont=*-italic,BoldItalicFont=*-bolditalic]%
   }%
 }
 \IfFontExistsTF{Menlo}{%
@@ -39,19 +50,34 @@
 }{%
   \setmonofont{Latin Modern Mono}[Scale=MatchLowercase,HyphenChar=None]%
 }
+\usepackage[math-style=TeX,bold-style=TeX]{unicode-math}
+\IfFontExistsTF{STIX Two Math}{%
+  \setmathfont{STIX Two Math}%
+}{%
+  \setmathfont{texgyretermes-math.otf}%
+}
+% amsmath's \boldsymbol needs a bold math version, which an OpenType math font does not
+% have (it would print the symbol regular, with font warnings). The draft writes
+% \boldsymbol\Sigma, which GitHub renders, so here it is unicode-math's \symbf: with
+% bold-style=TeX a capital Greek letter comes out bold and upright, like \mathbf x.
+\AtBeginDocument{\renewcommand{\boldsymbol}[1]{\symbf{#1}}}
 \usepackage{newunicodechar}
+% These characters become active, so in math (a ≤ typed inside the draft's TeX) each
+% one gives the math symbol, with its spacing as a relation, not a glyph of the text
+% fallback; \protected keeps the test out of a table cell's look-ahead.
 \ifreportsymbolfont
   \IfFontExistsTF{STIX Two Math}{%
     \newfontfamily\reportsymbols{STIX Two Math}%
   }{%
-    \newfontfamily\reportsymbols{TeX Gyre Termes Math}%
+    \newfontfamily\reportsymbols{texgyretermes-math.otf}%
   }
-  \newunicodechar{→}{{\reportsymbols\symbol{"2192}}}
-  \newunicodechar{←}{{\reportsymbols\symbol{"2190}}}
-  \newunicodechar{≈}{{\reportsymbols\symbol{"2248}}}
-  \newunicodechar{≤}{{\reportsymbols\symbol{"2264}}}
-  \newunicodechar{≥}{{\reportsymbols\symbol{"2265}}}
-  \newunicodechar{≠}{{\reportsymbols\symbol{"2260}}}
+  \protected\def\reportsymbol#1#2{\ifmmode#2\else{\reportsymbols\symbol{#1}}\fi}
+  \newunicodechar{→}{\reportsymbol{"2192}{\rightarrow}}
+  \newunicodechar{←}{\reportsymbol{"2190}{\leftarrow}}
+  \newunicodechar{≈}{\reportsymbol{"2248}{\approx}}
+  \newunicodechar{≤}{\reportsymbol{"2264}{\le}}
+  \newunicodechar{≥}{\reportsymbol{"2265}{\ge}}
+  \newunicodechar{≠}{\reportsymbol{"2260}{\ne}}
 \fi
 \usepackage[protrusion=true,expansion=false]{microtype}
 
@@ -121,10 +147,13 @@
 \setlength{\textfloatsep}{12pt plus 3pt minus 3pt}
 \setlength{\floatsep}{10pt plus 3pt minus 2pt}
 \setlength{\intextsep}{10pt plus 3pt minus 2pt}
-\renewcommand{\topfraction}{0.7}
+% A figure of up to 85% of a page goes at the top of a text page, with text under it; only
+% a larger one gets a page of floats (with 0.6, a figure of two thirds of a page took a
+% page of its own and left the rest of it blank).
+\renewcommand{\topfraction}{0.85}
 \renewcommand{\bottomfraction}{0.5}
-\renewcommand{\textfraction}{0.15}
-\renewcommand{\floatpagefraction}{0.6}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.85}
 % a page of floats only starts at the top, as body pages do, instead of centring them
 \makeatletter
 \setlength{\@fptop}{0pt}

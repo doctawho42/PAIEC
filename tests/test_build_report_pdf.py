@@ -303,6 +303,262 @@ def test_filter_on_the_draft_resolves_everything(tmp_path):
                                                              ["nikitapol@fbb.msu.ru"])
 
 
+# ------------------------------------------------------------------ TeX math
+
+MATH = r"""# A small report with math
+
+Technical report for a test.
+
+Author: A. B. Cee
+
+Code: https://example.org/code
+
+Keywords: alpha, beta
+
+## Abstract
+
+The abstract quotes 0.123 and $B_{31} = 0.1725$.
+
+## 1 Introduction
+
+The level prior is $\mu_b \sim \mathcal{N}(\mu_0, \sigma_\mu^2)$ with $\mu_0 = -2.5$, $\sigma_\mu = 2.5$
+and $\gamma = 0.5$; a gain of $\Delta = -0.0419$ at $B_{31}$, and $\mathbb{E}[p(1-p)]$ near 0.128.
+See Table 1, Figure 1 and App A.1. It costs $5 and $6, which stay text.
+
+$$
+\mathrm{ALC} = 0.1\,B_0 + 0.2\,(B_1 + B_3 + B_7 + B_{15}) + 0.1\,B_{31}
+$$
+
+The response model, with the item residual integrated:
+
+$$
+\eta_{si} = \mu_b + \theta_s + \delta_{sb} - g_i - e_i, \qquad
+\hat p_{si} = c_i + (1 - c_i - \varepsilon)\,\mathbb{E}\big[\operatorname{logit}^{-1}(\eta_{si})\big]
+$$
+
+- *the level $\mu_b$ in emphasis*, and **a gain of $-0.042$ in bold**;
+- a list item with $p ≤ 0.05$ in math, and p ≤ 0.06 → text.
+
+*Table 1: the level prior $\mu_b$.*
+
+| quantity | symbol | value |
+|---|---|---|
+| level centre | $\mu_0$ | $-2.5$ |
+| level sd | $\sigma_\mu$ | 2.5 |
+| item variance | $\sigma_d^2 + \sigma_g^2$ | $2.671^2 + 1.542^2$ |
+| harness offset | $\operatorname{cap}(o) = 4\tanh(o/4)$ | -0.5 |
+
+Source: a note with $\pm 0.01$ in it.
+
+![Figure 1: alt text](fig/item_gap.png)
+
+*Figure 1.* A caption with $r = 0.3$ and $\sqrt{1 - r^2}$ in it, 0.42.
+
+## Appendix A: the first appendix
+
+### A.1 One
+
+A thin space in $571\,921$ responses, $10^{-4}$, $4.8\%$ of items and $\tfrac{1}{2}$.
+
+$$
+\begin{aligned}
+a &= 1.25 \\[2pt]
+b &= \text{rest of it} % a comment 99, never printed
+\end{aligned}
+$$
+
+$$
+\begin{align}
+x &= 7.5 \\
+y &\le 8.5
+\end{align}
+$$
+"""
+
+
+@pytest.fixture
+def mini_math(tmp_path):
+    src = tmp_path / "src_math"
+    (src / "fig").mkdir(parents=True)
+    shutil.copyfile(FIG / "item_gap.png", src / "fig" / "item_gap.png")
+    shutil.copyfile(FIG / "item_gap.svg", src / "fig" / "item_gap.svg")
+    draft = src / "draft.md"
+    draft.write_text(MATH, encoding="utf-8")
+    return draft
+
+
+def test_defaults_read_tex_math():
+    """The draft's $...$ and $$...$$ are math, as GitHub renders them."""
+    reader = B.pandoc_reader()
+    assert reader.startswith("gfm")
+    assert "-tex_math_dollars" not in reader and "-tex_math_gfm" not in reader
+
+
+def test_template_loads_unicode_math_after_amsmath_and_fontspec():
+    pkgs = B.latex_packages()
+    assert "amsmath" in pkgs and "unicode-math" in pkgs
+    assert pkgs.index("fontspec") < pkgs.index("unicode-math")
+    assert pkgs.index("amsmath") < pkgs.index("unicode-math")
+    tpl = (B.KIT / "template.tex").read_text(encoding="utf-8")
+    assert re.search(r"^\s*\\setmathfont\{STIX Two Math\}", tpl, re.M)
+    # pandoc's template language reads a dollar sign as a variable
+    body = [ln for ln in tpl.splitlines() if ln.lstrip().startswith("%")]
+    assert not any("$" in ln for ln in body)
+    # a symbol the text fallback takes from the math font is the math symbol in math
+    defs = re.findall(r"^\s*\\newunicodechar\{(.)\}\{(.*)\}$", tpl, re.M)
+    assert len(defs) == 6 and all(d.startswith("\\reportsymbol{") for _, d in defs)
+    assert re.search(r"\\protected\\def\\reportsymbol#1#2\{\\ifmmode#2\\else", tpl)
+    # amsmath's \boldsymbol has no bold math version in an OpenType math font, so the
+    # draft's \boldsymbol\Sigma goes through unicode-math's \symbf, after unicode-math
+    m = re.search(r"^\\AtBeginDocument\{\\renewcommand\{\\boldsymbol\}\[1\]\{\\symbf\{#1\}\}\}$",
+                  tpl, re.M)
+    assert m and m.start() > tpl.index("{unicode-math}")
+
+
+def test_math_text_keeps_numbers_and_printed_words():
+    def nums(tex):
+        return B.NUMBER_RE.findall(B._normalise(B.math_text(tex)))
+
+    def words(tex):
+        return B.WORD_RE.findall(B._normalise(B.math_text(tex)))
+
+    assert nums(r"\mu_0 = -2.5,\ \sigma_\mu = 2.5,\ \gamma = 0.5") == ["0", "2.5", "2.5", "0.5"]
+    assert words(r"\mu_0 = -2.5,\ \sigma_\mu = 2.5") == []      # command names are not words
+    tex = r"\mathrm{ALC} = 0.1\,B_0 + 0.2\,(B_1 + B_{15}) + 0.1\,B_{31}"
+    assert nums(tex) == ["0.1", "0", "0.2", "1", "15", "0.1", "31"]
+    assert words(tex) == ["ALC", "B", "B", "B", "B"]
+    assert words(r"\operatorname{logit}^{-1}(\eta) - \text{hier-ship}") == ["logit", "hiership"]
+    assert nums(r"\tfrac{1}{2}") == ["1", "2"]                  # never "12"
+    # spacing, labels and environment names print nothing; \% prints
+    tex = r"\begin{aligned} x &= 1{,}000 \\ \hspace{2pt} y &= 4.8\% \end{aligned}"
+    assert nums(tex) == ["1", "000", "4.8"] and words(tex) == ["x", "y"]
+    assert "%" in B.math_text(tex)
+    # nor do comments, column specs, a row's extra space, bare dimensions and label keys
+    tex = ("\\begin{aligned}[t] a &= 1.25 \\\\[2pt] b &= 3 % note 99\n\\end{aligned}"
+           r"\begin{array}{cc} 7 & 8 \end{array}\begin{alignat}{2} q &= 5 \end{alignat}"
+           r"\kern-1.5pt\mskip 3mu\eqref{eq:ten}\label{eq:one}")
+    assert nums(tex) == ["1.25", "3", "7", "8", "5"] and words(tex) == ["a", "b", "q"]
+    assert nums(r"x \tag{4}") == ["4"]                          # a tag prints
+
+
+def test_text_check_reads_typeset_math():
+    """pdftotext gives mathematical italic letters, U+2212 and glued sub- and
+    superscripts; the check folds them and still catches a lost number."""
+    draft = ("The prior" + B.math_text(r"\mu_0 = -2.5") + "and"
+             + B.math_text(r"\mathbb{E}[p(1-p)] = B_{31}") + "with"
+             + B.math_text(r"\sigma_d^2 + \sigma_g^2 = 2.671^2 + 1.542^2") + "and"
+             + B.math_text(r"\operatorname{logit} \hat p_i") + "here.")
+    pdf = ("The prior \U0001d707\u2080 = \u22122.5 and \U0001d53c[\U0001d45d(1 \u2212 \U0001d45d)] = "
+           "\U0001d43531 with \U0001d70e\U0001d4512 + \U0001d70e\U0001d4542 = 2.6712 + 1.5422 "
+           "and logit \U0001d45d\u0302\U0001d456 here.")
+    tc = B.text_check(draft, pdf)
+    assert tc["numbers_missing"] == {} and tc["words_missing"] == {}
+    lost = B.text_check(draft, pdf.replace("\u22122.5", "\u2212"))
+    assert lost["numbers_missing"] == {"2.5": 1}
+
+
+@needs_pandoc
+def test_draft_plain_reads_math_as_printed():
+    txt = B.draft_plain(PANDOC, "# T\n\nA $\\mu_0 = -2.5$ and $5 and $6.\n\n$$\n"
+                                "\\mathrm{ALC} = 0.1\\,B_{31}\n$$\n\nGitHub's $`\\tau_{7}`$ "
+                                "form.\n\n```math\n\\text{gap} = 0.0419 % 99\n```\n")
+    assert "-2.5" in txt and "ALC" in txt and "31" in txt and "$5 and $6" in txt
+    assert "7" in txt and "gap" in txt and "0.0419" in txt and "99" not in txt
+    assert "mathrm" not in txt and "mu" not in txt and "tau" not in txt and "\\" not in txt
+
+
+@needs_pandoc
+def test_filter_leaves_math_intact(mini_math, tmp_path):
+    r = B.build(mini_math, tmp_path / "out", figures="png", tex_only=True, epoch=0, quiet=True)
+    tex = Path(r["tex"]).read_text(encoding="utf-8").split("\\begin{document}", 1)[1]
+    flt = r["filter"]
+    assert flt["warnings"] == [] and flt["unresolved"] == []
+    assert flt["links"]["table"] == 1 and flt["links"]["figure"] == 1
+    assert flt["links"]["appendix"] == 1
+    # inline and display math reach LaTeX as written: no minus sign, break point or link
+    # inserted inside it
+    assert "\\(\\mu_0 = -2.5\\)" in tex and "\\(\\Delta = -0.0419\\)" in tex
+    assert "\\[\n\\mathrm{ALC} = 0.1\\,B_0" in tex
+    assert "\\operatorname{logit}^{-1}(\\eta_{si})" in tex
+    assert "\\(\\operatorname{cap}(o) = 4\\tanh(o/4)\\)" in tex     # in a table cell
+    assert "\\(\\sqrt{1 - r^2}\\)" in tex                            # in a figure caption
+    assert "−0.5" in tex                                             # text still gets its minus
+    assert "\\$5 and \\$6" in tex                                    # a price stays text
+    # in the abstract, emphasis, a list, a table caption and a table note
+    assert "\\(B_{31} = 0.1725\\)" in tex
+    assert "\\emph{the level \\(\\mu_b\\) in emphasis}" in tex
+    assert "\\textbf{a gain of \\(-0.042\\) in bold}" in tex
+    assert "\\(p ≤ 0.05\\)" in tex and "p ≤ 0.06 → text" in tex
+    assert "\\emph{Table 1: the level prior \\(\\mu_b\\).}" in tex
+    note = tex.index("\\(\\pm 0.01\\)")
+    assert tex.rindex("\\begingroup\\small", 0, note) > tex.rindex("\\end{tabular}", 0, note)
+    # a display stays a display; one amsmath environment is written as itself, starred
+    assert "\\[\n\\begin{aligned}\na &= 1.25 \\\\[2pt]\n" in tex
+    assert "\\begin{align*}\nx &= 7.5 \\\\\ny &\\le 8.5\n\\end{align*}" in tex
+    assert "\\begin{align}" not in tex
+    # a math cell is measured: the table keeps natural widths and one page
+    assert flt["tables"][0]["layout"] == "natural" and flt["tables"][0]["kept_together"]
+
+
+@needs_pandoc
+@pytest.mark.parametrize("old, new, warning", [
+    ("### A.1 One", "### A.1 The prior on $\\mu_b$", "holds TeX math"),
+    ("Technical report for a test.", "Technical report on $\\mu_b$.", "the subtitle holds TeX math"),
+    ("It costs $5", "A level $ \\mu_b$ costs $5", "left as text"),
+    ("near 0.128.", "near $0.128 $.", "left as text"),
+])
+def test_filter_reports_math_it_cannot_print_well(mini_math, tmp_path, old, new, warning):
+    """Math in a heading or the subtitle would show as TeX in the PDF's bookmarks and
+    metadata; a "$" beside a letter that stayed text is math that did not parse."""
+    assert old in MATH
+    mini_math.write_text(MATH.replace(old, new), encoding="utf-8")
+    r = B.build(mini_math, tmp_path / "out", figures="png", tex_only=True, epoch=0, quiet=True)
+    assert [w for w in r["filter"]["warnings"] if warning in w], r["filter"]["warnings"]
+
+
+@needs_latex
+def test_math_pdf_text_check(mini_math, tmp_path):
+    r = B.build(mini_math, tmp_path / "out", figures="png", epoch=1_700_000_000, quiet=True)
+    log = r["log"]
+    assert log["missing_glyphs"] == [] and log["pdf_string_tokens"] == 0
+    assert [o for o in log["overfull"] if o["pt"] > B.OVERFULL_LIMIT_PT] == []
+    tc = r["text_check"]
+    if "skipped" not in tc:
+        assert tc["numbers_missing"] == {} and tc["words_missing"] == {}
+        assert tc["numbers"] >= 40
+
+
+@needs_latex
+def test_math_with_the_fallback_fonts(mini_math, tmp_path, monkeypatch):
+    """Without Times New Roman, STIXGeneral and STIX Two Math (TeX Live alone) the text
+    and the math fall back to TeX Gyre Termes, found by file name, and a "≤" typed in
+    math is still set (as the math relation, by the symbol fallback)."""
+    kit = tmp_path / "kit"
+    shutil.copytree(B.KIT, kit)
+    tpl = (kit / "template.tex").read_text(encoding="utf-8")
+    for face in ("Times New Roman", "STIXGeneral", "STIX Two Math"):
+        assert "\\IfFontExistsTF{" + face + "}" in tpl
+        tpl = tpl.replace("\\IfFontExistsTF{" + face + "}", "\\IfFontExistsTF{No " + face + "}")
+    (kit / "template.tex").write_text(tpl, encoding="utf-8")
+    monkeypatch.setattr(B, "KIT", kit)
+    r = B.build(mini_math, tmp_path / "out", figures="png", epoch=1_700_000_000, quiet=True)
+    log = r["log"]
+    assert log["missing_glyphs"] == [] and log["pdf_string_tokens"] == 0
+    assert [o for o in log["overfull"] if o["pt"] > B.OVERFULL_LIMIT_PT] == []
+    tc = r["text_check"]
+    if "skipped" not in tc:
+        assert tc["numbers_missing"] == {} and tc["words_missing"] == {}
+    pypdf = pytest.importorskip("pypdf")
+    fonts = set()
+    for page in pypdf.PdfReader(r["pdf"]).pages:
+        for f in page["/Resources"]["/Font"].values():
+            # "ABCDEF+TeXGyreTermes-Regular-Identity-H": the subset prefix dropped
+            fonts.add(str(f.get_object()["/BaseFont"]).split("+")[-1])
+    for face in ("TeXGyreTermes-Regular", "TeXGyreTermes-Italic", "TeXGyreTermesMath-Regular"):
+        assert any(f.startswith(face) for f in fonts), fonts
+    assert not any(f.startswith(("TimesNewRoman", "STIX")) for f in fonts), fonts
+
+
 # ------------------------------------------------------------------- the PDF
 
 @pytest.fixture(scope="module")

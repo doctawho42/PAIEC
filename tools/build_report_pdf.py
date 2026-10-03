@@ -19,8 +19,12 @@ change the text and some no longer fit a page). Everything is written under
 dist/report/ (gitignored): the PDF, build/ (the .tex, .log and figures) and build.json
 (inputs with sha256, tool versions, page counts, warnings, every overfull box, and a
 check that every number and word of the draft is in the PDF's text, and that the text
-has no semicolon turned into U+037E). The title block's "Keywords:" line fills the PDF's
-keywords metadata and is not printed; CITATION.cff repeats it.
+has no semicolon turned into U+037E). The draft's TeX math ($...$, $$...$$) is set by
+unicode-math; the text check reads it as printed: TeX command names and the arguments
+that print nothing are dropped, the numbers and the words of \text{...} and the like are
+kept, and both sides are folded by NFKC (mathematical italic letters, sub- and
+superscript digits) with U+2212 read as a hyphen. The title block's "Keywords:" line
+fills the PDF's keywords metadata and is not printed; CITATION.cff repeats it.
 
 Needs pandoc (>= 3.1) and XeLaTeX with the packages template.tex loads (TeX Live has
 them all; the build asks kpsewhich first and names any that are missing); pdftotext
@@ -46,6 +50,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
@@ -391,6 +396,7 @@ def page_summary(labels: dict, pages: int | None) -> dict:
 NUMBER_RE = re.compile(r"\d+(?:\.\d+)*")
 WORD_RE = re.compile(r"[^\W\d_]+")
 GREEK_QUESTION_MARK = "\u037e"
+MINUS_SIGN = "\u2212"
 LIGATURES = {"ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl"}
 
 
@@ -400,15 +406,73 @@ def pandoc_reader() -> str:
     return m.group(1) if m else "gfm"
 
 
+# What TeX math holds that prints nothing, dropped before the commands are: a comment
+# (an unescaped % to the end of the line); the column spec and position of an array or
+# an alignment (\begin{array}{cc}, \begin{alignat}{2}, \begin{aligned}[t]); a row's
+# extra space (\\[2pt]); a bare dimension (\kern2pt, \mskip 3mu); and the commands
+# whose first braced argument prints nothing (spacing, labels and their references,
+# environment names, colours), with that argument.
+MATH_COMMENT = re.compile(r"(?<!\\)%[^\n]*")
+MATH_ENV_ARGS = re.compile(
+    r"\\begin\s*\{(?:(?:array|subarray|alignat\*?|alignedat|tabular)\}"
+    r"(?:\s*\[[^\]]*\])?\s*\{[^{}]*\}|(?:aligned|gathered)\}\s*\[[^\]]*\])")
+MATH_ROW_SPACE = re.compile(r"\\\\\s*\[[^\]]*\]")
+MATH_DIMEN = re.compile(r"\\(?:kern|mkern|mskip|hskip|vskip|hspace\*?|vspace\*?|mspace)"
+                        r"\s*-?\s*(?:\d+(?:\.\d*)?|\.\d+)\s*[a-z]{2}")
+MATH_SILENT_ARG = re.compile(
+    r"\\(?:begin|end|label|ref|eqref|pageref|hspace\*?|vspace\*?|kern|mkern|mskip|mspace|"
+    r"hskip|phantom|hphantom|vphantom|color|textcolor|operatornamewithlimits)\s*\{[^{}]*\}")
+MATH_ESCAPED = {"%": "%", "$": "$", "_": "_", "&": "&", "#": "#", "{": "{", "}": "}"}
+
+
+def math_text(tex: str) -> str:
+    """A TeX math string as its printed words and numbers, for the text check.
+
+    Command names (\\mu, \\mathrm, \\operatorname, \\times) are dropped, so they are never
+    expected as words: Greek letters and symbols print as glyphs the check does not
+    look for. The arguments of \\text{...}, \\mathrm{...}, \\operatorname{...} and the like
+    print, so their words are kept. Comments, column specs, spacing, labels and
+    environment names print nothing and are dropped (see MATH_SILENT_ARG). Braces, ^,
+    _, & and \\\\ become spaces, so B_{31} gives "31" and \\tfrac{1}{2} gives "1" and
+    "2", never "12". \\% is "%", and a "-" stays a hyphen (the check drops hyphens on
+    both sides)."""
+    s = MATH_COMMENT.sub(" ", tex)
+    s = MATH_ENV_ARGS.sub(" ", s)
+    s = MATH_ROW_SPACE.sub(" ", s)
+    s = MATH_DIMEN.sub(" ", s)
+    s = MATH_SILENT_ARG.sub(" ", s)
+    s = re.sub(r"\\[A-Za-z]+\*?", " ", s)
+    s = re.sub(r"\\(.)", lambda m: MATH_ESCAPED.get(m.group(1), " "), s)
+    s = re.sub(r"[{}^_&~]", " ", s)
+    return " " + re.sub(r"\s+", " ", s).strip() + " "
+
+
+def _plain_math(node):
+    """A pandoc JSON tree with every Math element replaced by its math_text."""
+    if isinstance(node, list):
+        return [_plain_math(x) for x in node]
+    if isinstance(node, dict):
+        if node.get("t") == "Math":
+            return {"t": "Str", "c": math_text(node["c"][1])}
+        return {k: _plain_math(v) for k, v in node.items()}
+    return node
+
+
 def draft_plain(pandoc: str, text: str) -> str:
     """The draft as pandoc's plain text, less what the PDF does not print by design:
     image alt text, the "Author:" and "Affiliation:" labels of the title block, and its
-    "Keywords:" line (metadata only)."""
+    "Keywords:" line (metadata only). TeX math is read as math_text gives it, not as
+    pandoc's plain writer renders it."""
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
     text = re.sub(r"^(?:Author|Affiliation):", "", text, flags=re.M)
     text = re.sub(r"^Keywords:.*$", "", text, flags=re.M)
-    p = subprocess.run([pandoc, "-f", pandoc_reader(), "-t", "plain", "--wrap=none"],
+    p = subprocess.run([pandoc, "-f", pandoc_reader(), "-t", "json"],
                        input=text, capture_output=True, text=True, timeout=120)
+    if p.returncode != 0:
+        raise BuildError(f"pandoc (json) failed: {p.stderr.strip()}")
+    doc = _plain_math(json.loads(p.stdout))
+    p = subprocess.run([pandoc, "-f", "json", "-t", "plain", "--wrap=none"],
+                       input=json.dumps(doc), capture_output=True, text=True, timeout=120)
     if p.returncode != 0:
         raise BuildError(f"pandoc (plain text) failed: {p.stderr.strip()}")
     return p.stdout
@@ -430,8 +494,13 @@ def pdf_plain(pdftotext: str, pdf: Path) -> str:
 
 
 def _normalise(s: str) -> str:
+    """Both sides of the text check: NFKC (ligatures, the mathematical italic letters
+    and sub- and superscript digits of typeset math), the minus sign read as a hyphen,
+    soft hyphens and hyphens dropped, a word broken at a line end joined."""
+    s = unicodedata.normalize("NFKC", s)
     for k, v in LIGATURES.items():
         s = s.replace(k, v)
+    s = s.replace(MINUS_SIGN, "-")
     s = s.replace("­", "")
     s = re.sub(r"[-‐‑]\n\s*", "", s)   # a hyphen at a line end, TeX's or the text's
     return s.replace("-", "").replace("‐", "").replace("‑", "")

@@ -2,10 +2,15 @@
 # Used by tools/build_report_pdf.py, which adds the input, the output and a metadata
 # file (figure files and widths, the filter's report path). The draft is GitHub
 # Markdown, so it is read as GFM, as GitHub renders it (a "\|" in a table cell is a
-# pipe, bare URLs are links), plus smart punctuation. Emoji shortcodes, dollar math
-# and YAML front matter are off: the draft uses none, and a "$" or ":word:" in it
-# should stay text.
-from: gfm+smart-emoji-tex_math_dollars-tex_math_gfm-yaml_metadata_block
+# pipe, bare URLs are links), plus smart punctuation. TeX math is on, as GitHub
+# renders it: $...$ inline, $$...$$ for display (the delimiters may sit on lines of
+# their own), and GitHub's $`...`$ and ```math forms (tex_math_dollars and
+# tex_math_gfm, both on in pandoc's gfm). A "$" opens math only before a non-space
+# character, and closes it only after a non-space character and when no digit follows,
+# so "$5 and $6" stays text (report.lua reports any other "$" left as text: math
+# that did not parse). Emoji shortcodes and YAML front matter are off:
+# the draft uses neither, and a ":word:" in it should stay text.
+from: gfm+smart-emoji-yaml_metadata_block
 to: latex
 standalone: true
 template: ${.}/template.tex

@@ -26,6 +26,15 @@ tools/report_pdf/template.tex. It changes layout only, never a word or a number:
   the column count; a "Source:"-style paragraph right after a table is set small.
 * Inline code breaks after / _ . , = : - | and inside long hashes; a hyphen before
   a digit at the start of a word (a negative number) is set as a minus sign.
+* TeX math ($...$, $$...$$) passes through untouched: the link pass, the minus
+  sign and the break points act on text only, and pandoc writes the math as \(...\)
+  and \[...\] for the template's unicode-math. A display that is one amsmath
+  environment (align, gather, equation, multline, flalign, alignat), which LaTeX
+  refuses inside \[...\], is written as that environment, starred: the draft's
+  displays are unnumbered, as GitHub shows them. A table sizes a math cell by its
+  printed glyphs. Math in the title, the subtitle or a heading is reported, because
+  the PDF's bookmarks and metadata would show its TeX source, and so is a "$" left
+  as text (math that did not parse), unless it starts a price such as "$5".
 
 Configuration: the JSON file named by the environment variable PAIEC_REPORT_CONFIG
 (written by the build; read as JSON, never as Markdown): "figures" (name -> file and
@@ -454,8 +463,24 @@ local function link_pass(ils)
   return out
 end
 
+-- amsmath's display environments, which LaTeX refuses inside the \[...\] pandoc writes
+-- for display math. A display that is exactly one of them is written as the
+-- environment itself, starred (unnumbered, as \[...\] and GitHub's displays are).
+local DISPLAY_ENVS = {equation = true, align = true, gather = true, multline = true,
+                      flalign = true, alignat = true}
+
+local function display_env(m)
+  if m.mathtype ~= 'DisplayMath' then return nil end
+  local env, inner = m.text:match('^%s*\\begin{(%a+)%*?}(.*)$')
+  if not (env and DISPLAY_ENVS[env]) then return nil end
+  local body = inner:match('^(.*)\\end{' .. env .. '%*?}%s*$')
+  if not body or body:find('\\end{' .. env .. '%*?}') then return nil end
+  return raw('\\begin{' .. env .. '*}' .. body .. '\\end{' .. env .. '*}')
+end
+
 -- The inline treatment, top-down: links in every list of inlines (not inside links,
--- headings or the table-caption divs), code to breakable LaTeX.
+-- headings or the table-caption divs), code to breakable LaTeX, amsmath displays as
+-- their environments. Math is otherwise left as it is.
 local INLINE_FILTER = {
   traverse = 'topdown',
   Header = function(h) return h, false end,
@@ -466,6 +491,7 @@ local INLINE_FILTER = {
     return d
   end,
   Code = function(c) return raw(code_latex(c.text)) end,
+  Math = function(m) return display_env(m) or m end,
   Inlines = function(ils) return link_pass(ils) end,
 }
 
@@ -496,7 +522,10 @@ local TABCOLSEP_PT = 4
 local CODE_EM = 0.50          -- advance of a code character (Menlo scaled to the text's x-height)
 local BOLD = 1.06             -- bold against regular
 local SLACK_EM = 0.4          -- room left beside a cell's longest unbreakable piece
-local KEEP_LINES = 24         -- a table of at most this many lines is not split across pages
+local KEEP_LINES = 14         -- a table of at most this many lines is not split across pages;
+                              -- a longer one may break between rows (header repeated), so a
+                              -- table that misses the page by a few rows does not leave a
+                              -- third of it blank
 local SIZES = {
   {name = 'small', pt = 10},
   {name = 'footnotesize', pt = 9},
@@ -521,6 +550,46 @@ local function str_em(s, per)
     w = w + (per or char_em(utf8.char(cp)))
   end
   return w
+end
+
+-- Inline math, roughly as printed: a command such as \mu is one glyph, the names of
+-- \text, \mathrm, \operatorname and the like print nothing but their argument, sub-
+-- and superscripts are set at 0.7, and a top-level relation or binary operator gets
+-- its spacing. Returns the width and the longest piece no line can break: TeX breaks
+-- inline math only after a top-level relation or binary operator (here = < > + and ,).
+local MATH_GLYPH = '\u{3B1}'   -- a stand-in glyph; char_em gives it 0.55 em
+local function math_measure(tex)
+  local s = tex:gsub('\\operatorname%*?', ''):gsub('\\text%a*', ''):gsub('\\math%a+', '')
+  s = s:gsub('\\left%f[^%a]', ''):gsub('\\right%f[^%a]', '')
+  s = s:gsub('\\begin%b{}', ''):gsub('\\end%b{}', '')
+  s = s:gsub('\\%a+', MATH_GLYPH):gsub('\\[^%a]', ' ')
+  local len, best, piece = 0, 0, 0
+  local stack, scripted, pending, level = {}, 0, false, 0
+  for _, cp in utf8.codes(s) do
+    local ch = utf8.char(cp)
+    if ch == '^' or ch == '_' then
+      pending = true
+    elseif ch == '{' then
+      stack[#stack + 1] = pending
+      if pending then scripted = scripted + 1 end
+      pending = false
+      level = level + 1
+    elseif ch == '}' then
+      if table.remove(stack) then scripted = scripted - 1 end
+      level = math.max(0, level - 1)
+    elseif not ch:match('^%s$') then
+      local w = char_em(ch) * ((scripted > 0 or pending) and 0.7 or 1)
+      pending = false
+      if level == 0 and ch:match('^[=<>+,%-]$') then w = w + 0.4 end
+      len = len + w
+      piece = piece + w
+      if level == 0 and ch:match('^[=<>+,]$') then
+        best = math.max(best, piece)
+        piece = 0
+      end
+    end
+  end
+  return len, math.max(best, piece)
 end
 
 -- acc.len: the cell's width on one line; acc.min: its longest piece no line can break
@@ -555,6 +624,10 @@ local function measure(ils, acc, factor)
     elseif el.t == 'Code' then
       acc.len = acc.len + str_em(el.text, CODE_EM) * factor
       acc.min = math.max(acc.min, code_min_chars(el.text) * CODE_EM * factor)
+    elseif el.t == 'Math' then
+      local len, min = math_measure(el.text)
+      acc.len = acc.len + len * factor
+      acc.min = math.max(acc.min, min * factor)
     elseif el.t == 'Quoted' then
       acc.len = acc.len + 0.8 * factor
       measure(el.content, acc, factor)
@@ -687,8 +760,38 @@ local function para_text(b)
   return nil
 end
 
+local function has_math(ils)
+  local found = false
+  pandoc.Inlines(ils):walk({Math = function(m) found = true; return m end})
+  return found
+end
+
+-- A "$" the reader left as text is math that did not parse ("$ x$", "$y $", "$0.1 $."):
+-- an opening "$" before a space, a closing one after a space or before a digit. Only a
+-- price, a "$" that starts a word and is followed by a digit ("$5", "$20,000"), is not
+-- reported. Code is not text.
+local function stray_dollar(t)
+  local i = t:find('$', 1, true)
+  while i do
+    if i > 1 or not t:sub(i + 1, i + 1):match('^%d$') then return true end
+    i = t:find('$', i + 1, true)
+  end
+  return false
+end
+
+local function report_stray_dollars(blocks)
+  local seen = {}
+  blocks:walk({Str = function(s)
+    local t = s.text
+    if stray_dollar(t) and not seen[t] then
+      seen[t] = true
+      warn('"' .. usub(t, 40) .. '" holds a "$" left as text: TeX math that did not parse?')
+    end
+  end})
+end
+
 -- Before a table, ask for enough space that its "Table N:" caption or a short lead-in
--- paragraph, and a heading right above them, is not left at the foot of a page: room for
+-- paragraph, and the headings right above them, are not left at the foot of a page: room for
 -- the whole table if it is kept together (kept_lines, its estimated lines), else for its
 -- first rows. A lead-in longer than LEAD_MAX characters may break across pages, so the
 -- space is asked for after it instead.
@@ -719,7 +822,9 @@ local function keep_with_table(out, kept_lines)
       need = need + math.ceil(n / LEAD_CHARS)
     end
   end
-  if is_heading_block(out[pos - 1]) then
+  -- every heading right above (a "##" heading directly over its first "###" one too),
+  -- so none is left alone at the foot of a page
+  while pos > 1 and is_heading_block(out[pos - 1]) do
     pos = pos - 1
     need = need + 3
   end
@@ -812,6 +917,7 @@ function Pandoc(doc)
   local cfg = read_config()
   local figs = cfg.figures or {}
   local captions = cfg.captions or {}
+  report_stray_dollars(blocks)
 
   -- 1. Title block and abstract ------------------------------------------------
   local i = 1
@@ -821,6 +927,9 @@ function Pandoc(doc)
     error('report.lua: the draft must start with a level-1 heading (the title)')
   end
   local title = h1.content
+  if has_math(title) then
+    warn('the title holds TeX math, which the PDF title metadata would show as TeX')
+  end
   i = i + 1
   local subtitle, author, affiliation, email, code, keywords
   local note = List()
@@ -840,6 +949,9 @@ function Pandoc(doc)
   end
   if not author then error('report.lua: no "Author:" paragraph before the abstract') end
   if not code then warn('no "Code:" paragraph in the title block') end
+  if subtitle and has_math(subtitle) then
+    warn('the subtitle holds TeX math, which the PDF subject metadata would show as TeX')
+  end
   local abstract = List()
   if blocks[i] and blocks[i].t == 'Header' and stringify(blocks[i].content) == 'Abstract' then
     i = i + 1
@@ -908,6 +1020,10 @@ function Pandoc(doc)
       b.identifier = id
       local text = stringify(b.content)
       table.insert(LOG.headings, {id = id, level = b.level, text = text})
+      if has_math(b.content) then
+        warn('heading "' .. usub(text, 60) .. '" holds TeX math, which its PDF bookmark '
+             .. 'would show as TeX; name the quantity in words')
+      end
       in_refs = (b.level == 2 and text == 'References') or (in_refs and b.level > 2)
       if kind == 'section' then
         local n = tonumber(num)
