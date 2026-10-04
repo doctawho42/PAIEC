@@ -460,11 +460,11 @@ def _plain_math(node):
 
 def draft_plain(pandoc: str, text: str) -> str:
     """The draft as pandoc's plain text, less what the PDF does not print by design:
-    image alt text, the "Author:" and "Affiliation:" labels of the title block, and its
+    image alt text, the "Author:", "Affiliation:" and "Email:" labels of the title block, and its
     "Keywords:" line (metadata only). TeX math is read as math_text gives it, not as
     pandoc's plain writer renders it."""
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
-    text = re.sub(r"^(?:Author|Affiliation):", "", text, flags=re.M)
+    text = re.sub(r"^(?:Author|Affiliation|Email):", "", text, flags=re.M)
     text = re.sub(r"^Keywords:.*$", "", text, flags=re.M)
     p = subprocess.run([pandoc, "-f", pandoc_reader(), "-t", "json"],
                        input=text, capture_output=True, text=True, timeout=120)

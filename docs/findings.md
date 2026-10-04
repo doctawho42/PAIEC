@@ -151,7 +151,11 @@ judge, closed out").
 
 ## The offline bank
 
-`python experiments/inventory_scan.py`
+`mkdir -p data/scan && cp results/inventory.csv data/scan/ && cd data/scan && python ../../experiments/inventory_scan.py`
+(the script reads `inventory.csv` in the working directory, so it fails at the
+repository root, and appends to `clone_scan.csv` there, skipping the slugs
+already in that file; it needs network access to clone the others. `data/` is
+gitignored; the scan's committed output is `results/clone_scan.csv`.)
 
 The organisers' inventory holds 161 benchmarks, not 100. Of the 132 repositories
 that could be cloned, 25 publish any data file under a results-like directory, 15
@@ -185,7 +189,10 @@ recorded. That judgement needs file names or contents beyond the scan's
 counts, so an inspection of the five repositories' files (phyblock, mmdocrag,
 atmossci_bench, capability, engdesign) cannot be excluded; mmdocrag is a public
 benchmark, and the other four may be hidden-test benchmarks. Nothing from them
-was kept or used. To be confirmed by the team.)
+was kept or used. The judgement was made in the coding session of the
+repository's first commit, and no record of how it was made is kept with the
+repository; on 2026-10-04 the author decided to leave it unconfirmed, as stated
+here. See report App G.6 for what the recorded paths show.)
 
 ## How fragile the pooling gain is
 
@@ -5395,14 +5402,15 @@ B31 of at least 0.25, so both near a rate of 0.5. Runs 1 and 2 had one such
 pair each (three_runs).
 
 **Overlap** (overlap). Run 3's 7 benchmark ids are those of runs 1 and 2. It
-shares no subject with run 2 and one with run 1: subject_431933 on benchmark
-A, 53 evaluated items both times (run 1's p7, run 3's s6). Over the three runs
-that makes 25 distinct subjects in 26 pair appearances. On that pair run 3's
-ALC is 0.0663 lower than run 1's, its B0 0.252 lower (0.225 against 0.477),
-and by budget the differences are -0.252, -0.153, -0.043, -0.010, +0.004 and
--0.007. That is descriptive only: the two runs ran different models, and their
-other pairs, so the shared `labeled` list, differ. Each benchmark's item
-counts across the three runs are in overlap.all_three.n_by_benchmark.
+shares no subject with run 2 and one with run 1: the subject of run 1's p7 and
+run 3's s6, on benchmark A, with 53 evaluated items both times. Over the three
+runs that makes 25 distinct subjects in 26 pair appearances. On that pair run
+3's ALC is 0.0663 lower than run 1's, its B0 0.252 lower (0.225 against
+0.477), and by budget the differences are -0.252, -0.153, -0.043, -0.010,
++0.004 and -0.007. That is descriptive only: the two runs ran different
+models, and their other pairs, so the shared `labeled` list, differ. Each
+benchmark's item counts across the three runs are in
+overlap.all_three.n_by_benchmark.
 
 **Against the shipped model's regimes** (placement). As run 2 in "Shipped
 configuration, confirmed": the distance from each regime's mean in the shipped
@@ -5463,12 +5471,13 @@ the archive changes because of it. The pooled reading's preregistered rule
 outcome "no candidate: LEVEL stays") covered runs 1 and 2 only, and run 3 is
 not added to it.
 
-**Open.** The headline score was not pasted (run3.platform_alc is null); once
-it is, the record should check that it equals the recomputed 0.181653. The
-archive record is of the file in `dist/`; a copy downloaded back from the
-platform would close it as for runs 1 and 2 (`--archive PATH --archive-how
-TEXT`). `results/formative_feedback.json` still lists run 3 as unscored: it is
-left as it is, because `experiments/script_revisions.py` audits that file.
+**Open.** The headline score was not pasted (run3.platform_alc is null), and
+the author confirmed on 2026-10-04 that it is not recorded, so the pair-mean
+rule stays untested on run 3. The archive record is of the file in `dist/`; a
+copy downloaded back from the platform would close it as for runs 1 and 2
+(`--archive PATH --archive-how TEXT`). `results/formative_feedback.json` still
+lists run 3 as unscored: it is left as it is, because
+`experiments/script_revisions.py` audits that file.
 
 ## Regime sensitivity at the feedback's reading (P1.10, P1.16)
 
@@ -6341,7 +6350,7 @@ level.
   catalogue that chose LEVEL and smcal (P1a's caveat), which favours SHIP,
   smcal and rasch there.
 * **BLE is unmeasured** (above).
-* **The rows are in the row export** ("Row files for release"), not yet hosted.
+* **The rows are in the row export** ("Row files for release"), which is not hosted.
 
 ## Pooling under the verified protocol: run size, not the information set (P1.11)
 
@@ -6852,11 +6861,13 @@ summaries identical to `results/baselines_p1.json` and
 `third_party/`, not from the rows). Re-exported with the two new sets, the
 six older archives are byte-identical to the first export.
 
-Still open:
+Not released:
 
-* **Hosting, TODO(team).** The archives exist locally only. They need a home
-  (a Hugging Face dataset or Zenodo) under measurement-db's CC-BY-SA terms.
-  That needs network access and the team's sign-off on publishing derived
-  rows of a gated dataset, so it is left to the team.
+* **Hosting.** The archives exist locally only and are not hosted (decided by
+  the author on 2026-10-04). Without them, the experiment scripts regenerate
+  the rows from measurement-db and `tools/export_rows.py` packs them. The
+  14B's derived tables also need the Kaggle job ("Strong model on Kaggle:
+  Qwen3-14B rubric and attempts"). The LLM features under `data/features` are
+  not released either.
 * **The itemsig rows cannot be exported.** They were written to a scratch
   `--rows` directory and are not in `data/`.

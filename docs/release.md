@@ -2,12 +2,15 @@
 
 For the person publishing this repository. Written 2026-10-02 against `3e6b770`
 (branch `official-protocol`), before the release files were committed; revised
-2026-10-03 after the release review, and again on 2026-10-03 after the history
-rewrite. It is now the record of what was decided and done, and the procedure
-for what is left. At the time of writing nothing has been pushed and no remote
-has been added. The history rewrite is done (section 9), and the only tags are
-its 21 lightweight tags named by the old commit ids. Publication follows
-section 7; every command there is for you to run. Seven-character commit ids
+2026-10-03 after the release review, again on 2026-10-03 after the history
+rewrite, and on 2026-10-04 after publication. It is the record of what was
+decided and done, and the procedure for what is left. The history rewrite is
+done (section 9). On 2026-10-03 the release commit was tagged `v1.0.0` and
+pushed to https://github.com/doctawho42/PAIEC, with the branches `main` and
+`official-protocol` and the 21 lightweight tags named by the old commit ids
+(section 7). The commit after it resolves the report's open markers (section
+7, step 0); it is to be tagged `v1.0.1` when it is pushed (section 6). Every
+command of section 7 is for you to run. Seven-character commit ids
 written before the rewrite, in this file and elsewhere, are kept as they were
 and resolve through those tags; full old ids are mapped in
 `docs/commit-map.txt` (section 9.3).
@@ -42,8 +45,13 @@ global config still holds the old address, so a commit or tag made from another
 clone needs `git -c user.email=nikitapol@fbb.msu.ru ...`.
 
 Item 3.3 and the rest of 3.4 stand as written in section 3 (the formative
-tables are included unless the team decides otherwise). Still open: the
-keywords (3.5).
+tables are included unless the team decides otherwise).
+
+Taken by the author on 2026-10-04:
+
+- The keywords stay as they are (3.5).
+- The row archives of `tools/export_rows.py` are not hosted, and the LLM
+  features under `data/features/` are not released (section 2).
 
 The competition needs a public code link in the report and on the OpenReview
 form, and the organisers will "review and rerun the released method"
@@ -68,10 +76,12 @@ Excluded, by `.gitignore`:
 | credentials | `.env`, `.env.*`, and now `kaggle.json`. The Kaggle kit reads the Hugging Face token from a Kaggle Secret, never from a file. |
 | local tool state | `.DS_Store`, `.ruff_cache/`, `.remember/` and `.claude/settings.local.json` (added now; on the development machine some were ignored before only by a global ignore file). |
 
-Not part of this release, and said so in the report (App G.4, App I): the
-per-row archives of `tools/export_rows.py` are not hosted (hosting them is a
-separate team decision, under measurement-db's CC BY-SA terms), and the itemsig
-rows cannot be exported.
+Not part of this release, and said so in the report (App G.4, App I.1): the
+per-row archives of `tools/export_rows.py` are not hosted (decided by the author
+on 2026-10-04; the experiment scripts regenerate the rows from measurement-db,
+and the 14B's derived tables also need the Kaggle job of report App F.9), the
+LLM features under `data/features/` are not released, and the itemsig rows
+cannot be exported.
 
 ## 3 Decisions before pushing
 
@@ -80,7 +90,8 @@ first. Items 1 to 4 are third-party material or personal metadata that the
 history held; none is a credential of ours. Item 5 is the keywords. On
 2026-10-03 one rewrite of the history (section 9) settled items 1 and 2 and the
 access token of item 4. Item 3 stands as written below (the tables are
-included unless the team decides otherwise), and item 5 is open.
+included unless the team decides otherwise), and the author confirmed item 5
+on 2026-10-04.
 
 1. **Item text from measurement-db in two committed files: removed from every
    commit.** `results/rate2_truth.json` (180 records, 45 each of matharena,
@@ -150,11 +161,13 @@ included unless the team decides otherwise), and item 5 is open.
    matharena and mmdocrag, both public). `results/inventory_hand_labels.csv`
    holds 80 titles sampled from the organisers' full 1,261-row sheet, with an AI
    agent's labels, and `results/inventory_classes.csv` the 161 titles with their
-   keyword classes. `results/clone_scan.csv` and `results/strong_repos.csv` are
-   the scan's outputs: per repository, path counts and up to three example
-   paths, no file contents. The inventory lists candidates for both pools, so
-   these files name possible hidden-test benchmarks; the report discloses the
-   scan (App G.6, with a `TODO(team)` there).
+   keyword classes. `results/clone_scan.csv`, the scan's output, holds per
+   repository path counts and up to three example paths.
+   `results/strong_repos.csv`, which no script in the repository writes, holds
+   for the 15 repositories with model-named paths a model list derived from
+   those paths (directory or file names) and one sample path. Neither holds file
+   contents. The inventory lists candidates for both pools, so these files name
+   possible hidden-test benchmarks; the report discloses the scan (App G.6).
    One row of `inventory.csv` (neurorenderedfake, line 45) had as its code link
    a Harvard Dataverse preview URL whose query string carried an access token
    (`previewurl.xhtml?token=…`): a reviewer link to a dataset that may be
@@ -167,13 +180,13 @@ included unless the team decides otherwise), and item 5 is open.
    `results/inventory_classes.json` (`inputs.inventory_161`) is of its bytes
    before the rewrite; section 9 shows how to re-check it with the organisers'
    sheet. The inventory's public status is not recorded in this repository.
-5. **Keywords.** The OpenReview form requires them. The list now in the draft's
+5. **Keywords.** The OpenReview form requires them. The list in the draft's
    title block (`Keywords: predictive evaluation, item response theory, Brier
-   score, cold start, PAIEC`) was chosen during the release work, not by the
-   team, and the report's App I still says `TODO(team)` for it. That line is
-   the one source: the PDF build writes it into the PDF's metadata (it is not
-   printed), and `tests/test_build_report_pdf.py` checks that CITATION.cff's
-   `keywords` repeat it. Confirm or change it there and in CITATION.cff.
+   score, cold start, PAIEC`) was chosen during the release work, and the
+   author confirmed it on 2026-10-04. That line is the one source: the PDF
+   build writes it into the PDF's metadata (it is not printed), and
+   `tests/test_build_report_pdf.py` checks that CITATION.cff's `keywords`
+   repeat it. A change goes there and into CITATION.cff.
 
 ## 4 History check
 
@@ -324,9 +337,11 @@ inside the quoted item text went with it, section 3.1.)
 - **One release tag.** An alternative, `v1.0-submission` at `3e6b770`, was
   proposed during the release work and is dropped: the archive code is the same
   at both commits, and only the release head carries the license, README and
-  CITATION.cff. The report's App I says that the release commit is to be
-  tagged `v1.0.0` and that its archive code equals that of `4d2cc4f`. The 21
-  lightweight tags of section 9 only name old commit ids.
+  CITATION.cff. At the release commit the report's App I said that the
+  release commit is to be tagged `v1.0.0` and that its archive code equals that
+  of `4d2cc4f`. Since the commit after it, App A.4 and App H.4 say that the
+  release commit is tagged `v1.0.0`, and App H.4 that the archive code is that
+  of `4d2cc4f`. The 21 lightweight tags of section 9 only name old commit ids.
 - **Check before tagging** (prints the line only if nothing changed; `4d2cc4f`
   resolves through its tag):
 
@@ -339,7 +354,10 @@ inside the quoted item text went with it, section 3.1.)
   528 test functions over 24 test files, 729 collected tests. The release
   commit changes no test file.
 - If the report or results change after the tag is pushed, tag the new commit
-  `v1.0.1` rather than moving `v1.0.0`.
+  `v1.0.1` rather than moving `v1.0.0`. The report changed after the push: the
+  commit after the release commit resolves the draft's markers (section 7,
+  step 0). Tag it `v1.0.1` when it is pushed, as the release commit was tagged
+  (section 7, step 4, with `v1.0.1` and its own message).
 
 ## 7 Publish
 
@@ -366,6 +384,9 @@ that holds the old history, and never use `git push --mirror`.
     #    (step 2: --strict exits 2 while one is left). Resolve them (they are
     #    the report's text) in a later commit and build the PDF from it; if
     #    v1.0.0 is already pushed by then, tag that commit v1.0.1 (section 6).
+    #    Done on 2026-10-04 in the commit after the release commit: the draft
+    #    has 0 markers, and --strict exits 0. v1.0.0 was pushed on 2026-10-03,
+    #    so that commit is the one to tag v1.0.1.
 
     # 1. Create the empty public repository: no README, license or .gitignore
     #    (they come from here). With the GitHub CLI, or on github.com.
@@ -432,13 +453,15 @@ the report's title block (`docs/report/draft.md`, "Code:"). The placeholder
 
 Also, after publishing:
 
-- `docs/report/draft.md`: the "Code:" line may point at the tag,
-  `https://github.com/doctawho42/PAIEC/tree/v1.0.0`. Rebuild the PDF with
+- `docs/report/draft.md`: the "Code:" line may point at a tag,
+  `https://github.com/doctawho42/PAIEC/tree/v1.0.1` once that tag exists
+  (section 6), or `.../tree/v1.0.0`, whose draft still holds the markers.
+  Rebuild the PDF with
   `python tools/build_report_pdf.py --strict` from the later commit that
   resolves the draft's TODO(...) markers (section 7, step 0); at the tagged
   commit, which still holds them, `--strict` exits 2. In that commit, App A.4
-  and App I can say that the release commit is tagged `v1.0.0`; at the release
-  commit they say "to be tagged".
+  and App H.4 say that the release commit is tagged `v1.0.0`; at the release
+  commit, App A.4 and App I said "to be tagged".
 - The OpenReview form's code link and keywords (the draft's "Keywords:" line,
   section 3.5), and the e-mail to the organisers naming the selected Codabench
   submission (`docs/report/report_requirements.md`, items 4 and 7).
