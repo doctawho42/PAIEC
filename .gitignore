@@ -32,3 +32,6 @@ kaggle_out/
 .ruff_cache/
 .remember/
 .claude/settings.local.json
+
+# sidecar lock files of results writers
+results/*.lock

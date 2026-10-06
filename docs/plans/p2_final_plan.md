@@ -168,3 +168,28 @@ now instead of on 2026-10-12. The rule is unchanged.
   tasks) and scores both readings of its list: multiples of the
   leave-one-parent-out sigma_delta (App B.3's convention) and the pilots'
   absolute values. It stays no-ship.
+
+## Amendment 2 (2026-10-06): E1, the report's framing, and the feedback statements
+
+Committed before E1 runs.
+
+- E1 (report only, no-ship): score EmpMean (the organisers' empirical mean)
+  and 1PL-ship (a plain 1PL at hier-ship's level) in the four regime-
+  sensitivity regimes where they are missing (READING, AUDIT, MIXTURE, FLAT),
+  on the same RS runs and checkpoints as the other comparators, from stored
+  public rows, with RS's paired differences against ship and cluster SEs. It
+  fills the comparator table of the report; nothing it finds is shipped or
+  selects anything.
+- The report v2 is framed as an evaluation-methodology paper with the
+  submitted predictor in a full methods section, under the title "Reading
+  hidden runs at a benchmark-level cold start: a pair-rate oracle, test-like
+  regimes and a calibrated hierarchical predictor".
+- The author confirms (2026-10-06) the reworded statement on run 3 for App G.6
+  and the conduct section: no level reading, matching against replica pairs or
+  tuning was done on run 3; after the code was frozen on archive-3
+  (2026-10-06), its table entered, with those of runs 1 and 2, a root-free
+  analysis of per-pair Brier and ECE (V and ALC minus V), which uses the
+  anonymous benchmark ids only to group pairs in one bootstrap, and which
+  chose, tuned and changed nothing. App G.6 also lists S4's hidden-V weights
+  (formative bin counts only) and the leaderboard values read on 2026-09-24
+  that the bound of section 2 quotes.
