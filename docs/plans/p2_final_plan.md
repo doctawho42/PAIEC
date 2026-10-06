@@ -133,3 +133,38 @@ the code and the report combine.
 | 30.10 | buffer only |
 
 The fallback at every step is archive-3 and the report at `v1.0.1`.
+
+## Amendment 1 (2026-10-06): G1 read early; the code is frozen on archive-3
+
+All four checks of this plan's first days finished on 2026-10-06, so G1 is read
+now instead of on 2026-10-12. The rule is unchanged.
+
+- S1 closes (`experiments/dense_b1_check.py`, `results/dense_b1_check.json`).
+  On dense real_webagents at B1, split scope 'pair', 100 targets from all 26
+  pairs: Brier(hier) - Brier(exact) = -0.00035, 95% pair-cluster interval
+  [-0.00152, +0.00079], Monte Carlo SE 0.00012. The difference is below 0.003
+  and the interval contains 0, so stage 2 does not open. The exact posterior
+  predictive pays the B1 pooling cost as hier does, so that cost comes from the
+  model, not from hier's approximations.
+- S3 finds no failure (`tools/stress_archive.py`, `results/stress_archive.json`).
+  45,500 predict calls of archive-3 through the validator's loader: no
+  exception escaped, every output finite and in (0, 1), p99 0.516 s and maximum
+  20.21 s per call. Deviation, disclosed: the gate was read on all calls pooled.
+  The harness first also required each part to pass on its own; a smoke run
+  showed the fuzz part alone at p99 2.10 s, and the per-part requirement was
+  dropped before the full run, on the reading that section 3 states one
+  criterion for S3. Read per part, the fuzz part's p99 is 2.146 s wall time, on
+  a machine with a load average of 23 to 235 on 8 cores; its CPU-time p99 is
+  recorded beside it. Neither reading would ship a change, because S3 fixes
+  only failures and no call failed.
+- So the code is frozen on archive-3, and S2 does not run. No archive-4 and no
+  formative submission follow (section 4).
+- The section 2 numbers are reproduced by `experiments/hidden_runs.py`
+  (`results/hidden_runs.json`), with two precisions: the per-pair constancy of
+  B - ECE^2 for run 1 is 1.13e-6 at most, within the tables' 6-decimal rounding
+  (the run mean varies by 1.5e-7), and the item-level share is 77.9 to 88.6
+  percent.
+- S4 is prepared (`experiments/ablations_at_level.py`, seed 20261006, 520
+  tasks) and scores both readings of its list: multiples of the
+  leave-one-parent-out sigma_delta (App B.3's convention) and the pilots'
+  absolute values. It stays no-ship.
