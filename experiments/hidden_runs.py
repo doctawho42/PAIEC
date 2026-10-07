@@ -19,7 +19,14 @@ Blocks (keys of results/hidden_runs.json):
                   budgets for LegacyP (run 1) up to the tables' 6-dp rounding
   decomposition   v per run, ALC - v, B_k - v by budget and its weighted split
                   (0.1 B0, 0.2 x B1..B15, 0.1 B31), the B31-root reading it
-                  replaces, hier's runs pooled in bins of v
+                  replaces, hier's runs pooled in bins of v; pair-level sds and
+                  SEs of B_k - v by budget, of the three terms and of ALC - v,
+                  per run and for hier's 17 pooled pairs (pairs independent)
+  late_gap        B31 - v in the B0 convention, exactly ECE31^2 - R31 (R31 the
+                  within-pair resolution v - (B31 - ECE31^2)), per run and
+                  pooled; the pure-rate floor with v from B0; the tail of
+                  B31 - v; and, with the RS rows, hier's hidden B31 - v minus
+                  the replica's in each regime (LegacyP likewise)
   item_level      the item-level share of (ALC - item oracle), with the item
                   oracle borrowed from the public regimes' ratio item oracle /
                   pair-rate oracle (results/itemsig_eval.json)
@@ -32,8 +39,17 @@ Blocks (keys of results/hidden_runs.json):
                   ideal learner's share of non-monotone single pairs; the run-
                   level distribution of v and of hier's ALC over bootstrap runs
                   of 9 pairs (pairs iid, and stratified by benchmark: the
-                  anonymous benchmark ids are used for that grouping only, as
-                  the report's App G.6 allows; no id is written out)
+                  anonymous benchmark ids group the pairs; no id is written
+                  out). These per-appearance figures are the primary ones.
+  run_spread.distinct_pairs
+                  a sensitivity analysis of the primary v bootstrap: the same
+                  bootstrap of v over the 25 distinct pairs instead of the 26
+                  appearances (one subject-benchmark pair is in run 1 and run
+                  3; its two v agree within the tables' rounding), with common
+                  random numbers against the per-appearance version on its own
+                  stream (seed 8, 200,000 runs); the subject and benchmark ids
+                  together find the repeated pair, and the benchmark ids group
+                  the pairs of its stratified version
   entry           the organisers' entry (0.1801) against the empirical mean:
                   the plug-in line 0.025 + 1.2118 p(1-p) and a Monte Carlo with
                   p(1-p) = min(B31, 0.25) (seed 0)
@@ -47,10 +63,12 @@ Blocks (keys of results/hidden_runs.json):
   split_floor     the B31 floor of a pure pair-rate learner on these pairs
   replica         the identity's B0 estimator on replica rows with known rates,
                   the noise of a v-adjusted score, and run 1's and hier's
-                  placement in each RS regime (data/regime_sensitivity_rows)
+                  placement in each RS regime (data/regime_sensitivity_rows):
+                  on B_k - v and ALC - v (placement_z) and on the raw B_k and
+                  ALC (placement_raw); the replica's B31 - v by arm (late)
   requirement     the within-pair item correlation r an ideal learner needs to
                   reach 0.117 (synthetic populations, seed 3; --no-requirement
-                  skips its ~2 minutes)
+                  skips its ~80 s)
 
 Inputs. results/formative/run1-3.txt (the organisers' tables, verbatim),
 checked field by field against results/formative_feedback.json and
@@ -62,24 +80,52 @@ experiments/subject_side.py) and `replica` reads data/regime_sensitivity_rows/
 blocks are null and their scratch checks are not run. The leaderboard values
 (organisers' entry 0.1801, best entry 0.1172, read 2026-09-24) are constants
 from docs/findings.md, "Against the live leaderboard"; the empirical mean's
-line 0.025 + 1.2118 p(1-p) is the report's Figure A1.
+line 0.025 + 1.2118 p(1-p) is the report's Figure A1. Both documents are
+hashed into the provenance (`inputs_sha256`), and `provenance.doc_constants`
+records, for each constant, the passage it was read from (line range and
+sha256 of the passage) and whether the values still appear there.
 
 Use of the feedback. Only aggregate, id-free quantities leave this script: run
-and bin means, SEs, counts, distribution summaries. Nothing is keyed on an
-anonymous id; benchmark ids only group pairs inside the stratified bootstrap.
+and bin means, SEs, counts, distribution summaries; no output is keyed on an
+anonymous id, and no id is written to the results. The analysis uses the ids
+only to find the one subject-benchmark pair that appears in two runs
+(distinct_pairs, subject and benchmark id together: the runs' overlap check,
+a use the report's App G.6 declares) and to group pairs by benchmark id in its
+two stratified bootstraps (run_spread.v_strat and alc_hier_strat, seed 7;
+run_spread.distinct_pairs.v_strat, seed 8); plan P2's amendment 3 has the
+confirmed wording. Besides, check_tables compares each table's ids with the
+stored record, and the distinct benchmark ids are counted
+(tables.run*.benchmarks, run_spread.benchmarks,
+run_spread.distinct_pairs.benchmarks); results `about.id_use`. The pair in run
+1 and run 3 counts twice in the per-appearance blocks; it is in no run twice
+and in hier's runs 2 and 3 once, so only the bootstrap of v over all 26
+appearances, and the LegacyP-minus-hier comparison (where it is on both
+sides), are touched (run_spread.distinct_pairs.note). The per-appearance
+bootstrap stays the primary analysis; the distinct-pair one is its
+sensitivity analysis.
 
 Random streams. Each Monte Carlo block uses the generator, seed and draw order
 of the scratch script it ports, so its numbers reproduce bit for bit; the
-scratch scripts and their sha256 are listed under `scratch.ported_from`.
+scratch scripts and their sha256 are listed under `scratch.ported_from`. The
+distinct-pair bootstrap is new in P2 (not a port) and draws on its own stream
+(seed 8), so no earlier stream or number moves.
 
 Not ported here (cited by the plan, but from elsewhere): the within-pair r of
 transferable covariates (<= 0.15, gate 0.25) is results/gate_and_ci.json and
 the report's App F.1; the cheap-lever nulls of section 2's last bullet are the
 post-hoc family, a separate port.
 
-Run:  python experiments/hidden_runs.py [--no-requirement] [--out PATH]
-Writes results/hidden_runs.json only if every required check passes. About
-2.5 minutes on one CPU, under 1 GB; nothing is parallel.
+Run:  python experiments/hidden_runs.py [--no-rows] [--no-requirement] [--out PATH]
+Writes results/hidden_runs.json only if every required check passes. One
+process, nothing parallel. Measured on 2026-10-07 with /usr/bin/time, the three
+configurations one after another (output to a scratch file), on 8 cores at a
+load average of 11 to 13 (other jobs running): with the data rows and the
+requirement block 142 s wall, 114 s of CPU (user plus system), peak resident
+set 0.65 GB; --no-rows 134 s wall, 110 s CPU, 0.63 GB; --no-rows
+--no-requirement 11 s wall, 9 s CPU, 0.13 GB. The requirement block is most of
+the time. Wall time moves with the load: the stored file's own run is
+provenance.wall_s, timed inside the process (from after argument parsing to
+just before the write, so without the imports).
 """
 import os
 
@@ -127,9 +173,23 @@ LEADERBOARD = {"organisers_entry": 0.1801, "best_entry": 0.1172, "read": "2026-0
                "source": "docs/findings.md, 'Against the live leaderboard'"}
 TARGET = 0.117           # the scratch's threshold: the best entry, rounded
 EMP_LINE = (0.025, 1.2118)   # docs/report/draft.md Figure A1: EmpMean ALC = a + b E[p(1-p)]
+#: The hard-coded constants read from documents: the passage each comes from (the
+#: first paragraph after a heading, or the line that starts with an anchor) and the
+#: constants, written as they must appear in it (whitespace-normalised). Hashed into
+#: the provenance by doc_constants().
+DOC_CONSTANTS = {
+    "leaderboard": {"path": os.path.join(ROOT, "docs", "findings.md"),
+                    "heading": "### Against the live leaderboard",
+                    "values": {"organisers_entry": str(LEADERBOARD["organisers_entry"]),
+                               "best_entry": str(LEADERBOARD["best_entry"]), "read": LEADERBOARD["read"]}},
+    "empirical_mean_line": {"path": os.path.join(ROOT, "docs", "report", "draft.md"),
+                            "line_starts": "*Figure A1.*",
+                            "values": {"line": f"{EMP_LINE[0]} + {EMP_LINE[1]}"}},
+}
 RS_REGIMES = ["TUNED", "READING", "AUDIT", "MIXTURE", "FLAT", "R1B", "R1P"]
 ITEM_ORACLE_REGIMES = {"tl": "TL", "tl mix/whole": "TL-mix", "r1b": "R1-bf", "r1p": "R1-pu"}
-SEEDS = {"ideal": 11, "stream7": 7, "entry": 0, "curve": 0, "requirement": 3}
+SEEDS = {"ideal": 11, "stream7": 7, "entry": 0, "curve": 0, "requirement": 3, "distinct": 8}
+NBOOT_DISTINCT = 200000
 V_BINS = (0.10, 0.20)
 CURVE_EDGES = (0.12, 0.20)
 SCAN = [0.10, 0.11, 0.12, 0.125, 0.13, 0.14, 0.15, 0.16]
@@ -255,6 +315,20 @@ def identity(runs):
     return out
 
 
+def pair_spread(ex, pair_ex):
+    """Pair-level sd (ddof 1) and SE of B_k - v by budget, of the three weighted
+    terms and of ALC - v; the pairs are taken as independent (no grouping by
+    anonymous id here: the benchmark ids group pairs only in run_spread's two
+    stratified bootstraps, about.id_use)."""
+    n = len(pair_ex)
+    terms = {"b0_term": 0.1 * ex[:, 0], "b1_b15_terms": (0.2 * ex[:, 1:5]).sum(1), "b31_term": 0.1 * ex[:, 5]}
+    sd = ex.std(0, ddof=1)
+    return {"excess_by_budget_pair_sd": fl(sd), "excess_by_budget_pair_se": fl(sd / np.sqrt(n)),
+            "terms_pair_se": {k: float(t.std(ddof=1) / np.sqrt(n)) for k, t in terms.items()},
+            "alc_minus_v_pair_sd": float(pair_ex.std(ddof=1)),
+            "alc_minus_v_pair_se": float(pair_ex.std(ddof=1) / np.sqrt(n))}
+
+
 def decomposition(runs):
     out = {}
     for r, P in runs.items():
@@ -283,6 +357,7 @@ def decomposition(runs):
             "mean_ece0_sq": float((E[:, 0] ** 2).mean()),
             "within_pair_resolution_b31": {"mean": float(res31.mean()),
                                            "pairs_ge_0.011": int((res31 >= 0.011).sum())},
+            "pair_se": pair_spread(ex, pair_ex),
         }
     # hier's two runs pooled (17 pairs), in bins of v
     P = [p for r in HIER for p in runs[r]]
@@ -304,7 +379,70 @@ def decomposition(runs):
         "bins": tab,
         "within_pair_resolution_b31": {"mean": float(res31.mean()),
                                        "pairs_ge_0.011": int((res31 >= 0.011).sum())},
+        "pair_se": pair_spread(ex, pair_ex),
+        "pair_se_note": "17 pairs of runs 2 and 3 as independent draws; no subject is in both runs; "
+                        "the run-level noise of a run's mean is not in it (replica.noise has that)",
     }
+    return out
+
+
+def late_gap(runs, rep=None):
+    """B31 - v in the B0 convention (v = B0 - ECE0^2 per pair). Per pair,
+    B31 - v = ECE31^2 - R31 with R31 = v - (B31 - ECE31^2), the within-pair
+    resolution, so the identity holds to float rounding; for one prediction per pair
+    R31 = 0 and B31 - v = ECE31^2. split_floor computes the pure-rate floor with
+    v = B31 - ECE31^2 (the scratch's choice); here it is also given with v from B0.
+    With the RS rows, the hidden B31 - v minus the replica's (same arm, B0
+    convention on both sides, replica.late), pair SE and run-cluster SE combined."""
+    groups = {"run1": (1, runs[1]), "run2": (2, runs[2]), "run3": (3, runs[3]),
+              "hier_pooled": ("2+3", [p for r in HIER for p in runs[r]])}
+    out = {}
+    for name, (_, P) in groups.items():
+        B, E, v = arrays(P)
+        n = np.array([p["n"] for p in P], float)
+        d31 = B[:, 5] - v
+        e2 = E[:, 5] ** 2
+        r31 = v - (B[:, 5] - e2)
+        floor0 = v * 2 / n + v / 31 * np.maximum(n - 31, 0) / np.maximum(n - 1, 1)
+        out[name] = {"pairs": len(P), "b31_minus_v": float(d31.mean()), "ece31_sq": float(e2.mean()),
+                     "r31": float(r31.mean()),
+                     "identity_residual": float(d31.mean() - (e2.mean() - r31.mean())),
+                     "b31_minus_v_pair_se": float(d31.std(ddof=1) / np.sqrt(len(P))),
+                     "floor_pure_rate_learner_B31_b0_convention": float(floor0.mean()),
+                     "per_pair_max": float(d31.max()), "pairs_gt_0.03": int((d31 > 0.03).sum()),
+                     "pairs_negative": int((d31 < 0).sum())}
+    out["value_4dp"] = {k: round(out[k]["b31_minus_v"], 4) for k in groups}
+    out["note"] = ("B31 - v = ECE31^2 - R31 per pair; ECE31^2 is the ECE^2-convention excess at B31 "
+                   "(split_floor.platform_excess_B31) and R31 the within-pair resolution "
+                   "(decomposition.*.within_pair_resolution_b31). LegacyP gives one prediction per pair, "
+                   "so its R31 is 0 up to the tables' rounding. The floor here uses v from B0; "
+                   "split_floor's uses v = B31 - ECE31^2 and is lower by 1e-4 to 2e-4.")
+    if rep is not None:
+        vs = {}
+        for reg in RS_REGIMES:
+            vs[reg] = {}
+            for name, arm in (("hier_pooled", "ship"), ("run1", "legacy")):
+                rl = rep["late"][reg][arm]
+                h = out[name]
+                d = h["b31_minus_v"] - rl["b31_minus_v_b0_convention"]
+                se = float(np.sqrt(h["b31_minus_v_pair_se"] ** 2 + rl["b31_minus_v_b0_convention_run_se"] ** 2))
+                vs[reg][name] = {"arm": arm, "replica_b31_minus_v_b0_convention": rl["b31_minus_v_b0_convention"],
+                                 "hidden_minus_replica": float(d), "se": se}
+        tl = RS_REGIMES[:5]
+        out["vs_replica"] = vs
+        out["vs_replica_summary"] = {
+            name: {"hidden_minus_replica_range_all": [min(vs[g][name]["hidden_minus_replica"] for g in RS_REGIMES),
+                                                      max(vs[g][name]["hidden_minus_replica"] for g in RS_REGIMES)],
+                   "hidden_minus_replica_range_test_like": [min(vs[g][name]["hidden_minus_replica"] for g in tl),
+                                                            max(vs[g][name]["hidden_minus_replica"] for g in tl)],
+                   "replica_range_all": [min(vs[g][name]["replica_b31_minus_v_b0_convention"] for g in RS_REGIMES),
+                                         max(vs[g][name]["replica_b31_minus_v_b0_convention"] for g in RS_REGIMES)]}
+            for name in ("hier_pooled", "run1")}
+        out["vs_replica_note"] = ("hidden minus replica B31 - v, both in the B0 convention (replica v = B0 - "
+                                  "ECE0^2 of each appearance, as for the hidden pairs); se combines the hidden "
+                                  "pair SE with the replica's run-cluster SE; positive: at B31 the hidden pairs "
+                                  "sit further above their v than the replica's pairs do. replica.late has the "
+                                  "same replica quantity with the known v.")
     return out
 
 
@@ -429,6 +567,13 @@ def ideal(runs):
 
 # --- one stream, seed 7 (scratch s7_runs.py): empirical mean, non-monotonicity, run spread ---------
 
+def run_summary(x):
+    """The distribution of a run-level quantity over bootstrap runs (s7_runs.py's)."""
+    return {"mean": float(x.mean()), "sd": float(x.std()), "p5": float(np.percentile(x, 5)),
+            "p1": float(np.percentile(x, 1)), "P_le_0.128": float(np.mean(x <= 0.128)),
+            "P_le_0.117": float(np.mean(x <= TARGET)), "P_le_0.10": float(np.mean(x <= 0.10))}
+
+
 def stream7(runs):
     rng = np.random.default_rng(SEEDS["stream7"])
 
@@ -521,10 +666,7 @@ def stream7(runs):
     st_v = strat(byb_v)
     st_a = strat(byb_a)
 
-    def summ(x):
-        return {"mean": float(x.mean()), "sd": float(x.std()), "p5": float(np.percentile(x, 5)),
-                "p1": float(np.percentile(x, 1)), "P_le_0.128": float(np.mean(x <= 0.128)),
-                "P_le_0.117": float(np.mean(x <= TARGET)), "P_le_0.10": float(np.mean(x <= 0.10))}
+    summ = run_summary
     spread = {"v_iid": summ(iid_v), "v_strat": summ(st_v), "alc_hier_iid": summ(iid_a),
               "alc_hier_strat": summ(st_a), "pairs": {"v": len(v_all), "hier": len(alc_h)},
               "benchmarks": len(ub), "boots": NBOOT}
@@ -538,6 +680,81 @@ def stream7(runs):
     spread["mean_alc_reaching_0.117_once_in_n"] = {str(N): float(TARGET + zq[N] * iid_a.std())
                                                    for N in [10, 50, 200]}
     return empirical, nonmono, spread
+
+
+def distinct_pairs(runs):
+    """run_spread's bootstrap of v, over distinct pairs as well as over appearances:
+    a sensitivity analysis of the primary, per-appearance run_spread.v_iid and v_strat.
+
+    Appearances of one (subject, benchmark) pair in several runs become one pair
+    whose v is the mean of theirs (the evaluation split is fixed per pair, so they
+    differ by table rounding only). Both versions are drawn on one stream (seed 8)
+    with common random numbers: a draw's uniforms index the 26 appearances or the
+    25 pairs, so distinct minus per-appearance is read with little Monte Carlo
+    noise. A run is 9 pairs, iid, or stratified as in stream7 (each of the 7
+    benchmarks once, two at random twice)."""
+    allp = [(r, p) for r in (1, 2, 3) for p in runs[r]]
+    v_app = np.array([pair_v(p) for _, p in allp])
+    b_app = [p["benchmark"] for _, p in allp]
+    groups = {}
+    for i, (_, p) in enumerate(allp):
+        groups.setdefault((p["subject"], p["benchmark"]), []).append(i)
+    rep = [g for g in groups.values() if len(g) > 1]
+    v_dis = np.array([v_app[g].mean() for g in groups.values()])
+    b_dis = [b_app[g[0]] for g in groups.values()]
+    N = NBOOT_DISTINCT
+    rng = np.random.default_rng(SEEDS["distinct"])
+    U = rng.random((N, 9))
+    iid = {"per_appearance": v_app[(U * len(v_app)).astype(int)].mean(1),
+           "distinct": v_dis[(U * len(v_dis)).astype(int)].mean(1)}
+    ub = sorted(set(b_app))
+    dbl = np.argsort(rng.random((N, len(ub))), 1)[:, :2]
+    twice = np.zeros((N, len(ub)), bool)
+    twice[np.arange(N)[:, None], dbl] = True
+    U2 = rng.random((N, len(ub), 2))
+    tot = {"per_appearance": np.zeros(N), "distinct": np.zeros(N)}
+    for j, b in enumerate(ub):
+        pools = {"per_appearance": v_app[[i for i, x in enumerate(b_app) if x == b]],
+                 "distinct": v_dis[[i for i, x in enumerate(b_dis) if x == b]]}
+        for k, pool in pools.items():
+            tot[k] += pool[(U2[:, j, 0] * len(pool)).astype(int)]
+            tot[k] += np.where(twice[:, j], pool[(U2[:, j, 1] * len(pool)).astype(int)], 0.0)
+    strat = {k: t / 9 for k, t in tot.items()}
+
+    def comp(d):
+        s = {k: run_summary(x) for k, x in d.items()}
+        ind = {k: (x <= TARGET).astype(float) for k, x in d.items()}
+        s["mc_se_P_le_0.117"] = {k: float(np.sqrt(s[k]["P_le_0.117"] * (1 - s[k]["P_le_0.117"]) / N))
+                                 for k in d}
+        dd = ind["distinct"] - ind["per_appearance"]
+        s["distinct_minus_per_appearance"] = {
+            "mean_difference": float(d["distinct"].mean() - d["per_appearance"].mean()),
+            "sd_difference": float(d["distinct"].std() - d["per_appearance"].std()),
+            "P_le_0.117": float(dd.mean()), "P_le_0.117_mc_se": float(dd.std() / np.sqrt(N))}
+        return s
+    return {
+        "role": "sensitivity analysis; the primary figures are the per-appearance bootstraps "
+                "run_spread.v_iid and v_strat (seed 7)",
+        "appearances": len(allp), "distinct_pairs": len(groups),
+        "pairs_in_two_runs": len(rep), "pairs_in_three_runs": sum(1 for g in rep if len(g) > 2),
+        "repeat_runs": sorted({allp[i][0] for g in rep for i in g}),
+        "repeat_same_n": all(len({allp[i][1]["n"] for i in g}) == 1 for g in rep),
+        "repeat_max_abs_v_difference": float(max((np.ptp(v_app[g]) for g in rep), default=0.0)),
+        "repeat_in_one_run": any(len({allp[i][0] for i in g}) < len(g) for g in rep),
+        "repeat_within_hier_runs": any(sum(1 for i in g if allp[i][0] in HIER) > 1 for g in rep),
+        "boots": N, "seed": SEEDS["distinct"], "pairs_per_run": 9, "benchmarks": len(ub),
+        "v_iid": comp(iid), "v_strat": comp(strat),
+        "note": ("A sensitivity analysis. run_spread.v_iid and v_strat (seed 7, 20,000 runs), the primary "
+                 "figures, draw from the 26 appearances, so the "
+                 "pair in run 1 and run 3 counts twice; here the same bootstraps over the 25 distinct pairs, "
+                 "with the per-appearance version on the same uniforms (seed 8, 200,000 runs) so their "
+                 "difference carries little Monte Carlo noise. The stored seed-7 values stay as the "
+                 "per-appearance figures; they differ from this block's per-appearance ones by Monte Carlo "
+                 "noise only. Unaffected: hier's ALC bootstrap (runs 2 and 3 hold the pair once), every per-run "
+                 "block, the ideal learner (run 1 and runs 2+3 separately) and the placement. "
+                 "vadjusted.legacy_minus_hier has the pair on both sides (LegacyP in run 1, hier in run 3), "
+                 "and its SE treats the sides as independent."),
+    }
 
 
 # --- the organisers' entry (scratch formative.py), seed 0 ----------------------------------------
@@ -735,11 +952,16 @@ def replica(runs, rs_dir):
            "runs 2+3 (hier)": ("ship", np.array([np.array(p["brier"]) - pair_v(p) for r in HIER for p in runs[r]])),
            "run2 (hier)": ("ship", np.array([np.array(p["brier"]) - pair_v(p) for p in runs[2]])),
            "run3 (hier)": ("ship", np.array([np.array(p["brier"]) - pair_v(p) for p in runs[3]]))}
-    out = {"validation": {}, "noise": {}, "placement_z": {}}
+    obs_raw = {"run1 (LegacyP)": np.array([p["brier"] for p in runs[1]]),
+               "runs 2+3 (hier)": np.array([p["brier"] for r in HIER for p in runs[r]]),
+               "run2 (hier)": np.array([p["brier"] for p in runs[2]]),
+               "run3 (hier)": np.array([p["brier"] for p in runs[3]])}
+    out = {"validation": {}, "noise": {}, "placement_z": {}, "placement_raw": {}, "late": {}}
     for reg in RS_REGIMES:
         files = sorted(glob.glob(os.path.join(rs_dir, reg, "*.json")))
         Bs, E, V = [], [], []
         per = {"ship": {}, "legacy": {}}
+        late = {"ship": [], "legacy": []}     # per run: (B31 - v known, B31 - (B0 - ECE0^2)) per appearance
         for f in files:
             with open(f) as fh:
                 r = json.load(fh)
@@ -754,29 +976,52 @@ def replica(runs, rs_dir):
                     continue
                 for m, b in zip(r["meta"], x["b"]):
                     per[arm].setdefault(r["i"], []).append((np.array(b), m["p"] * (1 - m["p"])))
+                late[arm].append(np.array([(b[5] - m["p"] * (1 - m["p"]), b[5] - (b[0] - e[0] ** 2))
+                                           for m, b, e in zip(r["meta"], x["b"], x["ece"])]))
         Bs, E, V = np.array(Bs), np.array(E), np.array(V)
         err = (Bs - E ** 2) - V[:, None]
         out["validation"][reg] = {"appearances": len(V), "bias_by_budget": fl(err.mean(0)),
                                   "sd_by_budget": fl(err.std(0)), "b31_minus_v": float(np.mean(Bs[:, 5] - V))}
         out["noise"][reg] = {}
         R = {}
+        RB = {}
         for arm, byrun in per.items():
             runm = np.array([np.mean([W @ b - v for b, v in L]) for L in byrun.values()])
             alc = np.array([np.mean([W @ b for b, _ in L]) for L in byrun.values()])
             exb = np.array([np.mean([b - v for b, v in L], 0) for L in byrun.values()])
             R[arm] = exb
+            RB[arm] = (np.array([np.mean([b for b, _ in L], 0) for L in byrun.values()]), alc)
             out["noise"][reg][arm] = {"runs": len(runm), "alc": float(alc.mean()), "alc_sd": float(alc.std()),
                                       "v": float(np.mean([np.mean([v for _, v in L]) for L in byrun.values()])),
                                       "alc_minus_v": float(runm.mean()), "alc_minus_v_sd": float(runm.std()),
                                       "excess_by_budget": fl(exb.mean(0)),
                                       "sd_ratio_raw_over_vadjusted": float(alc.std() / runm.std())}
         out["placement_z"][reg] = {}
+        out["placement_raw"][reg] = {}
         for name, (arm, ex) in obs.items():
             Rm = R[arm]
             o = ex.mean(0)
             z = (o - Rm.mean(0)) / Rm.std(0)
             za = (W @ o - (Rm @ W).mean()) / (Rm @ W).std()
             out["placement_z"][reg][name] = {"arm": arm, "z_by_budget": fl(z), "z_alc_minus_v": float(za)}
+            rb, ra = RB[arm]
+            ob = obs_raw[name].mean(0)
+            oa = float(np.mean(obs_raw[name] @ W))
+            out["placement_raw"][reg][name] = {
+                "arm": arm, "hidden_alc": oa, "regime_alc": float(ra.mean()), "regime_alc_sd": float(ra.std()),
+                "z_alc": float((oa - ra.mean()) / ra.std()),
+                "z_by_budget": fl((ob - rb.mean(0)) / rb.std(0))}
+        out["late"][reg] = {}
+        for arm, L in late.items():
+            n = np.array([len(x) for x in L], float)
+            S = np.array([x.sum(0) for x in L])
+            m = S.sum(0) / n.sum()
+            k = len(L)
+            cse = np.sqrt(k / (k - 1) * ((S - m[None, :] * n[:, None]) ** 2).sum(0)) / n.sum()
+            out["late"][reg][arm] = {"runs": k, "appearances": int(n.sum()),
+                                     "b31_minus_v": float(m[0]), "b31_minus_v_run_se": float(cse[0]),
+                                     "b31_minus_v_b0_convention": float(m[1]),
+                                     "b31_minus_v_b0_convention_run_se": float(cse[1])}
     zl = [out["placement_z"][g]["run1 (LegacyP)"]["z_by_budget"] for g in RS_REGIMES[:5]]
     out["placement_summary"] = {
         "run1_vs_R1B_B0_B1": out["placement_z"]["R1B"]["run1 (LegacyP)"]["z_by_budget"][:2],
@@ -791,6 +1036,23 @@ def replica(runs, rs_dir):
         "note": "z = (hidden mean of B_k - v minus the regime's run mean) / the regime's single-run sd "
                 "(runs of formative size, 8 to 9 pairs); the pooled hier row has 17 pairs, so its z "
                 "against a 9-pair sd understates its precision",
+        "test_like": RS_REGIMES[:5],
+    }
+    names = list(obs)
+    pr = out["placement_raw"]
+    out["placement_raw_summary"] = {
+        "side_by_side_z_alc": {name: {g: {"raw": pr[g][name]["z_alc"],
+                                          "v_adjusted": out["placement_z"][g][name]["z_alc_minus_v"]}
+                                      for g in RS_REGIMES} for name in names},
+        "z_alc_range_test_like": {name: [float(min(pr[g][name]["z_alc"] for g in RS_REGIMES[:5])),
+                                         float(max(pr[g][name]["z_alc"] for g in RS_REGIMES[:5]))]
+                                  for name in names},
+        "z_alc_range_all": {name: [float(min(pr[g][name]["z_alc"] for g in RS_REGIMES)),
+                                   float(max(pr[g][name]["z_alc"] for g in RS_REGIMES))] for name in names},
+        "note": "z = (hidden raw mean B_k, or raw ALC, minus the regime's run mean) / the regime's single-run "
+                "sd, same arm and the same runs as placement_z. The raw z carries the run's composition (its v) "
+                "as well as the predictor's learning, which placement_z removes. The pooled hier row has 17 "
+                "pairs against a sd of 8- to 9-pair runs, so its z understates its precision.",
         "test_like": RS_REGIMES[:5],
     }
     out["noise_summary"] = {
@@ -921,12 +1183,14 @@ def compute(runs, ss_dir=SS_ROWS, rs_dir=RS_ROWS, with_rows=True, with_requireme
     res["item_level"] = item_level(res["decomposition"], itemsig)
     res["ideal"] = ideal(runs)
     res["empirical_mean"], res["nonmonotone"], res["run_spread"] = stream7(runs)
+    res["run_spread"]["distinct_pairs"] = distinct_pairs(runs)
     res["entry"] = entry(runs, res["empirical_mean"])
     res["vadjusted"] = vadjusted(runs, ship)
     res["curve"] = {"shape": curve_shape(runs, ship),
                     "test": curve_test(runs, ss_dir) if with_rows else None}
     res["split_floor"] = split_floor(runs)
     res["replica"] = replica(runs, rs_dir) if with_rows else None
+    res["late_gap"] = late_gap(runs, res["replica"])
     res["requirement"] = requirement() if with_requirement else None
     return res
 
@@ -973,6 +1237,32 @@ def main_numbers(res):
         sf = res["split_floor"][f"run{r}"]
         m[f"split_floor_B31_run{r}"] = sf["floor_pure_rate_learner_B31"]
         m[f"platform_excess_B31_run{r}"] = sf["platform_excess_B31"]
+    # added in P2 (W2): pair SEs, the late-budget gap, the distinct-pair bootstrap
+    hp = d["hier_pooled"]["pair_se"]
+    m["hier_pooled_alc_minus_v_se"] = hp["alc_minus_v_pair_se"]
+    for name, se in (("hier_pooled", hp), ("run1", d["run1"]["pair_se"])):
+        for b, x in zip(BUDGETS, se["excess_by_budget_pair_se"]):
+            m[f"excess_se_B{b}_{name}"] = x
+    lg = res["late_gap"]
+    for name in ("run1", "run2", "run3", "hier_pooled"):
+        m[f"late_b31_minus_v_{name}"] = lg[name]["b31_minus_v"]
+        m[f"late_ece31_sq_{name}"] = lg[name]["ece31_sq"]
+        m[f"late_r31_{name}"] = lg[name]["r31"]
+        m[f"late_b31_minus_v_se_{name}"] = lg[name]["b31_minus_v_pair_se"]
+        m[f"late_floor_b0_{name}"] = lg[name]["floor_pure_rate_learner_B31_b0_convention"]
+    dp = res["run_spread"]["distinct_pairs"]
+    for kind in ("iid", "strat"):
+        x = dp[f"v_{kind}"]
+        m[f"v_run_{kind}_mean_distinct"] = x["distinct"]["mean"]
+        m[f"v_run_{kind}_sd_distinct"] = x["distinct"]["sd"]
+        m[f"P_v_le_0.117_{kind}_distinct"] = x["distinct"]["P_le_0.117"]
+        m[f"P_v_le_0.117_{kind}_per_appearance_seed8"] = x["per_appearance"]["P_le_0.117"]
+        m[f"P_v_le_0.117_{kind}_distinct_minus_per_appearance"] = x["distinct_minus_per_appearance"]["P_le_0.117"]
+    if lg.get("vs_replica_summary"):
+        for name in ("hier_pooled", "run1"):
+            s = lg["vs_replica_summary"][name]
+            m[f"late_gap_vs_replica_lo_{name}"], m[f"late_gap_vs_replica_hi_{name}"] = \
+                s["hidden_minus_replica_range_all"]
     ct = res["curve"]["test"]
     if ct:
         for reg in ("tl", "r1b", "r1p"):
@@ -983,6 +1273,11 @@ def main_numbers(res):
         m["z_run1_vs_R1B_B0"] = rp["placement_summary"]["run1_vs_R1B_B0_B1"][0]
         m["z_run1_vs_R1P_B0"] = rp["placement_summary"]["run1_vs_R1P_B0_B1"][0]
         m["replica_b0_bias_lo"], m["replica_b0_bias_hi"] = rp["validation_summary"]["b0_bias_range"]
+        for name, key in (("run1", "run1 (LegacyP)"), ("hier_pooled", "runs 2+3 (hier)")):
+            for reg in ("TUNED", "R1B"):
+                m[f"z_raw_alc_{name}_vs_{reg}"] = rp["placement_raw"][reg][key]["z_alc"]
+            lo, hi = rp["placement_raw_summary"]["z_alc_range_test_like"][key]
+            m[f"z_raw_alc_{name}_test_like_lo"], m[f"z_raw_alc_{name}_test_like_hi"] = lo, hi
     rq = res["requirement"]
     if rq:
         for t, x in zip(rq["summary"]["taus"], rq["summary"]["hidden_like_req_r_known"]):
@@ -1553,6 +1848,24 @@ SCRATCH = {
     ('requirement', 'tau=3.2 | organisers-run-like v~0.125 (-1.64,1.49)', 'req_r_cal'): ('full', 0.8054727047551662, 's8_req.json'),
     ('requirement', 'tau=3.2 | organisers-run-like v~0.125 (-1.64,1.49)', 'req_r_known'): ('full', 0.5153627405243189, 's8_req.json'),
     ('requirement', 'summary', 'hidden_like_req_r_known'): (2, [0.95, 0.86, 0.81], "gap.md section 4, plan ('0.8 to 0.95')"),
+    # added in P2 (W2): the late-budget gap in the B0 convention, and the replica's B31 - v by arm
+    ('late_gap', 'run1', 'b31_minus_v'): (4, 0.0031, 'gap.md section 2 table'),
+    ('late_gap', 'run2', 'b31_minus_v'): (4, 0.0036, 'gap.md section 2 table'),
+    ('late_gap', 'run3', 'b31_minus_v'): (4, 0.0036, 'gap.md section 2 table'),
+    ('late_gap', 'hier_pooled', 'b31_minus_v'): (4, 0.0036, "critic.md section 1 ('Hidden B_k - v = ... / 0.0036')"),
+    ('late_gap', 'run2', 'ece31_sq'): (4, 0.0074, 'split_floor.json'),
+    ('late_gap', 'run3', 'ece31_sq'): (4, 0.006, 'split_floor.json'),
+    ('late_gap', 'run2', 'r31'): (4, 0.0038, 'gap.md section 2'),
+    ('late_gap', 'run3', 'r31'): (4, 0.0024, 'gap.md section 2'),
+    ('late_gap', 'hier_pooled', 'per_pair_max'): (4, 0.0207, "critic.md section 3.B ('the maximum is 0.0207')"),
+    ('late_gap', 'hier_pooled', 'pairs_gt_0.03'): (0, 0, "critic.md section 3.B ('none exceed 0.03')"),
+    ('replica', 'late', 'TUNED', 'ship', 'b31_minus_v'): (4, 0.0, 's6 stdout'),
+    ('replica', 'late', 'READING', 'ship', 'b31_minus_v'): (4, -0.0008, 's6 stdout'),
+    ('replica', 'late', 'AUDIT', 'ship', 'b31_minus_v'): (4, 0.0007, 's6 stdout'),
+    ('replica', 'late', 'MIXTURE', 'ship', 'b31_minus_v'): (4, 0.0, 's6 stdout'),
+    ('replica', 'late', 'FLAT', 'ship', 'b31_minus_v'): (4, 0.0005, 's6 stdout'),
+    ('replica', 'late', 'R1B', 'ship', 'b31_minus_v'): (4, -0.0035, 's6 stdout'),
+    ('replica', 'late', 'R1P', 'ship', 'b31_minus_v'): (4, -0.0036, 's6 stdout'),
 }
 
 #: scratch values the port does not reproduce as stated, and why
@@ -1646,7 +1959,7 @@ def compare_scratch(res):
 
 # --- provenance, main -----------------------------------------------------------------------------
 
-SCRATCH_SCRIPTS = {  # basename: sha256 of the exploratory script ported (session scratch, 2026-10-06)
+SCRATCH_SCRIPTS = {  # path in the session scratch (2026-10-06): sha256 of the exploratory script ported
     "common.py": "701bfb95f0e10f5d66422a12287f57ff43516ac0dfe9fbecf72aadfb4a7b01de",
     "ideal.py": "6256ce990dc0d5cf78b030b3b9b7b44951b88b7dfdd3b3a2575f3a4db66634d0",
     "formative.py": "b14a55b508a5960c6da0ad6fb01d85b3a7a3d94eb65cb50ef1ee91e099c80edd",
@@ -1661,11 +1974,49 @@ SCRATCH_SCRIPTS = {  # basename: sha256 of the exploratory script ported (sessio
     "curve_shape.py": "9dc3b8d42eb9e18f08ecc4e05bbf79bf22011f4a04cff7d4d09ff0ec34c3eb10",
     "split_floor.py": "411ee3c0df5a9382f569cf413a37a7e17a3f521ddb0bc8ce8ac7976b016e1a60",
     "ece_excess.py": "d6a925f83af713088bbcd05457aff5008e35cacd67376fb1087350a268794ebf",
+    "critic/late_excess.py": "948a8abd231aa31803d480747204aae6472d0368cb73fa17babfc57beb4324ef",
 }
+
+
+def doc_passage(lines, spec):
+    """(first line, last line) 1-based of the passage a DOC_CONSTANTS entry names:
+    the first paragraph after its heading, or the line that starts with its anchor."""
+    if "heading" in spec:
+        i = next(j for j, ln in enumerate(lines) if ln.strip() == spec["heading"])
+        a = next(j for j in range(i + 1, len(lines)) if lines[j].strip())
+        b = next((j for j in range(a, len(lines)) if not lines[j].strip()), len(lines)) - 1
+        return a + 1, b + 1
+    a = next(j for j, ln in enumerate(lines) if ln.startswith(spec["line_starts"]))
+    return a + 1, a + 1
+
+
+def doc_constants():
+    """Each hard-coded constant read from a document: the document's sha256, the
+    passage (line range, sha256 of its exact text) and whether every value still
+    appears in it (whitespace-normalised). A missing passage gives found False."""
+    out = {}
+    for name, spec in DOC_CONSTANTS.items():
+        with open(spec["path"], "rb") as f:
+            raw = f.read()
+        lines = raw.decode("utf-8").split("\n")
+        rec = {"path": rel(spec["path"]), "sha256": hashlib.sha256(raw).hexdigest(),
+               "anchor": spec.get("heading") or spec["line_starts"], "values": spec["values"]}
+        try:
+            a, b = doc_passage(lines, spec)
+        except StopIteration:
+            out[name] = {**rec, "lines": None, "passage_sha256": None, "found": False}
+            continue
+        passage = "\n".join(lines[a - 1:b])
+        flat = " ".join(passage.split())
+        out[name] = {**rec, "lines": [a, b], "passage_sha256": hashlib.sha256(passage.encode("utf-8")).hexdigest(),
+                     "found": all(" ".join(v.split()) in flat for v in spec["values"].values())}
+    return out
 
 
 def inputs_digest(with_rows):
     d = {rel(p): sha256(p) for p in (*TABLES.values(), FF_JSON, R3_JSON, SHIP_JSON, ITEMSIG_JSON)}
+    for spec in DOC_CONSTANTS.values():
+        d[rel(spec["path"])] = sha256(spec["path"])
     if with_rows:
         for reg in ("tl", "r1b", "r1p"):
             p = os.path.join(SS_ROWS, f"{reg}.jsonl")
@@ -1678,7 +2029,7 @@ def inputs_digest(with_rows):
     return d
 
 
-def provenance(inputs, secs):
+def provenance(inputs, secs, docs=None):
     me = os.path.abspath(__file__)
     code = {rel(p): sha256(p) for p in (me, FF.__file__, os.path.join(ROOT, "paiec", "evaluator.py"))}
     status = git("status", "--porcelain", "--", rel(me))
@@ -1686,8 +2037,11 @@ def provenance(inputs, secs):
             "script": rel(me), "script_sha256": code[rel(me)], "code_sha256": code,
             "head": git("rev-parse", "HEAD"), "script_status": status or "clean",
             "when_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-            "inputs_sha256": inputs, "python": platform.python_version(), "numpy": np.__version__,
-            "scipy": scipy.__version__, "seeds": SEEDS, "wall_s": round(secs, 1)}
+            "inputs_sha256": inputs,
+            "doc_constants": docs if docs is not None else doc_constants(),
+            "python": platform.python_version(), "numpy": np.__version__,
+            "scipy": scipy.__version__, "seeds": SEEDS, "boots": {"stream7": NBOOT, "distinct": NBOOT_DISTINCT},
+            "wall_s": round(secs, 1)}
 
 
 def show(res):
@@ -1725,12 +2079,35 @@ def show(res):
     print(f"curve after B7: hidden B7->B31 {sh[0]:+.4f} ± {sh[1]:.4f}" + (
         "; P(as flat) " + ", ".join(f"{k} {v['P(mean >= platform)']:.4f}" for k, v in ct["replica"].items())
         if ct else "; rows absent"))
+    hp = d["hier_pooled"]["pair_se"]
+    print("hier pooled (17 pairs) B_k - v: " + ", ".join(
+        f"{x:+.4f} ({s:.4f})" for x, s in zip(d["hier_pooled"]["excess_by_budget"], hp["excess_by_budget_pair_se"]))
+        + f"; ALC - v {d['hier_pooled']['alc_minus_v']:+.4f} ({hp['alc_minus_v_pair_se']:.4f})")
+    lg = res["late_gap"]
+    print("B31 - v = ECE31^2 - R31: " + "; ".join(
+        f"{k} {lg[k]['b31_minus_v']:+.4f} = {lg[k]['ece31_sq']:.4f} - {lg[k]['r31']:.4f} (SE {lg[k]['b31_minus_v_pair_se']:.4f})"
+        for k in ("run1", "run2", "run3", "hier_pooled")))
+    if lg.get("vs_replica_summary"):
+        s = lg["vs_replica_summary"]["hier_pooled"]
+        print(f"  hier hidden minus replica B31 - v (B0 convention): {s['hidden_minus_replica_range_all'][0]:+.4f} "
+              f"to {s['hidden_minus_replica_range_all'][1]:+.4f}")
+    dp = res["run_spread"]["distinct_pairs"]
+    print(f"sensitivity, v of a 9-pair run over {dp['distinct_pairs']} distinct pairs of {dp['appearances']} "
+          "appearances: " + "; ".join(
+        f"{k} P(v<=0.117) {dp[f'v_{k}']['distinct']['P_le_0.117']:.4f} vs {dp[f'v_{k}']['per_appearance']['P_le_0.117']:.4f} "
+        f"per appearance (diff {dp[f'v_{k}']['distinct_minus_per_appearance']['P_le_0.117']:+.4f} ± "
+        f"{dp[f'v_{k}']['distinct_minus_per_appearance']['P_le_0.117_mc_se']:.4f})" for k in ("strat", "iid")))
+    rp = res["replica"]
+    if rp:
+        print("raw placement z of ALC: " + "; ".join(
+            f"{k} {v[0]:+.2f} to {v[1]:+.2f}" for k, v in rp["placement_raw_summary"]["z_alc_range_test_like"].items())
+            + " (test-like regimes)")
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--out", default=OUT)
-    ap.add_argument("--no-requirement", action="store_true", help="skip the ~2-minute synthetic block")
+    ap.add_argument("--no-requirement", action="store_true", help="skip the ~80 s synthetic block")
     ap.add_argument("--no-rows", action="store_true", help="do not read data/*_rows")
     args = ap.parse_args(argv)
     t0 = time.time()
@@ -1748,6 +2125,28 @@ def main(argv=None):
     checks.add("run 1 (LegacyP): B - ECE^2 per pair constant across budgets within the 6-dp rounding",
                res["identity"]["run1"]["pairs_within_rounding_bound"] == res["identity"]["run1"]["pairs"],
                res["identity"]["run1"]["pairs_within_rounding_bound"], res["identity"]["run1"]["pairs"])
+    lg = res["late_gap"]
+    worst = max(abs(lg[k]["identity_residual"]) for k in ("run1", "run2", "run3", "hier_pooled"))
+    checks.add("late_gap: B31 - v = ECE31^2 - R31 to float rounding", worst < 1e-12, worst, 1e-12)
+    for k in ("run1", "run2", "run3"):
+        checks.add(f"late_gap.{k} agrees with decomposition.b31_minus_v"
+                   + ("" if k == "run1" else " and split_floor's ECE31^2"),
+                   abs(lg[k]["b31_minus_v"] - res["decomposition"][k]["b31_minus_v"]) < 1e-12
+                   and (k == "run1" or abs(lg[k]["ece31_sq"] - res["split_floor"][k]["platform_excess_B31"]) < 1e-12),
+                   lg[k]["b31_minus_v"], res["decomposition"][k]["b31_minus_v"])
+    dp = res["run_spread"]["distinct_pairs"]
+    checks.add("distinct pairs: a repeated pair has one n and one v (within 2e-6) and is never twice in one run",
+               dp["repeat_same_n"] and dp["repeat_max_abs_v_difference"] <= 2e-6 and not dp["repeat_in_one_run"],
+               [dp["repeat_same_n"], dp["repeat_max_abs_v_difference"], dp["repeat_in_one_run"]], [True, 2e-6, False])
+    if res["replica"]:
+        diff = max(abs(res["replica"]["late"][g]["ship"]["b31_minus_v"]
+                       - res["replica"]["validation"][g]["b31_minus_v"]) for g in RS_REGIMES)
+        checks.add("replica.late (ship, known v) equals replica.validation b31_minus_v", diff < 1e-12, diff, 1e-12)
+    docs = doc_constants()
+    for name, rec in docs.items():
+        checks.add(f"doc constant '{name}' appears in {rec['path']} ({rec['anchor']})", rec["found"],
+                   rec["lines"], rec["values"], required=False,
+                   note="not required: the documents are under revision; a miss is recorded, not fatal")
     res["checks"] = checks.items
     res = {"about": {
         "what": "the hidden formative runs read through Brier = ECE^2 + p(1-p): the pair-rate oracle v, "
@@ -1756,10 +2155,33 @@ def main(argv=None):
         "plan": "docs/plans/p2_final_plan.md sections 2 and 5 (R1-R3)",
         "v": "per pair B0 - ECE0^2 (exact for one prediction per pair at budget 0)",
         "weights": list(WEIGHTS), "budgets": list(BUDGETS),
-        "id_use": "anonymous benchmark ids group pairs in the stratified bootstrap only; none is written here",
+        "id_use": "the analysis uses the anonymous ids only to find the one subject-benchmark pair that appears "
+                  "in two runs (distinct_pairs, runs 1 and 3, by subject and benchmark id together: the runs' "
+                  "overlap check that the report's App G.6 declares) and to group pairs by benchmark id in its "
+                  "two stratified bootstraps (run_spread.v_strat and alc_hier_strat, seed 7; "
+                  "run_spread.distinct_pairs.v_strat, seed 8). Besides, the ids are read to check each table "
+                  "against the stored records field for field (check_tables) and the distinct benchmark ids are "
+                  "counted (tables.run*.benchmarks, run_spread.benchmarks, run_spread.distinct_pairs.benchmarks). "
+                  "No id is written to this file, and no output is keyed on one",
+        "primary_and_sensitivity": "the per-appearance bootstraps of run_spread (v_iid, v_strat, seed 7) are the "
+                                   "primary analysis; run_spread.distinct_pairs (the same bootstraps over the 25 "
+                                   "distinct pairs, seed 8) is a sensitivity analysis of them",
         "rows": "curve.test reads data/subject_side_rows/{tl,r1b,r1p}.jsonl; replica reads "
-                "data/regime_sensitivity_rows/<regime>/*.json (gitignored); null when not read"}, **res}
-    res["provenance"] = provenance(inputs_digest(with_rows), time.time() - t0)
+                "data/regime_sensitivity_rows/<regime>/*.json (gitignored); null when not read",
+        "added_2026_10_06_w2": "decomposition.*.pair_se (pair SEs of B_k - v by budget, of the three terms "
+                               "and of ALC - v); late_gap (B31 - v = ECE31^2 - R31 in the B0 convention, "
+                               "against the replica); replica.placement_raw (raw B_k and ALC placement) and "
+                               "replica.late; run_spread.distinct_pairs (the v bootstrap over the 25 "
+                               "distinct pairs); provenance.doc_constants. Every earlier key keeps its value, "
+                               "except the bookkeeping of the new blocks: scratch.items gains 17 entries "
+                               "(late_gap, replica.late), which scratch.counts.match and the scratch check's "
+                               "count include (541 to 558), and checks gains 8 entries.",
+        "changed_2026_10_07": "about.id_use restated exactly (it had named the stratified bootstrap only); "
+                              "about.added_2026_10_06_w2 corrected (it had said every earlier key and value "
+                              "was unchanged); about.primary_and_sensitivity and run_spread.distinct_pairs.role "
+                              "added, and run_spread.distinct_pairs.note now opens by naming the block a "
+                              "sensitivity analysis. No number changed."}, **res}
+    res["provenance"] = provenance(inputs_digest(with_rows), time.time() - t0, docs)
     show(res)
     print(f"scratch comparison: {n}")
     bad = checks.failed()
