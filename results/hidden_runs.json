@@ -19,8 +19,11 @@
    15,
    31
   ],
-  "id_use": "anonymous benchmark ids group pairs in the stratified bootstrap only; none is written here",
-  "rows": "curve.test reads data/subject_side_rows/{tl,r1b,r1p}.jsonl; replica reads data/regime_sensitivity_rows/<regime>/*.json (gitignored); null when not read"
+  "id_use": "the analysis uses the anonymous ids only to find the one subject-benchmark pair that appears in two runs (distinct_pairs, runs 1 and 3, by subject and benchmark id together: the runs' overlap check that the report's App G.6 declares) and to group pairs by benchmark id in its two stratified bootstraps (run_spread.v_strat and alc_hier_strat, seed 7; run_spread.distinct_pairs.v_strat, seed 8). Besides, the ids are read to check each table against the stored records field for field (check_tables) and the distinct benchmark ids are counted (tables.run*.benchmarks, run_spread.benchmarks, run_spread.distinct_pairs.benchmarks). No id is written to this file, and no output is keyed on one",
+  "primary_and_sensitivity": "the per-appearance bootstraps of run_spread (v_iid, v_strat, seed 7) are the primary analysis; run_spread.distinct_pairs (the same bootstraps over the 25 distinct pairs, seed 8) is a sensitivity analysis of them",
+  "rows": "curve.test reads data/subject_side_rows/{tl,r1b,r1p}.jsonl; replica reads data/regime_sensitivity_rows/<regime>/*.json (gitignored); null when not read",
+  "added_2026_10_06_w2": "decomposition.*.pair_se (pair SEs of B_k - v by budget, of the three terms and of ALC - v); late_gap (B31 - v = ECE31^2 - R31 in the B0 convention, against the replica); replica.placement_raw (raw B_k and ALC placement) and replica.late; run_spread.distinct_pairs (the v bootstrap over the 25 distinct pairs); provenance.doc_constants. Every earlier key keeps its value, except the bookkeeping of the new blocks: scratch.items gains 17 entries (late_gap, replica.late), which scratch.counts.match and the scratch check's count include (541 to 558), and checks gains 8 entries.",
+  "changed_2026_10_07": "about.id_use restated exactly (it had named the stratified bootstrap only); about.added_2026_10_06_w2 corrected (it had said every earlier key and value was unchanged); about.primary_and_sensitivity and run_spread.distinct_pairs.role added, and run_spread.distinct_pairs.note now opens by naming the block a sensitivity analysis. No number changed."
  },
  "tables": {
   "run1": {
@@ -195,6 +198,31 @@
    "within_pair_resolution_b31": {
     "mean": 4.513555554992798e-08,
     "pairs_ge_0.011": 0
+   },
+   "pair_se": {
+    "excess_by_budget_pair_sd": [
+     0.20822102813123966,
+     0.11661584532472216,
+     0.04536012721556481,
+     0.024374907621524618,
+     0.03029779081449024,
+     0.0038520188289168653
+    ],
+    "excess_by_budget_pair_se": [
+     0.06940700937707989,
+     0.03887194844157405,
+     0.01512004240518827,
+     0.008124969207174872,
+     0.01009926360483008,
+     0.0012840062763056217
+    ],
+    "terms_pair_se": {
+     "b0_term": 0.0069407009377079895,
+     "b1_b15_terms": 0.012236847657602861,
+     "b31_term": 0.0001284006276305622
+    },
+    "alc_minus_v_pair_sd": 0.05685807838530681,
+    "alc_minus_v_pair_se": 0.01895269279510227
    }
   },
   "run2": {
@@ -227,6 +255,31 @@
    "within_pair_resolution_b31": {
     "mean": 0.003781171315625001,
     "pairs_ge_0.011": 2
+   },
+   "pair_se": {
+    "excess_by_budget_pair_sd": [
+     0.05691042399680878,
+     0.02416644624167777,
+     0.014937007070164496,
+     0.005814301947711966,
+     0.0052312771371821965,
+     0.010584415933105364
+    ],
+    "excess_by_budget_pair_se": [
+     0.020120873364172554,
+     0.008544129007335253,
+     0.0052810294949723596,
+     0.002055666167546641,
+     0.00184953576898384,
+     0.0037421561405988706
+    ],
+    "terms_pair_se": {
+     "b0_term": 0.0020120873364172552,
+     "b1_b15_terms": 0.002813263771789564,
+     "b31_term": 0.00037421561405988704
+    },
+    "alc_minus_v_pair_sd": 0.013108968069079506,
+    "alc_minus_v_pair_se": 0.00463472010800202
    }
   },
   "run3": {
@@ -259,6 +312,31 @@
    "within_pair_resolution_b31": {
     "mean": 0.002430595372555565,
     "pairs_ge_0.011": 1
+   },
+   "pair_se": {
+    "excess_by_budget_pair_sd": [
+     0.04451597761518961,
+     0.02199260136477133,
+     0.03511981287286848,
+     0.007358720345626759,
+     0.005646194963057332,
+     0.010135785339586914
+    ],
+    "excess_by_budget_pair_se": [
+     0.014838659205063205,
+     0.007330867121590444,
+     0.01170660429095616,
+     0.0024529067818755863,
+     0.0018820649876857773,
+     0.003378595113195638
+    ],
+    "terms_pair_se": {
+     "b0_term": 0.0014838659205063205,
+     "b1_b15_terms": 0.003487495514682705,
+     "b31_term": 0.0003378595113195638
+    },
+    "alc_minus_v_pair_sd": 0.007775076745919806,
+    "alc_minus_v_pair_se": 0.002591692248639935
    }
   },
   "hier_pooled": {
@@ -318,7 +396,33 @@
    "within_pair_resolution_b31": {
     "mean": 0.0030661605222352993,
     "pairs_ge_0.011": 3
-   }
+   },
+   "pair_se": {
+    "excess_by_budget_pair_sd": [
+     0.04985221463040452,
+     0.02300575881167993,
+     0.0273257325788674,
+     0.006527846290558196,
+     0.006427917554249679,
+     0.010018991580475945
+    ],
+    "excess_by_budget_pair_se": [
+     0.012090938034830584,
+     0.005579716092825916,
+     0.006627463630591292,
+     0.0015832352802216396,
+     0.0015589990017019627,
+     0.0024299623852044906
+    ],
+    "terms_pair_se": {
+     "b0_term": 0.0012090938034830586,
+     "b1_b15_terms": 0.0023326555517033712,
+     "b31_term": 0.00024299623852044912
+    },
+    "alc_minus_v_pair_sd": 0.011037682835268436,
+    "alc_minus_v_pair_se": 0.002677031305404634
+   },
+   "pair_se_note": "17 pairs of runs 2 and 3 as independent draws; no subject is in both runs; the run-level noise of a run's mean is not in it (replica.noise has that)"
   }
  },
  "item_level": {
@@ -793,6 +897,86 @@
    "10": 0.1432569204698136,
    "50": 0.15906842015990416,
    "200": 0.16975961554620891
+  },
+  "distinct_pairs": {
+   "role": "sensitivity analysis; the primary figures are the per-appearance bootstraps run_spread.v_iid and v_strat (seed 7)",
+   "appearances": 26,
+   "distinct_pairs": 25,
+   "pairs_in_two_runs": 1,
+   "pairs_in_three_runs": 0,
+   "repeat_runs": [
+    1,
+    3
+   ],
+   "repeat_same_n": true,
+   "repeat_max_abs_v_difference": 2.923519999420421e-07,
+   "repeat_in_one_run": false,
+   "repeat_within_hier_runs": false,
+   "boots": 200000,
+   "seed": 8,
+   "pairs_per_run": 9,
+   "benchmarks": 7,
+   "v_iid": {
+    "per_appearance": {
+     "mean": 0.16418508624882477,
+     "sd": 0.023384686455562204,
+     "p5": 0.1237950797235111,
+     "p1": 0.10556864263952334,
+     "P_le_0.128": 0.069125,
+     "P_le_0.117": 0.02891,
+     "P_le_0.10": 0.005535
+    },
+    "distinct": {
+     "mean": 0.16554780979903905,
+     "sd": 0.023764186633689448,
+     "p5": 0.12437779384355001,
+     "p1": 0.10537413265544,
+     "P_le_0.128": 0.065075,
+     "P_le_0.117": 0.027785,
+     "P_le_0.10": 0.005975
+    },
+    "mc_se_P_le_0.117": {
+     "per_appearance": 0.00037466125967332146,
+     "distinct": 0.0003675118622235206
+    },
+    "distinct_minus_per_appearance": {
+     "mean_difference": 0.0013627235502142732,
+     "sd_difference": 0.0003795001781272435,
+     "P_le_0.117": -0.001125,
+     "P_le_0.117_mc_se": 0.0004521821224628412
+    }
+   },
+   "v_strat": {
+    "per_appearance": {
+     "mean": 0.16010089424505125,
+     "sd": 0.01697031768236873,
+     "p5": 0.13157699412355556,
+     "p1": 0.12029215352544448,
+     "P_le_0.128": 0.03189,
+     "P_le_0.117": 0.00597,
+     "P_le_0.10": 0.000155
+    },
+    "distinct": {
+     "mean": 0.16127410611869789,
+     "sd": 0.017025651730654477,
+     "p5": 0.1325962631138944,
+     "p1": 0.12112127375729446,
+     "P_le_0.128": 0.027875,
+     "P_le_0.117": 0.005305,
+     "P_le_0.10": 0.00012
+    },
+    "mc_se_P_le_0.117": {
+     "per_appearance": 0.00017225503040550077,
+     "distinct": 0.00016243240093959086
+    },
+    "distinct_minus_per_appearance": {
+     "mean_difference": 0.0011732118736466346,
+     "sd_difference": 5.533404828574756e-05,
+     "P_le_0.117": -0.000665,
+     "P_le_0.117_mc_se": 0.00010896232777891629
+    }
+   },
+   "note": "A sensitivity analysis. run_spread.v_iid and v_strat (seed 7, 20,000 runs), the primary figures, draw from the 26 appearances, so the pair in run 1 and run 3 counts twice; here the same bootstraps over the 25 distinct pairs, with the per-appearance version on the same uniforms (seed 8, 200,000 runs) so their difference carries little Monte Carlo noise. The stored seed-7 values stay as the per-appearance figures; they differ from this block's per-appearance ones by Monte Carlo noise only. Unaffected: hier's ALC bootstrap (runs 2 and 3 hold the pair once), every per-run block, the ideal learner (run 1 and runs 2+3 separately) and the placement. vadjusted.legacy_minus_hier has the pair on both sides (LegacyP in run 1, hier in run 3), and its SE treats the sides as independent."
   }
  },
  "entry": {
@@ -1857,6 +2041,570 @@
     }
    }
   },
+  "placement_raw": {
+   "TUNED": {
+    "run1 (LegacyP)": {
+     "arm": "legacy",
+     "hidden_alc": 0.2112999888888889,
+     "regime_alc": 0.21237304963585507,
+     "regime_alc_sd": 0.02135502293862037,
+     "z_alc": -0.050248634714671704,
+     "z_by_budget": [
+      0.15089832203276443,
+      -0.5872143003772965,
+      -0.12435096755959013,
+      -0.08388272839096057,
+      0.4815518888774999,
+      0.22999279293604138
+     ]
+    },
+    "runs 2+3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1868152411764706,
+     "regime_alc": 0.16901302978713426,
+     "regime_alc_sd": 0.02685790009939263,
+     "z_alc": 0.6628296078046301,
+     "z_by_budget": [
+      1.0413577584988516,
+      -0.07019788459304793,
+      0.6885880367117719,
+      0.6243504282462661,
+      0.8711375665372383,
+      1.1832998391215197
+     ]
+    },
+    "run2 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1926232375,
+     "regime_alc": 0.16901302978713426,
+     "regime_alc_sd": 0.02685790009939263,
+     "z_alc": 0.879078692879629,
+     "z_by_budget": [
+      1.0881914217115918,
+      0.049188849484486874,
+      0.8176986372972211,
+      0.9319413132996968,
+      1.091122560798935,
+      1.5486844405951548
+     ]
+    },
+    "run3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1816525777777778,
+     "regime_alc": 0.16901302978713426,
+     "regime_alc_sd": 0.02685790009939263,
+     "z_alc": 0.47060819884907434,
+     "z_by_budget": [
+      0.9997278356430829,
+      -0.17631942599530134,
+      0.5738230584135957,
+      0.3509363081987724,
+      0.6755953494157309,
+      0.8585135267005116
+     ]
+    }
+   },
+   "READING": {
+    "run1 (LegacyP)": {
+     "arm": "legacy",
+     "hidden_alc": 0.2112999888888889,
+     "regime_alc": 0.2129614035015241,
+     "regime_alc_sd": 0.023163025589635466,
+     "z_alc": -0.07172701192276926,
+     "z_by_budget": [
+      1.1131062224608024,
+      -0.04044368051378776,
+      -0.1729501526928489,
+      -0.5259199916654593,
+      -0.18961048085426196,
+      -0.4087811620559495
+     ]
+    },
+    "runs 2+3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1868152411764706,
+     "regime_alc": 0.1881296720286169,
+     "regime_alc_sd": 0.02598957760837729,
+     "z_alc": -0.05057530645371548,
+     "z_by_budget": [
+      0.06670142189629724,
+      -0.6225310121701096,
+      0.12357511949885236,
+      -0.05141987764095873,
+      0.18439121373120104,
+      0.5474396280608478
+     ]
+    },
+    "run2 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1926232375,
+     "regime_alc": 0.1881296720286169,
+     "regime_alc_sd": 0.02598957760837729,
+     "z_alc": 0.1728987496100996,
+     "z_by_budget": [
+      0.11518493679136128,
+      -0.5013406231254364,
+      0.2581674353832977,
+      0.26004671661796147,
+      0.4149364767637755,
+      0.9417052033513741
+     ]
+    },
+    "run3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1816525777777778,
+     "regime_alc": 0.1881296720286169,
+     "regime_alc_sd": 0.02598957760837729,
+     "z_alc": -0.24921891184377454,
+     "z_by_budget": [
+      0.023604964211796205,
+      -0.7302558024320416,
+      0.003937505379346295,
+      -0.3282790725377765,
+      -0.020537908964419992,
+      0.19698133891371455
+     ]
+    }
+   },
+   "AUDIT": {
+    "run1 (LegacyP)": {
+     "arm": "legacy",
+     "hidden_alc": 0.2112999888888889,
+     "regime_alc": 0.19634572293540403,
+     "regime_alc_sd": 0.025365678032847127,
+     "z_alc": 0.5895472588637266,
+     "z_by_budget": [
+      0.8023534475577265,
+      0.20480971331800124,
+      0.37216210114845033,
+      0.3607558604605588,
+      0.6804251761711363,
+      0.46370508662167614
+     ]
+    },
+    "runs 2+3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1868152411764706,
+     "regime_alc": 0.16503027031647055,
+     "regime_alc_sd": 0.029805397719857664,
+     "z_alc": 0.7309069003124208,
+     "z_by_budget": [
+      0.4674774191006784,
+      -0.007535874081562632,
+      0.8417921197113493,
+      0.7905713552293147,
+      0.9721578880702226,
+      1.2564441200867462
+     ]
+    },
+    "run2 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1926232375,
+     "regime_alc": 0.16503027031647055,
+     "regime_alc_sd": 0.029805397719857664,
+     "z_alc": 0.9257708098001924,
+     "z_by_budget": [
+      0.5122457985089206,
+      0.1078118534284906,
+      0.9646461904462554,
+      1.0659465237788694,
+      1.1673098396486254,
+      1.58486292158044
+     ]
+    },
+    "run3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1816525777777778,
+     "regime_alc": 0.16503027031647055,
+     "regime_alc_sd": 0.029805397719857664,
+     "z_alc": 0.5576945363232894,
+     "z_by_budget": [
+      0.42768330407113014,
+      -0.11006718742383242,
+      0.7325885012803225,
+      0.5457934276297107,
+      0.7986894866671984,
+      0.9645162965367975
+     ]
+    }
+   },
+   "MIXTURE": {
+    "run1 (LegacyP)": {
+     "arm": "legacy",
+     "hidden_alc": 0.2112999888888889,
+     "regime_alc": 0.20933049878113233,
+     "regime_alc_sd": 0.026864774100833,
+     "z_alc": 0.07331124767192826,
+     "z_by_budget": [
+      1.2211456687060582,
+      0.05596913454729356,
+      -0.079357882164455,
+      -0.34687918614906027,
+      0.013802813258964227,
+      -0.20073609322996883
+     ]
+    },
+    "runs 2+3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1868152411764706,
+     "regime_alc": 0.1830425090568601,
+     "regime_alc_sd": 0.027574128346798274,
+     "z_alc": 0.13682144625429588,
+     "z_by_budget": [
+      0.2660889764557097,
+      -0.46674021694439444,
+      0.272129102433603,
+      0.12950616359599257,
+      0.37570939326863145,
+      0.6719605310865185
+     ]
+    },
+    "run2 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1926232375,
+     "regime_alc": 0.1830425090568601,
+     "regime_alc_sd": 0.027574128346798274,
+     "z_alc": 0.34745353770184895,
+     "z_by_budget": [
+      0.31764430703769764,
+      -0.3519755051154243,
+      0.4040274927501235,
+      0.43034501771409406,
+      0.5797325645276454,
+      1.0227787691310608
+     ]
+    },
+    "run3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1816525777777778,
+     "regime_alc": 0.1830425090568601,
+     "regime_alc_sd": 0.027574128346798274,
+     "z_alc": -0.05040707947686352,
+     "z_by_budget": [
+      0.22026201593838743,
+      -0.5687532941257014,
+      0.154886088818919,
+      -0.13790615117565302,
+      0.1943554632606197,
+      0.36012209726914884
+     ]
+    }
+   },
+   "FLAT": {
+    "run1 (LegacyP)": {
+     "arm": "legacy",
+     "hidden_alc": 0.2112999888888889,
+     "regime_alc": 0.19396280596297782,
+     "regime_alc_sd": 0.025285214415331363,
+     "z_alc": 0.685664856984519,
+     "z_by_budget": [
+      1.566503913460727,
+      0.4705488283526139,
+      0.38218725651591345,
+      0.19377613419370537,
+      0.5564403042393272,
+      0.3021843161190856
+     ]
+    },
+    "runs 2+3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1868152411764706,
+     "regime_alc": 0.17391536483905098,
+     "regime_alc_sd": 0.026472284905277744,
+     "z_alc": 0.48729742761448575,
+     "z_by_budget": [
+      -0.2573862509550499,
+      -0.37212502133835557,
+      0.6635390411937222,
+      0.6489267269213858,
+      0.8599609378175378,
+      1.1446121287451276
+     ]
+    },
+    "run2 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1926232375,
+     "regime_alc": 0.17391536483905098,
+     "regime_alc_sd": 0.026472284905277744,
+     "z_alc": 0.7066965593596811,
+     "z_by_budget": [
+      -0.21567130215921082,
+      -0.25061961418614676,
+      0.7984741933930286,
+      0.9590944867585739,
+      1.0749305784852305,
+      1.502441802985743
+     ]
+    },
+    "run3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1816525777777778,
+     "regime_alc": 0.17391536483905098,
+     "regime_alc_sd": 0.026472284905277744,
+     "z_alc": 0.29227597717431086,
+     "z_by_budget": [
+      -0.29446620544023994,
+      -0.4801298276958748,
+      0.5435966836832284,
+      0.3732220515105521,
+      0.6688768127795892,
+      0.8265413071979151
+     ]
+    }
+   },
+   "R1B": {
+    "run1 (LegacyP)": {
+     "arm": "legacy",
+     "hidden_alc": 0.2112999888888889,
+     "regime_alc": 0.21164308380273963,
+     "regime_alc_sd": 0.02025962937349248,
+     "z_alc": -0.01693490574411177,
+     "z_by_budget": [
+      9.096299655157324,
+      1.3346609318721563,
+      -0.5611446641114203,
+      -1.53041104066149,
+      -1.2488331632243523,
+      -1.4211345159079618
+     ]
+    },
+    "runs 2+3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1868152411764706,
+     "regime_alc": 0.21140445502062377,
+     "regime_alc_sd": 0.022934310148860198,
+     "z_alc": -1.072158424846941,
+     "z_by_budget": [
+      -0.2508681670853673,
+      -1.3212942692044385,
+      -0.8931021733291927,
+      -1.1890999481449196,
+      -0.8873343059126605,
+      -0.4637942492807252
+     ]
+    },
+    "run2 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1926232375,
+     "regime_alc": 0.21140445502062377,
+     "regime_alc_sd": 0.022934310148860198,
+     "z_alc": -0.8189135578406391,
+     "z_by_budget": [
+      -0.21871833184202433,
+      -1.1821129641666221,
+      -0.7443833361152378,
+      -0.8262445838501951,
+      -0.617412899537683,
+      0.013139476441563387
+     ]
+    },
+    "run3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1816525777777778,
+     "regime_alc": 0.21140445502062377,
+     "regime_alc_sd": 0.022934310148860198,
+     "z_alc": -1.2972649732969885,
+     "z_by_budget": [
+      -0.27944579841278305,
+      -1.445010984793609,
+      -1.0252966952971516,
+      -1.5116380497402302,
+      -1.1272644449126397,
+      -0.8877353388116469
+     ]
+    }
+   },
+   "R1P": {
+    "run1 (LegacyP)": {
+     "arm": "legacy",
+     "hidden_alc": 0.2112999888888889,
+     "regime_alc": 0.19875134762241464,
+     "regime_alc_sd": 0.021254815649971986,
+     "z_alc": 0.5903905012928586,
+     "z_by_budget": [
+      9.907568226476258,
+      1.5101801898188572,
+      0.05017153561003774,
+      -0.8634432780579624,
+      -0.5466720661107615,
+      -0.6005347501525611
+     ]
+    },
+    "runs 2+3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1868152411764706,
+     "regime_alc": 0.19480311522839064,
+     "regime_alc_sd": 0.025570539479104096,
+     "z_alc": -0.31238582425871825,
+     "z_by_budget": [
+      0.20758643828403717,
+      -0.6896568420460126,
+      -0.21911595362612948,
+      -0.4613618051289911,
+      -0.1081558292283377,
+      0.255111527301308
+     ]
+    },
+    "run2 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1926232375,
+     "regime_alc": 0.19480311522839064,
+     "regime_alc_sd": 0.025570539479104096,
+     "z_alc": -0.0852495791170936,
+     "z_by_budget": [
+      0.23917549540434935,
+      -0.571283155025399,
+      -0.09332008271717321,
+      -0.11200790911207958,
+      0.14638975682949604,
+      0.6645593768136159
+     ]
+    },
+    "run3 (hier)": {
+     "arm": "ship",
+     "hidden_alc": 0.1816525777777778,
+     "regime_alc": 0.19480311522839064,
+     "regime_alc_sd": 0.025570539479104096,
+     "z_alc": -0.5142847088290525,
+     "z_by_budget": [
+      0.17950727639931544,
+      -0.7948778971754472,
+      -0.3309345055452009,
+      -0.7718986015884678,
+      -0.3344185723908558,
+      -0.10884211670963105
+     ]
+    }
+   }
+  },
+  "late": {
+   "TUNED": {
+    "ship": {
+     "runs": 80,
+     "appearances": 671,
+     "b31_minus_v": 4.704032992780357e-06,
+     "b31_minus_v_run_se": 0.0007122433649148446,
+     "b31_minus_v_b0_convention": 0.00011361862564333533,
+     "b31_minus_v_b0_convention_run_se": 0.0007062737827649159
+    },
+    "legacy": {
+     "runs": 80,
+     "appearances": 671,
+     "b31_minus_v": 0.008994307163241566,
+     "b31_minus_v_run_se": 0.0011087119567030957,
+     "b31_minus_v_b0_convention": 0.009159122674588377,
+     "b31_minus_v_b0_convention_run_se": 0.0011094757050387725
+    }
+   },
+   "READING": {
+    "ship": {
+     "runs": 80,
+     "appearances": 671,
+     "b31_minus_v": -0.0008422546037135857,
+     "b31_minus_v_run_se": 0.000857945510246247,
+     "b31_minus_v_b0_convention": -0.000709022921401636,
+     "b31_minus_v_b0_convention_run_se": 0.000862052182152957
+    },
+    "legacy": {
+     "runs": 80,
+     "appearances": 671,
+     "b31_minus_v": 0.006999108563836985,
+     "b31_minus_v_run_se": 0.0008210006490445143,
+     "b31_minus_v_b0_convention": 0.00725075331911555,
+     "b31_minus_v_b0_convention_run_se": 0.000822643576642717
+    }
+   },
+   "AUDIT": {
+    "ship": {
+     "runs": 80,
+     "appearances": 654,
+     "b31_minus_v": 0.0006646939495795939,
+     "b31_minus_v_run_se": 0.0007054225617625383,
+     "b31_minus_v_b0_convention": 0.0007770938289419367,
+     "b31_minus_v_b0_convention_run_se": 0.0007071011760884902
+    },
+    "legacy": {
+     "runs": 80,
+     "appearances": 654,
+     "b31_minus_v": 0.007888054290082313,
+     "b31_minus_v_run_se": 0.0010248112174368977,
+     "b31_minus_v_b0_convention": 0.00807640257213538,
+     "b31_minus_v_b0_convention_run_se": 0.0010331820538492479
+    }
+   },
+   "MIXTURE": {
+    "ship": {
+     "runs": 80,
+     "appearances": 627,
+     "b31_minus_v": 4.9584752821838605e-05,
+     "b31_minus_v_run_se": 0.0007839561577013582,
+     "b31_minus_v_b0_convention": 0.0002504275630916399,
+     "b31_minus_v_b0_convention_run_se": 0.0007861747148611057
+    },
+    "legacy": {
+     "runs": 80,
+     "appearances": 627,
+     "b31_minus_v": 0.00939855616905428,
+     "b31_minus_v_run_se": 0.001066456063548207,
+     "b31_minus_v_b0_convention": 0.009698197461261677,
+     "b31_minus_v_b0_convention_run_se": 0.0010562936470918792
+    }
+   },
+   "FLAT": {
+    "ship": {
+     "runs": 80,
+     "appearances": 650,
+     "b31_minus_v": 0.00047617846242251625,
+     "b31_minus_v_run_se": 0.000651275662281569,
+     "b31_minus_v_b0_convention": 0.0006093735702714449,
+     "b31_minus_v_b0_convention_run_se": 0.000649921371219997
+    },
+    "legacy": {
+     "runs": 80,
+     "appearances": 650,
+     "b31_minus_v": 0.006685955201386736,
+     "b31_minus_v_run_se": 0.000552107039990358,
+     "b31_minus_v_b0_convention": 0.006929209457370332,
+     "b31_minus_v_b0_convention_run_se": 0.000547901068139006
+    }
+   },
+   "R1B": {
+    "ship": {
+     "runs": 60,
+     "appearances": 528,
+     "b31_minus_v": -0.003524145423357831,
+     "b31_minus_v_run_se": 0.0011991970987107474,
+     "b31_minus_v_b0_convention": -0.003412735849342964,
+     "b31_minus_v_b0_convention_run_se": 0.0011866907352702438
+    },
+    "legacy": {
+     "runs": 60,
+     "appearances": 528,
+     "b31_minus_v": -0.00030493903865988584,
+     "b31_minus_v_run_se": 0.0011889067743524801,
+     "b31_minus_v_b0_convention": 5.768632586190464e-05,
+     "b31_minus_v_b0_convention_run_se": 0.001188681634242683
+    }
+   },
+   "R1P": {
+    "ship": {
+     "runs": 60,
+     "appearances": 528,
+     "b31_minus_v": -0.0036450109197196405,
+     "b31_minus_v_run_se": 0.0012186508018402805,
+     "b31_minus_v_b0_convention": -0.0035998958557623886,
+     "b31_minus_v_b0_convention_run_se": 0.0012219754511595315
+    },
+    "legacy": {
+     "runs": 60,
+     "appearances": 528,
+     "b31_minus_v": -0.00029188453147796067,
+     "b31_minus_v_run_se": 0.001137830238948049,
+     "b31_minus_v_b0_convention": -0.00021108724428689434,
+     "b31_minus_v_b0_convention_run_se": 0.0011369413205732214
+    }
+   }
+  },
   "placement_summary": {
    "run1_vs_R1B_B0_B1": [
     8.870710739431894,
@@ -1879,6 +2627,174 @@
     0.7831314333544344
    ],
    "note": "z = (hidden mean of B_k - v minus the regime's run mean) / the regime's single-run sd (runs of formative size, 8 to 9 pairs); the pooled hier row has 17 pairs, so its z against a 9-pair sd understates its precision",
+   "test_like": [
+    "TUNED",
+    "READING",
+    "AUDIT",
+    "MIXTURE",
+    "FLAT"
+   ]
+  },
+  "placement_raw_summary": {
+   "side_by_side_z_alc": {
+    "run1 (LegacyP)": {
+     "TUNED": {
+      "raw": -0.050248634714671704,
+      "v_adjusted": -0.7272735594008396
+     },
+     "READING": {
+      "raw": -0.07172701192276926,
+      "v_adjusted": 0.3904134441726521
+     },
+     "AUDIT": {
+      "raw": 0.5895472588637266,
+      "v_adjusted": -0.26186926047290265
+     },
+     "MIXTURE": {
+      "raw": 0.07331124767192826,
+      "v_adjusted": 0.16560227152820267
+     },
+     "FLAT": {
+      "raw": 0.685664856984519,
+      "v_adjusted": 0.27819318829178913
+     },
+     "R1B": {
+      "raw": -0.01693490574411177,
+      "v_adjusted": 3.7771789911940044
+     },
+     "R1P": {
+      "raw": 0.5903905012928586,
+      "v_adjusted": 2.934232901659457
+     }
+    },
+    "runs 2+3 (hier)": {
+     "TUNED": {
+      "raw": 0.6628296078046301,
+      "v_adjusted": -1.1118017159147604
+     },
+     "READING": {
+      "raw": -0.05057530645371548,
+      "v_adjusted": -1.084067503195459
+     },
+     "AUDIT": {
+      "raw": 0.7309069003124208,
+      "v_adjusted": -1.574648617881064
+     },
+     "MIXTURE": {
+      "raw": 0.13682144625429588,
+      "v_adjusted": -1.3010285137524003
+     },
+     "FLAT": {
+      "raw": 0.48729742761448575,
+      "v_adjusted": -1.668622410226162
+     },
+     "R1B": {
+      "raw": -1.072158424846941,
+      "v_adjusted": -0.8487437778842886
+     },
+     "R1P": {
+      "raw": -0.31238582425871825,
+      "v_adjusted": -0.6214631184081375
+     }
+    },
+    "run2 (hier)": {
+     "TUNED": {
+      "raw": 0.879078692879629,
+      "v_adjusted": -1.5423249639228203
+     },
+     "READING": {
+      "raw": 0.1728987496100996,
+      "v_adjusted": -1.520877217696927
+     },
+     "AUDIT": {
+      "raw": 0.9257708098001924,
+      "v_adjusted": -2.056726016157251
+     },
+     "MIXTURE": {
+      "raw": 0.34745353770184895,
+      "v_adjusted": -1.7576595442860394
+     },
+     "FLAT": {
+      "raw": 0.7066965593596811,
+      "v_adjusted": -2.1136720044879045
+     },
+     "R1B": {
+      "raw": -0.8189135578406391,
+      "v_adjusted": -1.2995529663621634
+     },
+     "R1P": {
+      "raw": -0.0852495791170936,
+      "v_adjusted": -1.0028771409977488
+     }
+    },
+    "run3 (hier)": {
+     "TUNED": {
+      "raw": 0.47060819884907434,
+      "v_adjusted": -0.7291143843520399
+     },
+     "READING": {
+      "raw": -0.24921891184377454,
+      "v_adjusted": -0.6957922014163757
+     },
+     "AUDIT": {
+      "raw": 0.5576945363232894,
+      "v_adjusted": -1.146135374968897
+     },
+     "MIXTURE": {
+      "raw": -0.05040707947686352,
+      "v_adjusted": -0.8951342643891647
+     },
+     "FLAT": {
+      "raw": 0.29227597717431086,
+      "v_adjusted": -1.2730227708823902
+     },
+     "R1B": {
+      "raw": -1.2972649732969885,
+      "v_adjusted": -0.4480244992372879
+     },
+     "R1P": {
+      "raw": -0.5142847088290525,
+      "v_adjusted": -0.28242843166181564
+     }
+    }
+   },
+   "z_alc_range_test_like": {
+    "run1 (LegacyP)": [
+     -0.07172701192276926,
+     0.685664856984519
+    ],
+    "runs 2+3 (hier)": [
+     -0.05057530645371548,
+     0.7309069003124208
+    ],
+    "run2 (hier)": [
+     0.1728987496100996,
+     0.9257708098001924
+    ],
+    "run3 (hier)": [
+     -0.24921891184377454,
+     0.5576945363232894
+    ]
+   },
+   "z_alc_range_all": {
+    "run1 (LegacyP)": [
+     -0.07172701192276926,
+     0.685664856984519
+    ],
+    "runs 2+3 (hier)": [
+     -1.072158424846941,
+     0.7309069003124208
+    ],
+    "run2 (hier)": [
+     -0.8189135578406391,
+     0.9257708098001924
+    ],
+    "run3 (hier)": [
+     -1.2972649732969885,
+     0.5576945363232894
+    ]
+   },
+   "note": "z = (hidden raw mean B_k, or raw ALC, minus the regime's run mean) / the regime's single-run sd, same arm and the same runs as placement_z. The raw z carries the run's composition (its v) as well as the predictor's learning, which placement_z removes. The pooled hier row has 17 pairs against a sd of 8- to 9-pair runs, so its z understates its precision.",
    "test_like": [
     "TUNED",
     "READING",
@@ -1915,6 +2831,194 @@
     -0.008958794322997812
    ]
   }
+ },
+ "late_gap": {
+  "run1": {
+   "pairs": 9,
+   "b31_minus_v": 0.0031212549322222278,
+   "ece31_sq": 0.0031213000677777778,
+   "r31": 4.513555554992798e-08,
+   "identity_residual": 0.0,
+   "b31_minus_v_pair_se": 0.0012840062763056217,
+   "floor_pure_rate_learner_B31_b0_convention": 0.007935719035736503,
+   "per_pair_max": 0.011676519844000005,
+   "pairs_gt_0.03": 0,
+   "pairs_negative": 0
+  },
+  "run2": {
+   "pairs": 8,
+   "b31_minus_v": 0.0035974291061249995,
+   "ece31_sq": 0.007378600421750001,
+   "r31": 0.003781171315625001,
+   "identity_residual": -8.673617379884035e-19,
+   "b31_minus_v_pair_se": 0.0037421561405988706,
+   "floor_pure_rate_learner_B31_b0_convention": 0.008974440168285852,
+   "per_pair_max": 0.015459973320999992,
+   "pairs_gt_0.03": 0,
+   "pairs_negative": 1
+  },
+  "run3": {
+   "pairs": 9,
+   "b31_minus_v": 0.0035828799523333252,
+   "ece31_sq": 0.006013475324888887,
+   "r31": 0.002430595372555565,
+   "identity_residual": 3.0357660829594124e-18,
+   "b31_minus_v_pair_se": 0.003378595113195638,
+   "floor_pure_rate_learner_B31_b0_convention": 0.008339560970372528,
+   "per_pair_max": 0.020712603025000026,
+   "pairs_gt_0.03": 0,
+   "pairs_negative": 2
+  },
+  "hier_pooled": {
+   "pairs": 17,
+   "b31_minus_v": 0.0035897266129411715,
+   "ece31_sq": 0.006655887135176471,
+   "r31": 0.0030661605222352993,
+   "identity_residual": 0.0,
+   "b31_minus_v_pair_se": 0.0024299623852044906,
+   "floor_pure_rate_learner_B31_b0_convention": 0.008638327651743504,
+   "per_pair_max": 0.020712603025000026,
+   "pairs_gt_0.03": 0,
+   "pairs_negative": 3
+  },
+  "value_4dp": {
+   "run1": 0.0031,
+   "run2": 0.0036,
+   "run3": 0.0036,
+   "hier_pooled": 0.0036
+  },
+  "note": "B31 - v = ECE31^2 - R31 per pair; ECE31^2 is the ECE^2-convention excess at B31 (split_floor.platform_excess_B31) and R31 the within-pair resolution (decomposition.*.within_pair_resolution_b31). LegacyP gives one prediction per pair, so its R31 is 0 up to the tables' rounding. The floor here uses v from B0; split_floor's uses v = B31 - ECE31^2 and is lower by 1e-4 to 2e-4.",
+  "vs_replica": {
+   "TUNED": {
+    "hier_pooled": {
+     "arm": "ship",
+     "replica_b31_minus_v_b0_convention": 0.00011361862564333533,
+     "hidden_minus_replica": 0.0034761079872978363,
+     "se": 0.0025305216556531897
+    },
+    "run1": {
+     "arm": "legacy",
+     "replica_b31_minus_v_b0_convention": 0.009159122674588377,
+     "hidden_minus_replica": -0.006037867742366149,
+     "se": 0.0016969409116594219
+    }
+   },
+   "READING": {
+    "hier_pooled": {
+     "arm": "ship",
+     "replica_b31_minus_v_b0_convention": -0.000709022921401636,
+     "hidden_minus_replica": 0.004298749534342807,
+     "se": 0.0025783427154401667
+    },
+    "run1": {
+     "arm": "legacy",
+     "replica_b31_minus_v_b0_convention": 0.00725075331911555,
+     "hidden_minus_replica": -0.004129498386893323,
+     "se": 0.0015249310055814823
+    }
+   },
+   "AUDIT": {
+    "hier_pooled": {
+     "arm": "ship",
+     "replica_b31_minus_v_b0_convention": 0.0007770938289419367,
+     "hidden_minus_replica": 0.0028126327839992347,
+     "se": 0.0025307527075426437
+    },
+    "run1": {
+     "arm": "legacy",
+     "replica_b31_minus_v_b0_convention": 0.00807640257213538,
+     "hidden_minus_replica": -0.004955147639913153,
+     "se": 0.001648070773355434
+    }
+   },
+   "MIXTURE": {
+    "hier_pooled": {
+     "arm": "ship",
+     "replica_b31_minus_v_b0_convention": 0.0002504275630916399,
+     "hidden_minus_replica": 0.0033392990498495316,
+     "se": 0.0025539749168297715
+    },
+    "run1": {
+     "arm": "legacy",
+     "replica_b31_minus_v_b0_convention": 0.009698197461261677,
+     "hidden_minus_replica": -0.006576942529039449,
+     "se": 0.001662657026111787
+    }
+   },
+   "FLAT": {
+    "hier_pooled": {
+     "arm": "ship",
+     "replica_b31_minus_v_b0_convention": 0.0006093735702714449,
+     "hidden_minus_replica": 0.0029803530426697265,
+     "se": 0.002515375713939605
+    },
+    "run1": {
+     "arm": "legacy",
+     "replica_b31_minus_v_b0_convention": 0.006929209457370332,
+     "hidden_minus_replica": -0.0038079545251481044,
+     "se": 0.0013960185163743683
+    }
+   },
+   "R1B": {
+    "hier_pooled": {
+     "arm": "ship",
+     "replica_b31_minus_v_b0_convention": -0.003412735849342964,
+     "hidden_minus_replica": 0.0070024624622841355,
+     "se": 0.0027042470476428236
+    },
+    "run1": {
+     "arm": "legacy",
+     "replica_b31_minus_v_b0_convention": 5.768632586190464e-05,
+     "hidden_minus_replica": 0.003063568606360323,
+     "se": 0.0017497531669290053
+    }
+   },
+   "R1P": {
+    "hier_pooled": {
+     "arm": "ship",
+     "replica_b31_minus_v_b0_convention": -0.0035998958557623886,
+     "hidden_minus_replica": 0.00718962246870356,
+     "se": 0.0027199156598588198
+    },
+    "run1": {
+     "arm": "legacy",
+     "replica_b31_minus_v_b0_convention": -0.00021108724428689434,
+     "hidden_minus_replica": 0.0033323421765091223,
+     "se": 0.001715024105958575
+    }
+   }
+  },
+  "vs_replica_summary": {
+   "hier_pooled": {
+    "hidden_minus_replica_range_all": [
+     0.0028126327839992347,
+     0.00718962246870356
+    ],
+    "hidden_minus_replica_range_test_like": [
+     0.0028126327839992347,
+     0.004298749534342807
+    ],
+    "replica_range_all": [
+     -0.0035998958557623886,
+     0.0007770938289419367
+    ]
+   },
+   "run1": {
+    "hidden_minus_replica_range_all": [
+     -0.006576942529039449,
+     0.0033323421765091223
+    ],
+    "hidden_minus_replica_range_test_like": [
+     -0.006576942529039449,
+     -0.0038079545251481044
+    ],
+    "replica_range_all": [
+     -0.00021108724428689434,
+     0.009698197461261677
+    ]
+   }
+  },
+  "vs_replica_note": "hidden minus replica B31 - v, both in the B0 convention (replica v = B0 - ECE0^2 of each appearance, as for the hidden pairs); se combines the hidden pair SE with the replica's run-cluster SE; positive: at B31 the hidden pairs sit further above their v than the replica's pairs do. replica.late has the same replica quantity with the known v."
  },
  "requirement": {
   "tau=2.0 | hidden-like v~0.165 (-0.70,1.42)": {
@@ -2227,6 +3331,53 @@
   "platform_excess_B31_run2": 0.007378600421750001,
   "split_floor_B31_run3": 0.008222301202105192,
   "platform_excess_B31_run3": 0.006013475324888888,
+  "hier_pooled_alc_minus_v_se": 0.002677031305404634,
+  "excess_se_B0_hier_pooled": 0.012090938034830584,
+  "excess_se_B1_hier_pooled": 0.005579716092825916,
+  "excess_se_B3_hier_pooled": 0.006627463630591292,
+  "excess_se_B7_hier_pooled": 0.0015832352802216396,
+  "excess_se_B15_hier_pooled": 0.0015589990017019627,
+  "excess_se_B31_hier_pooled": 0.0024299623852044906,
+  "excess_se_B0_run1": 0.06940700937707989,
+  "excess_se_B1_run1": 0.03887194844157405,
+  "excess_se_B3_run1": 0.01512004240518827,
+  "excess_se_B7_run1": 0.008124969207174872,
+  "excess_se_B15_run1": 0.01009926360483008,
+  "excess_se_B31_run1": 0.0012840062763056217,
+  "late_b31_minus_v_run1": 0.0031212549322222278,
+  "late_ece31_sq_run1": 0.0031213000677777778,
+  "late_r31_run1": 4.513555554992798e-08,
+  "late_b31_minus_v_se_run1": 0.0012840062763056217,
+  "late_floor_b0_run1": 0.007935719035736503,
+  "late_b31_minus_v_run2": 0.0035974291061249995,
+  "late_ece31_sq_run2": 0.007378600421750001,
+  "late_r31_run2": 0.003781171315625001,
+  "late_b31_minus_v_se_run2": 0.0037421561405988706,
+  "late_floor_b0_run2": 0.008974440168285852,
+  "late_b31_minus_v_run3": 0.0035828799523333252,
+  "late_ece31_sq_run3": 0.006013475324888887,
+  "late_r31_run3": 0.002430595372555565,
+  "late_b31_minus_v_se_run3": 0.003378595113195638,
+  "late_floor_b0_run3": 0.008339560970372528,
+  "late_b31_minus_v_hier_pooled": 0.0035897266129411715,
+  "late_ece31_sq_hier_pooled": 0.006655887135176471,
+  "late_r31_hier_pooled": 0.0030661605222352993,
+  "late_b31_minus_v_se_hier_pooled": 0.0024299623852044906,
+  "late_floor_b0_hier_pooled": 0.008638327651743504,
+  "v_run_iid_mean_distinct": 0.16554780979903905,
+  "v_run_iid_sd_distinct": 0.023764186633689448,
+  "P_v_le_0.117_iid_distinct": 0.027785,
+  "P_v_le_0.117_iid_per_appearance_seed8": 0.02891,
+  "P_v_le_0.117_iid_distinct_minus_per_appearance": -0.001125,
+  "v_run_strat_mean_distinct": 0.16127410611869789,
+  "v_run_strat_sd_distinct": 0.017025651730654477,
+  "P_v_le_0.117_strat_distinct": 0.005305,
+  "P_v_le_0.117_strat_per_appearance_seed8": 0.00597,
+  "P_v_le_0.117_strat_distinct_minus_per_appearance": -0.000665,
+  "late_gap_vs_replica_lo_hier_pooled": 0.0028126327839992347,
+  "late_gap_vs_replica_hi_hier_pooled": 0.00718962246870356,
+  "late_gap_vs_replica_lo_run1": -0.006576942529039449,
+  "late_gap_vs_replica_hi_run1": 0.0033323421765091223,
   "curve_P_flat_tl": 0.01105,
   "curve_replica_b7_b31_tl": -0.014483700257058823,
   "curve_P_flat_r1b": 0.00065,
@@ -2237,6 +3388,14 @@
   "z_run1_vs_R1P_B0": 7.213158966560367,
   "replica_b0_bias_lo": -0.0002008428102698013,
   "replica_b0_bias_hi": -4.511506395725093e-05,
+  "z_raw_alc_run1_vs_TUNED": -0.050248634714671704,
+  "z_raw_alc_run1_vs_R1B": -0.01693490574411177,
+  "z_raw_alc_run1_test_like_lo": -0.07172701192276926,
+  "z_raw_alc_run1_test_like_hi": 0.685664856984519,
+  "z_raw_alc_hier_pooled_vs_TUNED": 0.6628296078046301,
+  "z_raw_alc_hier_pooled_vs_R1B": -1.072158424846941,
+  "z_raw_alc_hier_pooled_test_like_lo": -0.05057530645371548,
+  "z_raw_alc_hier_pooled_test_like_hi": 0.7309069003124208,
   "req_r_known_hidden_tau2.0": 0.9498513912843565,
   "req_r_known_hidden_tau2.6": 0.8577857823750188,
   "req_r_known_hidden_tau3.2": 0.809824910647791
@@ -2256,10 +3415,11 @@
    "curve_test.py": "8d36339dfd398a32aefae7fb7decaf5b7b963c34673edf87cabc45b7f4fb6ea0",
    "curve_shape.py": "9dc3b8d42eb9e18f08ecc4e05bbf79bf22011f4a04cff7d4d09ff0ec34c3eb10",
    "split_floor.py": "411ee3c0df5a9382f569cf413a37a7e17a3f521ddb0bc8ce8ac7976b016e1a60",
-   "ece_excess.py": "d6a925f83af713088bbcd05457aff5008e35cacd67376fb1087350a268794ebf"
+   "ece_excess.py": "d6a925f83af713088bbcd05457aff5008e35cacd67376fb1087350a268794ebf",
+   "critic/late_excess.py": "948a8abd231aa31803d480747204aae6472d0368cb73fa17babfc57beb4324ef"
   },
   "counts": {
-   "match": 541,
+   "match": 558,
    "explained": 13,
    "differs": 0,
    "not run": 0
@@ -8342,6 +9502,159 @@
     "how": 2,
     "diff": 0.0022142176249811962,
     "source": "gap.md section 4, plan ('0.8 to 0.95')"
+   },
+   {
+    "path": "late_gap/run1/b31_minus_v",
+    "status": "match",
+    "got": 0.0031212549322222278,
+    "want": 0.0031,
+    "how": 4,
+    "diff": 2.1254932222227862e-05,
+    "source": "gap.md section 2 table"
+   },
+   {
+    "path": "late_gap/run2/b31_minus_v",
+    "status": "match",
+    "got": 0.0035974291061249995,
+    "want": 0.0036,
+    "how": 4,
+    "diff": -2.57089387500041e-06,
+    "source": "gap.md section 2 table"
+   },
+   {
+    "path": "late_gap/run3/b31_minus_v",
+    "status": "match",
+    "got": 0.0035828799523333252,
+    "want": 0.0036,
+    "how": 4,
+    "diff": -1.712004766667467e-05,
+    "source": "gap.md section 2 table"
+   },
+   {
+    "path": "late_gap/hier_pooled/b31_minus_v",
+    "status": "match",
+    "got": 0.0035897266129411715,
+    "want": 0.0036,
+    "how": 4,
+    "diff": -1.0273387058828444e-05,
+    "source": "critic.md section 1 ('Hidden B_k - v = ... / 0.0036')"
+   },
+   {
+    "path": "late_gap/run2/ece31_sq",
+    "status": "match",
+    "got": 0.007378600421750001,
+    "want": 0.0074,
+    "how": 4,
+    "diff": -2.139957824999917e-05,
+    "source": "split_floor.json"
+   },
+   {
+    "path": "late_gap/run3/ece31_sq",
+    "status": "match",
+    "got": 0.006013475324888887,
+    "want": 0.006,
+    "how": 4,
+    "diff": 1.3475324888887266e-05,
+    "source": "split_floor.json"
+   },
+   {
+    "path": "late_gap/run2/r31",
+    "status": "match",
+    "got": 0.003781171315625001,
+    "want": 0.0038,
+    "how": 4,
+    "diff": -1.8828684374999193e-05,
+    "source": "gap.md section 2"
+   },
+   {
+    "path": "late_gap/run3/r31",
+    "status": "match",
+    "got": 0.002430595372555565,
+    "want": 0.0024,
+    "how": 4,
+    "diff": 3.0595372555565405e-05,
+    "source": "gap.md section 2"
+   },
+   {
+    "path": "late_gap/hier_pooled/per_pair_max",
+    "status": "match",
+    "got": 0.020712603025000026,
+    "want": 0.0207,
+    "how": 4,
+    "diff": 1.2603025000026274e-05,
+    "source": "critic.md section 3.B ('the maximum is 0.0207')"
+   },
+   {
+    "path": "late_gap/hier_pooled/pairs_gt_0.03",
+    "status": "match",
+    "got": 0.0,
+    "want": 0,
+    "how": 0,
+    "diff": 0.0,
+    "source": "critic.md section 3.B ('none exceed 0.03')"
+   },
+   {
+    "path": "replica/late/TUNED/ship/b31_minus_v",
+    "status": "match",
+    "got": 4.704032992780357e-06,
+    "want": 0.0,
+    "how": 4,
+    "diff": 4.704032992780357e-06,
+    "source": "s6 stdout"
+   },
+   {
+    "path": "replica/late/READING/ship/b31_minus_v",
+    "status": "match",
+    "got": -0.0008422546037135857,
+    "want": -0.0008,
+    "how": 4,
+    "diff": -4.2254603713585666e-05,
+    "source": "s6 stdout"
+   },
+   {
+    "path": "replica/late/AUDIT/ship/b31_minus_v",
+    "status": "match",
+    "got": 0.0006646939495795939,
+    "want": 0.0007,
+    "how": 4,
+    "diff": -3.5306050420406054e-05,
+    "source": "s6 stdout"
+   },
+   {
+    "path": "replica/late/MIXTURE/ship/b31_minus_v",
+    "status": "match",
+    "got": 4.9584752821838605e-05,
+    "want": 0.0,
+    "how": 4,
+    "diff": 4.9584752821838605e-05,
+    "source": "s6 stdout"
+   },
+   {
+    "path": "replica/late/FLAT/ship/b31_minus_v",
+    "status": "match",
+    "got": 0.00047617846242251625,
+    "want": 0.0005,
+    "how": 4,
+    "diff": -2.3821537577483763e-05,
+    "source": "s6 stdout"
+   },
+   {
+    "path": "replica/late/R1B/ship/b31_minus_v",
+    "status": "match",
+    "got": -0.003524145423357831,
+    "want": -0.0035,
+    "how": 4,
+    "diff": -2.414542335783072e-05,
+    "source": "s6 stdout"
+   },
+   {
+    "path": "replica/late/R1P/ship/b31_minus_v",
+    "status": "match",
+    "got": -0.0036450109197196405,
+    "want": -0.0036,
+    "how": 4,
+    "diff": -4.5010919719640566e-05,
+    "source": "s6 stdout"
    }
   ]
  },
@@ -8392,7 +9705,7 @@
    "check": "every scratch value reproduces to its recorded precision or is explained",
    "ok": true,
    "got": {
-    "match": 541,
+    "match": 558,
     "explained": 13,
     "differs": 0,
     "not run": 0
@@ -8406,20 +9719,98 @@
    "got": 9,
    "want": 9,
    "required": true
+  },
+  {
+   "check": "late_gap: B31 - v = ECE31^2 - R31 to float rounding",
+   "ok": true,
+   "got": 3.0357660829594124e-18,
+   "want": 1e-12,
+   "required": true
+  },
+  {
+   "check": "late_gap.run1 agrees with decomposition.b31_minus_v",
+   "ok": true,
+   "got": 0.0031212549322222278,
+   "want": 0.003121254932222234,
+   "required": true
+  },
+  {
+   "check": "late_gap.run2 agrees with decomposition.b31_minus_v and split_floor's ECE31^2",
+   "ok": true,
+   "got": 0.0035974291061249995,
+   "want": 0.003597429106124983,
+   "required": true
+  },
+  {
+   "check": "late_gap.run3 agrees with decomposition.b31_minus_v and split_floor's ECE31^2",
+   "ok": true,
+   "got": 0.0035828799523333252,
+   "want": 0.0035828799523333066,
+   "required": true
+  },
+  {
+   "check": "distinct pairs: a repeated pair has one n and one v (within 2e-6) and is never twice in one run",
+   "ok": true,
+   "got": [
+    true,
+    2.923519999420421e-07,
+    false
+   ],
+   "want": [
+    true,
+    2e-06,
+    false
+   ],
+   "required": true
+  },
+  {
+   "check": "replica.late (ship, known v) equals replica.validation b31_minus_v",
+   "ok": true,
+   "got": 4.336808689942018e-19,
+   "want": 1e-12,
+   "required": true
+  },
+  {
+   "check": "doc constant 'leaderboard' appears in docs/findings.md (### Against the live leaderboard)",
+   "ok": true,
+   "got": [
+    409,
+    425
+   ],
+   "want": {
+    "organisers_entry": "0.1801",
+    "best_entry": "0.1172",
+    "read": "2026-09-24"
+   },
+   "required": false,
+   "note": "not required: the documents are under revision; a miss is recorded, not fatal"
+  },
+  {
+   "check": "doc constant 'empirical_mean_line' appears in docs/report/draft.md (*Figure A1.*)",
+   "ok": true,
+   "got": [
+    867,
+    867
+   ],
+   "want": {
+    "line": "0.025 + 1.2118"
+   },
+   "required": false,
+   "note": "not required: the documents are under revision; a miss is recorded, not fatal"
   }
  ],
  "provenance": {
   "command": "python experiments/hidden_runs.py",
   "script": "experiments/hidden_runs.py",
-  "script_sha256": "5480a682bb03b61bd0665b580e6f1ee3695dc79cd61857132fc02b94e0c8cc0c",
+  "script_sha256": "8e5a3e46056299000794241dc67da1d7f10621ab40b49c7d33fdc3b0533ff68b",
   "code_sha256": {
-   "experiments/hidden_runs.py": "5480a682bb03b61bd0665b580e6f1ee3695dc79cd61857132fc02b94e0c8cc0c",
+   "experiments/hidden_runs.py": "8e5a3e46056299000794241dc67da1d7f10621ab40b49c7d33fdc3b0533ff68b",
    "experiments/formative_feedback.py": "93cb6a84d9762894f20e9adfe7f9a84d05ccf4d6067611e6dd2432b07fad5da8",
    "paiec/evaluator.py": "e2e41ae82793aa4a681d3913d0d6935ea9ca83638396a5073196cdee149271f2"
   },
-  "head": "6a629cb2198770b557ff6a2da8d718d8f9c8a954",
-  "script_status": "?? experiments/hidden_runs.py",
-  "when_utc": "2026-10-06T14:33:51+00:00",
+  "head": "9f73fd6981610d7464e65401ee5da14cb3ee811c",
+  "script_status": "clean",
+  "when_utc": "2026-10-07T12:02:47+00:00",
   "inputs_sha256": {
    "results/formative/run1.txt": "b53101df26c20e2018cfc08ca7791e90bc555884d3fabb9d1aa744a6afee934b",
    "results/formative/run2.txt": "929ff80c1a7b5b0547ee7137867962559e788b88c2b44806a5e279bc2bba0cd4",
@@ -8428,6 +9819,8 @@
    "results/formative_run3.json": "6b5e929e739734127bce42baf06add71aacfa9d7656b03636c4b745649434e6c",
    "results/ship_confirm.json": "72f2f64aa44e42d3d3e3484c2345c83ef2ac83ff8f9ff8550cbea9ee2725c8cd",
    "results/itemsig_eval.json": "6c15d21004b8a116074e5515ee2ed6d5658d7cde446891a9c0d5cb0ea1335f6f",
+   "docs/findings.md": "a79ec1ad636424ac1f06cc34b9582661004f2396cd7467944a79c5c007299fb3",
+   "docs/report/draft.md": "3bea75a995044ef1122e8f5086cfed88e5e1b5056325b13e34ab0d5ee266b9c5",
    "data/subject_side_rows/tl.jsonl": "cf6b13fe3e6b62ed269176cddeb72dcacd6526a06f88ff372af89552469977bf",
    "data/subject_side_rows/r1b.jsonl": "aa64294509350651f269d2ab9078b738dc77ffce4f63c376fa6ce6291fb254c1",
    "data/subject_side_rows/r1p.jsonl": "3d63ad7f0852f73f3c575af698505fcf4714f9425df80d0c45fe9340a73aefa4",
@@ -8460,6 +9853,38 @@
     "sha256": "cd9f8a07e63fd40f736bac49ae5f017dd973e9cc1c26ff16fbf7dcafd928bd8f"
    }
   },
+  "doc_constants": {
+   "leaderboard": {
+    "path": "docs/findings.md",
+    "sha256": "a79ec1ad636424ac1f06cc34b9582661004f2396cd7467944a79c5c007299fb3",
+    "anchor": "### Against the live leaderboard",
+    "values": {
+     "organisers_entry": "0.1801",
+     "best_entry": "0.1172",
+     "read": "2026-09-24"
+    },
+    "lines": [
+     409,
+     425
+    ],
+    "passage_sha256": "72a54b104440f4b802be945faa4c78c930fd6aec7bb08bd3df859066246564d2",
+    "found": true
+   },
+   "empirical_mean_line": {
+    "path": "docs/report/draft.md",
+    "sha256": "3bea75a995044ef1122e8f5086cfed88e5e1b5056325b13e34ab0d5ee266b9c5",
+    "anchor": "*Figure A1.*",
+    "values": {
+     "line": "0.025 + 1.2118"
+    },
+    "lines": [
+     867,
+     867
+    ],
+    "passage_sha256": "d1288adada66810cbe4af2f30dbf3c1d6a8f59cd45b044a43f80d5b2b55aef3a",
+    "found": true
+   }
+  },
   "python": "3.10.8",
   "numpy": "1.26.4",
   "scipy": "1.10.1",
@@ -8468,8 +9893,13 @@
    "stream7": 7,
    "entry": 0,
    "curve": 0,
-   "requirement": 3
+   "requirement": 3,
+   "distinct": 8
   },
-  "wall_s": 231.4
+  "boots": {
+   "stream7": 20000,
+   "distinct": 200000
+  },
+  "wall_s": 200.7
  }
 }

@@ -16796,114 +16796,6 @@
    },
    "want": null,
    "required": true
-  },
-  {
-   "check": "maps: the probe's stored JSON is the one recorded",
-   "ok": true,
-   "got": null,
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "maps: every stored scratch leaf reproduces (to 4 decimals at worst)",
-   "ok": true,
-   "got": {
-    "match": 679,
-    "match_4dp": 0,
-    "differs": 0
-   },
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "update_speed: the probe's stored JSON is the one recorded",
-   "ok": true,
-   "got": null,
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "update_speed: every stored scratch leaf reproduces (to 4 decimals at worst)",
-   "ok": true,
-   "got": {
-    "match": 3014,
-    "match_4dp": 0,
-    "differs": 0
-   },
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "update_conditional: the probe's stored JSON is the one recorded",
-   "ok": true,
-   "got": null,
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "update_conditional: every stored scratch leaf reproduces (to 4 decimals at worst)",
-   "ok": true,
-   "got": {
-    "match": 2904,
-    "match_4dp": 0,
-    "differs": 0
-   },
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "b0_stretch: the probe's stored JSON is the one recorded",
-   "ok": true,
-   "got": null,
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "b0_stretch: every stored scratch leaf reproduces (to 4 decimals at worst)",
-   "ok": true,
-   "got": {
-    "match": 1674,
-    "match_4dp": 0,
-    "differs": 0
-   },
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "damping: the probe's stored JSON is the one recorded",
-   "ok": true,
-   "got": null,
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "damping: every stored scratch leaf reproduces (to 4 decimals at worst)",
-   "ok": true,
-   "got": {
-    "match": 209,
-    "match_4dp": 0,
-    "differs": 0
-   },
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "budget_switch: the probe's stored JSON is the one recorded",
-   "ok": true,
-   "got": null,
-   "want": null,
-   "required": true
-  },
-  {
-   "check": "budget_switch: every stored scratch leaf reproduces (to 4 decimals at worst)",
-   "ok": true,
-   "got": {
-    "match": 621,
-    "match_4dp": 0,
-    "differs": 0
-   },
-   "want": null,
-   "required": true
   }
  ],
  "scratch": {
@@ -22438,94 +22330,15 @@
    "family/parameter_spread/runshift_c_median_over_folds/2": "the ledger (section 2G) gives c_k 'about 0.36 at B1/B3'. At B3 the five folds give 0.105 (multi_swebench held out), 0.295, 0.315, 0.362 and 0.364 (matharena and real_webagents held out): 0.36 is the value of two folds, the median is 0.315. At B1 the median is 0.357 (0.36).",
    "family/parameter_spread/runshift_c_median_over_folds/5": "the ledger's 'about 0.07 at B31': the five folds give 0.067 to 0.083, median 0.0751 (0.08 at two decimals)."
   },
-  "stored_json": {
-   "maps": {
-    "file": "posthoc_probe.json",
-    "sha256": "a2b0b352be2865b52f1418d550bc39365315cb3826cdc737696134189c4f5935",
-    "sha256_expected": "a2b0b352be2865b52f1418d550bc39365315cb3826cdc737696134189c4f5935",
-    "leaves": 679,
-    "counts": {
-     "match": 679,
-     "match_4dp": 0,
-     "differs": 0
-    },
-    "max_abs_diff": 0.0,
-    "not_matching": []
-   },
-   "update_speed": {
-    "file": "upd_probe.json",
-    "sha256": "9b16758a16dd46dd5839419efde9d17f6a102634a7120500c0e9b1deaac849ca",
-    "sha256_expected": "9b16758a16dd46dd5839419efde9d17f6a102634a7120500c0e9b1deaac849ca",
-    "leaves": 3014,
-    "counts": {
-     "match": 3014,
-     "match_4dp": 0,
-     "differs": 0
-    },
-    "max_abs_diff": 4.996572835517808e-06,
-    "not_matching": []
-   },
-   "update_conditional": {
-    "file": "upd_probe2.json",
-    "sha256": "b8954ac69c6cdaa79b3929690d7f09e93a38d9d327f5daf0ade72cd8618750fb",
-    "sha256_expected": "b8954ac69c6cdaa79b3929690d7f09e93a38d9d327f5daf0ade72cd8618750fb",
-    "leaves": 2904,
-    "counts": {
-     "match": 2904,
-     "match_4dp": 0,
-     "differs": 0
-    },
-    "max_abs_diff": 4.998899188004356e-06,
-    "not_matching": []
-   },
-   "b0_stretch": {
-    "file": "b0_probe.json",
-    "sha256": "cad0db3269603abcf2173d36360dd6e19306d0afdc63c18e3af371a0e36df37a",
-    "sha256_expected": "cad0db3269603abcf2173d36360dd6e19306d0afdc63c18e3af371a0e36df37a",
-    "leaves": 1674,
-    "counts": {
-     "match": 1674,
-     "match_4dp": 0,
-     "differs": 0
-    },
-    "max_abs_diff": 0.0043847656250131095,
-    "not_matching": []
-   },
-   "damping": {
-    "file": "info/damp_probe.json",
-    "sha256": "907fe876506a25710ce12cc77a02abc5a22967964fa8859f8bf3e9e87f3559fa",
-    "sha256_expected": "907fe876506a25710ce12cc77a02abc5a22967964fa8859f8bf3e9e87f3559fa",
-    "leaves": 209,
-    "counts": {
-     "match": 209,
-     "match_4dp": 0,
-     "differs": 0
-    },
-    "max_abs_diff": 4.883496173006626e-06,
-    "not_matching": []
-   },
-   "budget_switch": {
-    "file": "budget_switch_probe.json",
-    "sha256": "fcc7d4e6b583de763720651bd6e887d47de258bc6311f96dadbf7451def9c2a8",
-    "sha256_expected": "fcc7d4e6b583de763720651bd6e887d47de258bc6311f96dadbf7451def9c2a8",
-    "leaves": 621,
-    "counts": {
-     "match": 621,
-     "match_4dp": 0,
-     "differs": 0
-    },
-    "max_abs_diff": 2.7755575615628914e-16,
-    "not_matching": []
-   }
-  }
+  "stored_json": null
  },
  "provenance": {
-  "command": "python experiments/posthoc_family.py --scratch /private/tmp/claude-501/-Users-nikitapolomosnov-PycharmProjects-PAIEC/9df8ecfa-42c0-4508-919c-f794f1770909/scratchpad/improve",
+  "command": "python experiments/posthoc_family.py",
   "script": "experiments/posthoc_family.py",
   "script_sha256": "c543e587556033522f99195e2b859870abf9edacb4df23764606b10f156a53b9",
-  "head": "aec3b2a09db178df0302849d9ab184e310a96e66",
-  "script_status": "?? experiments/posthoc_family.py",
-  "when_utc": "2026-10-06T19:48:00+00:00",
+  "head": "9f73fd6981610d7464e65401ee5da14cb3ee811c",
+  "script_status": "clean",
+  "when_utc": "2026-10-07T12:13:40+00:00",
   "inputs_sha256": {
    "results/formative/run1.txt": "b53101df26c20e2018cfc08ca7791e90bc555884d3fabb9d1aa744a6afee934b",
    "results/formative/run2.txt": "929ff80c1a7b5b0547ee7137867962559e788b88c2b44806a5e279bc2bba0cd4",
@@ -22553,6 +22366,6 @@
    "b0_stretch": 0,
    "damping": "1, fresh per cell"
   },
-  "wall_s": 371.9
+  "wall_s": 650.5
  }
 }
