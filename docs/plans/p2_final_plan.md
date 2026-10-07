@@ -193,3 +193,15 @@ Committed before E1 runs.
   chose, tuned and changed nothing. App G.6 also lists S4's hidden-V weights
   (formative bin counts only) and the leaderboard values read on 2026-09-24
   that the bound of section 2 quotes.
+
+## Amendment 3 (2026-10-07): the id-use wording of the run-3 statement
+
+`experiments/hidden_runs.py` adds a distinct-pair sensitivity: one
+subject-benchmark pair appears in run 1 and run 3, and the sensitivity counts it
+once. Finding that pair uses the anonymous subject and benchmark ids (the runs'
+overlap check that App G.6 already declares), and the analysis now has two
+stratified bootstraps. The author confirms (2026-10-07) this wording for App
+G.6 and the conduct section, replacing the corresponding clause of amendment 2:
+the analysis "uses the anonymous ids only to find the one subject-benchmark pair
+that appears in two runs and to group pairs by benchmark in its bootstraps, and
+chose, tuned and changed nothing".
