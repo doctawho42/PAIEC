@@ -1,0 +1,99 @@
+{
+ "S": {
+  "P-READING": {
+   "kish_benchmarks": 33.3,
+   "kish_families": 31.4
+  },
+  "P-AUDIT": {
+   "kish_benchmarks": 25.8,
+   "kish_families": 24.8
+  },
+  "P-TUNED": {
+   "kish_benchmarks": 18.3,
+   "kish_families": 17.7
+  },
+  "P-MIXTURE": {
+   "kish_benchmarks": 30.9,
+   "kish_families": 29.2
+  },
+  "D-READING": {
+   "kish_benchmarks": 30.7,
+   "kish_families": 29.2
+  }
+ },
+ "C": {
+  "P-READING": {
+   "kish_benchmarks": 60.0,
+   "kish_families": 36.2
+  },
+  "P-AUDIT": {
+   "kish_benchmarks": 39.1,
+   "kish_families": 28.8
+  },
+  "P-TUNED": {
+   "kish_benchmarks": 33.1,
+   "kish_families": 25.7
+  },
+  "P-MIXTURE": {
+   "kish_benchmarks": 68.2,
+   "kish_families": 42.8
+  },
+  "D-READING": {
+   "kish_benchmarks": 51.7,
+   "kish_families": 34.4
+  }
+ },
+ "power_C": [
+  {
+   "sigma_b": 0.005,
+   "P-READING": {
+    "SE": 0.00083,
+    "pass_at_0.002": 0.5,
+    "pass_at_0.004": 0.992,
+    "pass_at_0.006": 1.0,
+    "false_pass_at_0": 0.008
+   },
+   "P-AUDIT": {
+    "SE": 0.00093,
+    "pass_at_0.002": 0.5,
+    "pass_at_0.004": 0.984,
+    "pass_at_0.006": 1.0,
+    "false_pass_at_0": 0.0159
+   }
+  },
+  {
+   "sigma_b": 0.01,
+   "P-READING": {
+    "SE": 0.00166,
+    "pass_at_0.002": 0.225,
+    "pass_at_0.004": 0.672,
+    "pass_at_0.006": 0.951,
+    "false_pass_at_0": 0.025
+   },
+   "P-AUDIT": {
+    "SE": 0.00186,
+    "pass_at_0.002": 0.188,
+    "pass_at_0.004": 0.574,
+    "pass_at_0.006": 0.896,
+    "false_pass_at_0": 0.025
+   }
+  },
+  {
+   "sigma_b": 0.02,
+   "P-READING": {
+    "SE": 0.00332,
+    "pass_at_0.002": 0.087,
+    "pass_at_0.004": 0.225,
+    "pass_at_0.006": 0.438,
+    "false_pass_at_0": 0.025
+   },
+   "P-AUDIT": {
+    "SE": 0.00373,
+    "pass_at_0.002": 0.077,
+    "pass_at_0.004": 0.188,
+    "pass_at_0.006": 0.363,
+    "false_pass_at_0": 0.025
+   }
+  }
+ ]
+}

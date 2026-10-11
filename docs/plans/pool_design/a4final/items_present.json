@@ -1,0 +1,48 @@
+{
+ "E": 132,
+ "L": 137,
+ "L_bytes_all_tables": 4291836148,
+ "L_files_bad": [],
+ "L_files_listed": 548,
+ "L_files_verified": 548,
+ "L_missing_items": [],
+ "data_pool_bytes_on_disk": 7422550325,
+ "entries": 255,
+ "free_disk_bytes": 11242594304,
+ "item_bytes": {
+  "E": 2173366701,
+  "L": 2281481006,
+  "all_with_items": 4917276705
+ },
+ "items_skipped": [
+  {
+   "benchmark": "cseo_bench",
+   "hub_item_bytes": 5686347327,
+   "in_L": false,
+   "item_file_on_disk": false,
+   "response_type": "ordinal"
+  },
+  {
+   "benchmark": "qatch",
+   "hub_item_bytes": 705322294,
+   "in_L": false,
+   "item_file_on_disk": false,
+   "response_type": "continuous"
+  }
+ ],
+ "manifest_fetched_utc": "2026-10-08T04:04:26Z",
+ "manifest_sha256": "ff5482069780ea7844170f2f4c6596b7cda3b3aa568bbbba3d9e4fede9dae915",
+ "measured_utc": "2026-10-11T17:53:22Z",
+ "old_tables_changed_vs_pre_items_manifest": [],
+ "public": 252,
+ "revision": "54074453da7b9911be0f48e4c560be547bc84d21",
+ "what": "Item tables after the fetch (p2_pool_eval section 3.7)",
+ "with_items": 250,
+ "without_items": {
+  "cseo_bench": "public",
+  "imagenet_hard": "withheld",
+  "qatch": "public",
+  "swe_together": "withheld",
+  "visual_memory": "withheld"
+ }
+}

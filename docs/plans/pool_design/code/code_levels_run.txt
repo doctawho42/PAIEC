@@ -1,0 +1,328 @@
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/PycharmProjects/PAIEC/data/p2_work/pool_design/code/code_levels.py:52: RuntimeWarning: overflow encountered in exp
+  p = float(np.sum(GH_W / (1 + np.exp(-(mu + math.sqrt(T) * GH_X)))))
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+{
+ "T_pool": 5.797381793338126,
+ "rows": 2912,
+ "mapped_minus_exact": {
+  "mean": 0.13593865293953378,
+  "mean_abs": 0.20914927799119204,
+  "max_abs": 0.9268130193341465,
+  "corr": 0.9916142294483006
+ },
+ "levels": {
+  "free_T_as_fit_hyper": {
+   "n": 127,
+   "mean": -0.3889034827901178,
+   "sd": 6.353489902555103,
+   "fit_hyper_sigma_mu": 9.184974617652188,
+   "median": 0.33174719864529756,
+   "iqr_sd": 1.793625288294954,
+   "skew": -4.987619780572086,
+   "excess_kurtosis": 34.182683102463294,
+   "quantiles_0_5_10_25_50_75_90_95_100": [
+    -48.401,
+    -4.577,
+    -3.241,
+    -0.852,
+    0.332,
+    1.567,
+    3.459,
+    4.172,
+    18.706
+   ],
+   "sampling_var_mean": 0.21561392481867703,
+   "eb_mean": -0.3702174152321327,
+   "eb_sd": 6.246634590820774
+  },
+  "mapped_to_T_pool": {
+   "n": 127,
+   "mean": 0.21279162863384246,
+   "sd": 2.3251725569917716,
+   "fit_hyper_sigma_mu": 3.3614047153899023,
+   "median": 0.36162701857974244,
+   "iqr_sd": 1.9844437585141004,
+   "skew": -0.4496745381278323,
+   "excess_kurtosis": 1.0341077535252028,
+   "quantiles_0_5_10_25_50_75_90_95_100": [
+    -7.865,
+    -3.435,
+    -2.884,
+    -0.977,
+    0.362,
+    1.7,
+    2.962,
+    3.437,
+    7.258
+   ],
+   "sampling_var_mean": 0.21561392481867703,
+   "eb_mean": 0.212955140490946,
+   "eb_sd": 2.2516594548375855
+  },
+  "mapped_to_T_ship_under_shipped_prior": {
+   "n": 127,
+   "mean": 1.1554176633065634,
+   "sd": 3.2098325392417646,
+   "fit_hyper_sigma_mu": 4.6403206508588575,
+   "median": 1.3184485308157474,
+   "iqr_sd": 2.9454494784157,
+   "skew": -0.21883850612925534,
+   "excess_kurtosis": 0.1963422956966756,
+   "quantiles_0_5_10_25_50_75_90_95_100": [
+    -7.998,
+    -4.196,
+    -3.053,
+    -0.72,
+    1.318,
+    3.253,
+    4.774,
+    5.934,
+    8.82
+   ],
+   "sampling_var_mean": 0.21561392481867703,
+   "eb_mean": 1.1445470282014498,
+   "eb_sd": 3.130133957229179
+  },
+  "accuracy_logit_at_mean_standing": {
+   "n": 127,
+   "mean": 0.10830162200338178,
+   "sd": 1.3558763415785773,
+   "fit_hyper_sigma_mu": 1.960133717544116,
+   "median": 0.1696005675982946,
+   "iqr_sd": 1.1059148431013004,
+   "skew": -0.40095360399445407,
+   "excess_kurtosis": 1.8778755539849943,
+   "quantiles_0_5_10_25_50_75_90_95_100": [
+    -4.866,
+    -2.136,
+    -1.581,
+    -0.577,
+    0.17,
+    0.914,
+    1.572,
+    2.064,
+    4.795
+   ]
+  }
+ },
+ "b0_prior_centre": {
+  "shipped_at_its_bw_mean_score": 0.2730473210829484,
+  "shipped_at_score_0": 0.3041409983687635,
+  "C1_literal_LEVEL_at_pool_bw_mean_score": 0.2848867426904555,
+  "C1_literal_LEVEL_at_score_0": 0.28516241200841697,
+  "S_total_shipped": 21.44684493422656,
+  "S_total_C1": 16.833016049999998
+ },
+ "LEVEL_mapped_to_T_pool": {
+  "quantile_z": {
+   "-1.645": -5.574,
+   "-1": -4.199,
+   "0": -2.092,
+   "1": -0.0,
+   "1.645": 1.349
+  },
+  "mu0": -2.092,
+  "sigma_mu_from_pm1": 2.099
+ },
+ "identity": {
+  "table_rows": 494,
+  "rows_k_res_1_2_3_4_5plus": {
+   "1": 327,
+   "2": 79,
+   "3": 29,
+   "4": 14,
+   "5": 45
+  },
+  "tau2_res": 0.4029829645090394,
+  "tau2_res_alpha2": 0.4081745047735787,
+  "s2d_res": 0.6405759566795721,
+  "s2_res": 2.564124408840379,
+  "total_var": 2.607525635109617,
+  "u_mean": 0.02443292733726882,
+  "link_noise": 0.047635511297039634,
+  "weights_rows_with_entry": 1569,
+  "w_uncapped_clipped_tau_q0_10_50_90_100": [
+   0.241,
+   0.254,
+   0.635,
+   0.889,
+   0.93
+  ],
+  "w_uncapped_raw_tau_q0_10_50_90_100": [
+   0.388,
+   0.397,
+   0.768,
+   0.94,
+   0.963
+  ],
+  "share_at_cap_0.1": 1.0,
+  "loo_shrinkage_by_other_benchmarks": {
+   "1": {
+    "cells": 158,
+    "slope": 0.6979160598416098,
+    "corr": 0.6979160598416104,
+    "model_w_tau_raw": 0.3861621575234512,
+    "model_w_tau_clip": 0.237932096927964
+   },
+   "10+": {
+    "cells": 343,
+    "slope": 0.9355548758553628,
+    "corr": 0.6519695290956627,
+    "model_w_tau_raw": 0.9041817121659966,
+    "model_w_tau_clip": 0.8240454355843693
+   },
+   "2": {
+    "cells": 87,
+    "slope": 0.41894130481023284,
+    "corr": 0.3331801999730471,
+    "model_w_tau_raw": 0.5571673637568887,
+    "model_w_tau_clip": 0.3844025007807992
+   },
+   "3-4": {
+    "cells": 86,
+    "slope": 0.8990402779341572,
+    "corr": 0.8107012844070801,
+    "model_w_tau_raw": 0.6876787636737715,
+    "model_w_tau_clip": 0.5221636241588329
+   },
+   "5-9": {
+    "cells": 155,
+    "slope": 0.8492330676554397,
+    "corr": 0.6282642235257655,
+    "model_w_tau_raw": 0.8149403529577147,
+    "model_w_tau_clip": 0.6860808074393281
+   }
+  }
+ },
+ "jackknife": {
+  "tau2_res": {
+   "full": 0.4029829645090394,
+   "se": 0.12327535466273883,
+   "min": 0.3502424153749012,
+   "max": 0.43869126138526937,
+   "most_influential": [
+    [
+     -0.0527,
+     "bird_sql"
+    ],
+    [
+     0.0357,
+     "editbench"
+    ],
+    [
+     0.0288,
+     "ai2d_test"
+    ],
+    [
+     -0.0263,
+     "legalbench"
+    ],
+    [
+     0.0235,
+     "helm_afr"
+    ]
+   ]
+  },
+  "s2d_res": {
+   "full": 0.6405759566795721,
+   "se": 0.1405604828666184,
+   "min": 0.5340933354209333,
+   "max": 0.6656812714712679,
+   "most_influential": [
+    [
+     -0.1065,
+     "bird_sql"
+    ],
+    [
+     -0.0613,
+     "ikp"
+    ],
+    [
+     -0.0321,
+     "helm_bbq"
+    ],
+    [
+     0.0251,
+     "hallusionbench"
+    ],
+    [
+     -0.022,
+     "appworld"
+    ]
+   ]
+  },
+  "s2_res": {
+   "full": 2.564124408840379,
+   "se": 0.6669189535158397,
+   "min": 2.083235877297181,
+   "max": 2.650520343335865,
+   "most_influential": [
+    [
+     -0.4809,
+     "bird_sql"
+    ],
+    [
+     -0.3357,
+     "alignment_faking"
+    ],
+    [
+     -0.2144,
+     "llms_lean_formalization"
+    ],
+    [
+     0.0864,
+     "hallusionbench"
+    ],
+    [
+     0.0856,
+     "wmt_mqm"
+    ]
+   ]
+  },
+  "total_var": {
+   "full": 2.607525635109617,
+   "se": 0.6184382273067213,
+   "min": 2.199546147136625,
+   "max": 2.695320804389404,
+   "most_influential": [
+    [
+     -0.408,
+     "bird_sql"
+    ],
+    [
+     -0.3431,
+     "alignment_faking"
+    ],
+    [
+     -0.2126,
+     "llms_lean_formalization"
+    ],
+    [
+     0.0878,
+     "wmt_mqm"
+    ],
+    [
+     0.079,
+     "hallusionbench"
+    ]
+   ]
+  }
+ }
+}

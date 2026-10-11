@@ -1,0 +1,229 @@
+{
+ "cap": 0.1,
+ "dense_min_pairs": 4,
+ "draws": 250,
+ "results": {
+  "bench": {
+   "cap_after": {
+    "D-FLAT": {
+     "C": {
+      "benchmarks": 65,
+      "flagged_weight_share": 0.077,
+      "kish_benchmarks": 65.0,
+      "kish_families": 46.4,
+      "max_weight": [
+       "afrieval",
+       0.015
+      ]
+     },
+     "S": {
+      "benchmarks": 42,
+      "flagged_weight_share": 0.071,
+      "kish_benchmarks": 42.0,
+      "kish_families": 27.6,
+      "max_weight": [
+       "algotune",
+       0.024
+      ]
+     },
+     "balance_abs_diff": 0.006
+    },
+    "D-READING": {
+     "C": {
+      "benchmarks": 65,
+      "flagged_weight_share": 0.114,
+      "kish_benchmarks": 42.8,
+      "kish_families": 33.9,
+      "knobs": [
+       [
+        1.0,
+        -0.875,
+        1.6
+       ]
+      ],
+      "loss": 0.41,
+      "max_weight": [
+       "monkey_power_laws",
+       0.06
+      ],
+      "realised_all_item": {
+       "mean": -0.745,
+       "sd": 1.782
+      }
+     },
+     "S": {
+      "benchmarks": 42,
+      "flagged_weight_share": 0.144,
+      "kish_benchmarks": 29.7,
+      "kish_families": 24.7,
+      "knobs": [
+       [
+        1.0,
+        -0.75,
+        1.6
+       ]
+      ],
+      "loss": 0.63,
+      "max_weight": [
+       "crow",
+       0.087
+      ],
+      "realised_all_item": {
+       "mean": -0.682,
+       "sd": 1.75
+      }
+     },
+     "balance_abs_diff": 0.03
+    }
+   }
+  },
+  "family": {
+   "cap_after": {
+    "D-FLAT": {
+     "C": {
+      "benchmarks": 73,
+      "flagged_weight_share": 0.068,
+      "kish_benchmarks": 73.0,
+      "kish_families": 29.4,
+      "max_weight": [
+       "afrieval",
+       0.014
+      ]
+     },
+     "S": {
+      "benchmarks": 34,
+      "flagged_weight_share": 0.088,
+      "kish_benchmarks": 34.0,
+      "kish_families": 30.4,
+      "max_weight": [
+       "appworld",
+       0.029
+      ]
+     },
+     "balance_abs_diff": 0.02
+    },
+    "D-READING": {
+     "C": {
+      "benchmarks": 73,
+      "flagged_weight_share": 0.114,
+      "kish_benchmarks": 42.6,
+      "kish_families": 27.5,
+      "knobs": [
+       [
+        1.0,
+        -1.0,
+        1.6
+       ]
+      ],
+      "loss": 0.65,
+      "max_weight": [
+       "monkey_power_laws",
+       0.064
+      ],
+      "realised_all_item": {
+       "mean": -0.755,
+       "sd": 1.773
+      }
+     },
+     "S": {
+      "benchmarks": 34,
+      "flagged_weight_share": 0.166,
+      "kish_benchmarks": 25.6,
+      "kish_families": 24.0,
+      "knobs": [
+       [
+        1.0,
+        -0.75,
+        1.6
+       ]
+      ],
+      "loss": 0.51,
+      "max_weight": [
+       "crow",
+       0.098
+      ],
+      "realised_all_item": {
+       "mean": -0.684,
+       "sd": 1.755
+      }
+     },
+     "balance_abs_diff": 0.052
+    }
+   },
+   "cap_first": {
+    "D-FLAT": {
+     "C": {
+      "benchmarks": 73,
+      "flagged_weight_share": 0.068,
+      "kish_benchmarks": 73.0,
+      "kish_families": 29.4,
+      "max_weight": [
+       "afrieval",
+       0.014
+      ]
+     },
+     "S": {
+      "benchmarks": 34,
+      "flagged_weight_share": 0.088,
+      "kish_benchmarks": 34.0,
+      "kish_families": 30.4,
+      "max_weight": [
+       "appworld",
+       0.029
+      ]
+     },
+     "balance_abs_diff": 0.02
+    },
+    "D-READING": {
+     "C": {
+      "benchmarks": 73,
+      "flagged_weight_share": 0.114,
+      "kish_benchmarks": 42.6,
+      "kish_families": 27.5,
+      "knobs": [
+       [
+        1.0,
+        -1.0,
+        1.6
+       ]
+      ],
+      "loss": 0.65,
+      "max_weight": [
+       "monkey_power_laws",
+       0.064
+      ],
+      "realised_all_item": {
+       "mean": -0.755,
+       "sd": 1.773
+      }
+     },
+     "S": {
+      "benchmarks": 34,
+      "flagged_weight_share": 0.179,
+      "kish_benchmarks": 23.7,
+      "kish_families": 22.4,
+      "knobs": [
+       [
+        1.0,
+        -0.875,
+        1.6
+       ]
+      ],
+      "loss": 0.08,
+      "max_weight": [
+       "crow",
+       0.111
+      ],
+      "realised_all_item": {
+       "mean": -0.726,
+       "sd": 1.781
+      }
+     },
+     "balance_abs_diff": 0.065
+    }
+   }
+  }
+ },
+ "seed": 4001,
+ "what": "The dense regimes' weights with the 0.10 cap applied after the dense"
+}

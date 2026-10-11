@@ -1,0 +1,252 @@
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+{
+ "T_pool": 5.797381793338126,
+ "subject_part": {
+  "prototype_all_binary": {
+   "n_rows": 2912,
+   "total_var": 2.6075,
+   "s2_res": 2.5641,
+   "u_mean": 0.0244,
+   "tau2_res": 0.403,
+   "s2d_res": 0.6406,
+   "linked": 167,
+   "sigma_delta": 2.1414,
+   "sigma_attr": 0.2083,
+   "coef_intercept_date_hasdate": [
+    -0.468,
+    0.285,
+    0.082
+   ],
+   "providers": 24
+  },
+  "without_flagged": {
+   "n_rows": 2624,
+   "total_var": 2.3416,
+   "s2_res": 2.3053,
+   "u_mean": 0.0243,
+   "tau2_res": 0.4188,
+   "s2d_res": 0.6375,
+   "linked": 166,
+   "sigma_delta": 2.0196,
+   "sigma_attr": 0.1906,
+   "coef_intercept_date_hasdate": [
+    -0.528,
+    0.308,
+    0.103
+   ],
+   "providers": 24
+  }
+ },
+ "loo_slopes": {
+  "prototype_all_binary": {
+   "other_cells_any_benchmark": {
+    "all": {
+     "cells": 829,
+     "slope": 0.765
+    },
+    "k1": {
+     "cells": 158,
+     "slope": 0.698
+    },
+    "k2-4": {
+     "cells": 173,
+     "slope": 0.744
+    },
+    "k5+": {
+     "cells": 498,
+     "slope": 0.9
+    }
+   },
+   "other_cells_outside_own_suite": {
+    "all": {
+     "cells": 827,
+     "slope": 0.755
+    },
+    "k1": {
+     "cells": 160,
+     "slope": 0.697
+    },
+    "k2-4": {
+     "cells": 186,
+     "slope": 0.746
+    },
+    "k5+": {
+     "cells": 481,
+     "slope": 0.858
+    }
+   }
+  },
+  "without_flagged": {
+   "other_cells_any_benchmark": {
+    "all": {
+     "cells": 818,
+     "slope": 0.766
+    },
+    "k1": {
+     "cells": 156,
+     "slope": 0.689
+    },
+    "k2-4": {
+     "cells": 171,
+     "slope": 0.762
+    },
+    "k5+": {
+     "cells": 491,
+     "slope": 0.897
+    }
+   },
+   "other_cells_outside_own_suite": {
+    "all": {
+     "cells": 816,
+     "slope": 0.755
+    },
+    "k1": {
+     "cells": 158,
+     "slope": 0.688
+    },
+    "k2-4": {
+     "cells": 186,
+     "slope": 0.76
+    },
+    "k5+": {
+     "cells": 472,
+     "slope": 0.86
+    }
+   }
+  }
+ },
+ "exact_pass_cpu_s": 138.161232,
+ "exact_pass_not_converged": [
+  "tau2_bench"
+ ],
+ "exact_levels_T_pool": {
+  "all_127": {
+   "n": 127,
+   "mean": 0.18122316254753973,
+   "sd": 2.357956676575682,
+   "fit_hyper_sigma_mu": 3.4087993458778163,
+   "median": 0.3281918801019189,
+   "iqr_sd": 1.8913528616204618,
+   "skew": -0.5286427704383102,
+   "excess_kurtosis": 1.0540198480505305,
+   "quantiles_0_5_10_25_50_75_90_95_100": [
+    -7.903,
+    -3.505,
+    -2.9,
+    -0.959,
+    0.328,
+    1.593,
+    2.864,
+    3.614,
+    6.84
+   ],
+   "sampling_var_mean": 0.18854007514383886,
+   "eb_mean": 0.1632084952383796,
+   "eb_sd": 2.2980131477533186
+  },
+  "without_flagged": {
+   "n": 118,
+   "mean": 0.370028563966573,
+   "sd": 2.180030707010957,
+   "fit_hyper_sigma_mu": 3.152518037208154,
+   "median": 0.3975770960424936,
+   "iqr_sd": 1.8219919843056274,
+   "skew": -0.24370929281850937,
+   "excess_kurtosis": 0.6545209448279325,
+   "quantiles_0_5_10_25_50_75_90_95_100": [
+    -7.092,
+    -3.254,
+    -2.51,
+    -0.742,
+    0.398,
+    1.715,
+    3.211,
+    3.639,
+    6.84
+   ],
+   "sampling_var_mean": 0.15822495338521136,
+   "eb_mean": 0.3537657218382303,
+   "eb_sd": 2.1151728624587487
+  },
+  "flagged_only": {
+   "n": 9,
+   "mean": -2.294225433835342,
+   "sd": 3.262503678550419,
+   "fit_hyper_sigma_mu": 4.952132399470632,
+   "median": -0.47425586911232165,
+   "iqr_sd": 3.8406341891112845,
+   "skew": -0.4677038628244252,
+   "excess_kurtosis": -1.1232501916720723,
+   "quantiles_0_5_10_25_50_75_90_95_100": [
+    -7.903,
+    -6.911,
+    -5.919,
+    -5.095,
+    -0.474,
+    0.086,
+    0.448,
+    1.11,
+    1.772
+   ],
+   "sampling_var_mean": 0.5860050048680664,
+   "eb_mean": -2.439683286634455,
+   "eb_sd": 2.9592371946404836
+  }
+ },
+ "b0_centres": {
+  "legacy:matharena": {
+   "mean_score_shipped": 0.346,
+   "mean_score_pool": 0.192,
+   "b0_archive3": 0.3164,
+   "b0_C1_literal": 0.2925,
+   "b0_C1_LEVEL_mapped_to_T_pool": 0.3164,
+   "mu0_matching_archive3_b0_under_C1": -2.192
+  },
+  "legacy:multi_swebench": {
+   "mean_score_shipped": -0.017,
+   "mean_score_pool": 0.065,
+   "b0_archive3": 0.3036,
+   "b0_C1_literal": 0.2876,
+   "b0_C1_LEVEL_mapped_to_T_pool": 0.3112,
+   "mu0_matching_archive3_b0_under_C1": -2.292
+  },
+  "legacy:real_webagents": {
+   "mean_score_shipped": -0.201,
+   "mean_score_pool": 0.112,
+   "b0_archive3": 0.2971,
+   "b0_C1_literal": 0.2894,
+   "b0_C1_LEVEL_mapped_to_T_pool": 0.3131,
+   "mu0_matching_archive3_b0_under_C1": -2.399
+  },
+  "legacy:researchcodebench": {
+   "mean_score_shipped": -0.534,
+   "mean_score_pool": 0.109,
+   "b0_archive3": 0.2857,
+   "b0_C1_literal": 0.2893,
+   "b0_C1_LEVEL_mapped_to_T_pool": 0.313,
+   "mu0_matching_archive3_b0_under_C1": -2.548
+  },
+  "pool_benchmark_weighted": {
+   "mean_score_shipped": -0.909,
+   "mean_score_pool": -0.007,
+   "b0_archive3": 0.273,
+   "b0_C1_literal": 0.2849,
+   "b0_C1_LEVEL_mapped_to_T_pool": 0.3082,
+   "mu0_matching_archive3_b0_under_C1": -2.658
+  }
+ },
+ "C1_LEVEL_mapped": {
+  "mu0": -2.092,
+  "sigma_mu": 2.099
+ },
+ "wall_s": 75.44496912499744
+}

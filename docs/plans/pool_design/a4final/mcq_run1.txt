@@ -1,0 +1,129 @@
+/Users/nikitapolomosnov/anaconda3/lib/python3.10/site-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+{
+ "what": "Multiple-choice benchmarks of E by a catalogue flag (amendment 4 final, R12).",
+ "regex": "\\b(multiple|multi)[\\s-]*choice\\b|\\bmcqa?s?\\b",
+ "manifest_tables": [
+  "benchmarks",
+  "subjects",
+  "responses"
+ ],
+ "item_bytes": {
+  "benchmarks_with_items_in_manifest": 0,
+  "total_GB": 0.0,
+  "E_GB": 0.0,
+  "largest_10": []
+ },
+ "item_bytes_on_disk": {
+  "files": 229,
+  "total_GB": 3.57,
+  "E_GB": 2.106,
+  "E_missing": [
+   "visual_riddles",
+   "visualwebarena",
+   "vl_rewardbench",
+   "wikihow_agent",
+   "wmt_mqm",
+   "workarena",
+   "workbench_revisited",
+   "worldcentralbanks"
+  ],
+  "largest_10": [
+   [
+    0.522,
+    "mind2web"
+   ],
+   [
+    0.379,
+    "naturalreasoning"
+   ],
+   [
+    0.245,
+    "swe_smith"
+   ],
+   [
+    0.237,
+    "tensortrust"
+   ],
+   [
+    0.199,
+    "prm800k"
+   ],
+   [
+    0.186,
+    "llm_uncertainty_bench"
+   ],
+   [
+    0.169,
+    "decompile_bench"
+   ],
+   [
+    0.166,
+    "lawbench"
+   ],
+   [
+    0.137,
+    "llmail_inject"
+   ],
+   [
+    0.117,
+    "decodingtrust"
+   ]
+  ]
+ },
+ "catalogue_mcq": {
+  "n": 21,
+  "S": [
+   "kmmlu",
+   "mmlu",
+   "mmlupro",
+   "tumlu"
+  ],
+  "C": [
+   "afrimedqa",
+   "ai2d_test",
+   "bbq",
+   "ceval",
+   "cmmlu",
+   "elicitation_game",
+   "enginemt_qa",
+   "helm_bbq",
+   "helm_thaiexam",
+   "llm_uncertainty_bench",
+   "medhelm_med_mcqa",
+   "medhelm_med_qa",
+   "medhelm_medbullets",
+   "mtbbench",
+   "multi_moe",
+   "perumedqa",
+   "revolve"
+  ]
+ },
+ "floor_summary": {
+  "benchmarks_read": 124,
+  "share_ge_0.5": [
+   "afrimedqa",
+   "agi_elo",
+   "ceval",
+   "cmmlu",
+   "dave",
+   "eduguardbench",
+   "egoschema",
+   "elicitation_game",
+   "fewshot_ttt_bbh",
+   "helm_bbq",
+   "helm_thaiexam",
+   "kmmlu",
+   "kormedmcqa",
+   "llm_uncertainty_bench",
+   "medhelm_head_qa",
+   "medhelm_med_mcqa",
+   "medhelm_med_qa",
+   "medhelm_medbullets",
+   "medhelm_pubmed_qa",
+   "multi_moe",
+   "revolve"
+  ],
+  "share_gt_0": 42
+ }
+}

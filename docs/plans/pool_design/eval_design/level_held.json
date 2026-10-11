@@ -1,0 +1,39 @@
+{
+ "what": "Planning values for candidate C2's level rule (eval.md section 2): the mu0 and",
+ "V_archive3": 15.196844934226563,
+ "V_prototype": 10.58301605,
+ "refs": {
+  "E_pairs_benchmark_weighted": {
+   "mean_score_archive3": -1.0265258311356105,
+   "mean_score_prototype": -0.01917972568630257,
+   "archive3_accuracy_quantiles_z_m1_0_p1": [
+    -2.203771356009236,
+    -1.1475990510530907,
+    -0.19141150888871628
+   ],
+   "C1_literal_accuracy_quantiles_z_m1_0_p1": [
+    -2.3306300030026224,
+    -1.104568163030315,
+    -0.004138434968339395
+   ],
+   "C2_mu0": -2.5939100779000537,
+   "C2_sigma_mu": 2.1628948389998053
+  },
+  "code_task_pool_benchmark_weighted": {
+   "mean_score_archive3": -0.909,
+   "mean_score_prototype": -0.007,
+   "archive3_accuracy_quantiles_z_m1_0_p1": [
+    -2.1772074664474017,
+    -1.124292931271041,
+    -0.16947290614488586
+   ],
+   "C1_literal_accuracy_quantiles_z_m1_0_p1": [
+    -2.3273974997764464,
+    -1.1017839621272867,
+    -0.001510398943185519
+   ],
+   "C2_mu0": -2.549186370501177,
+   "C2_sigma_mu": 2.1627721314562303
+  }
+ }
+}

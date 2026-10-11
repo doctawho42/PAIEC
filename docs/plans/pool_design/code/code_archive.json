@@ -1,0 +1,132 @@
+{
+ "prior_json_bytes": 84389,
+ "level_written": {
+  "mu0": -2.5,
+  "sigma_mu": 2.5,
+  "attr_scale": 0.5
+ },
+ "json_load_from_json_construct_ms": 4.055606660112971,
+ "shipped_json_load_from_json_construct_ms": 0.8866525000485126,
+ "shipped_prior_json_bytes": 18951,
+ "archive_shipped": {
+  "bytes": 73374,
+  "members": {
+   "model.py": [
+    5235,
+    2298
+   ],
+   "paiec_rt/__init__.py": [
+    0,
+    2
+   ],
+   "paiec_rt/fitting.py": [
+    1586,
+    748
+   ],
+   "paiec_rt/hier.py": [
+    99866,
+    32516
+   ],
+   "paiec_rt/irt.py": [
+    6339,
+    2495
+   ],
+   "paiec_rt/mcq.py": [
+    3887,
+    1837
+   ],
+   "paiec_rt/predict.py": [
+    15681,
+    5849
+   ],
+   "paiec_rt/prior.py": [
+    44199,
+    15128
+   ],
+   "paiec_rt/subjects.py": [
+    12361,
+    4560
+   ],
+   "prior.json": [
+    18951,
+    6342
+   ],
+   "requirements.txt": [
+    630,
+    391
+   ]
+  }
+ },
+ "load_shipped": {
+  "model": "hier",
+  "numpy_import_ms_median": 77.3,
+  "model_py_exec_ms_median": 30.18,
+  "model_py_exec_ms_max": 32.94,
+  "make_ms_median": 0.005,
+  "table_rows": 106,
+  "included": 5
+ },
+ "archive_c1_proto": {
+  "bytes": 92807,
+  "members": {
+   "model.py": [
+    5235,
+    2298
+   ],
+   "paiec_rt/__init__.py": [
+    0,
+    2
+   ],
+   "paiec_rt/fitting.py": [
+    1586,
+    748
+   ],
+   "paiec_rt/hier.py": [
+    99866,
+    32516
+   ],
+   "paiec_rt/irt.py": [
+    6339,
+    2495
+   ],
+   "paiec_rt/mcq.py": [
+    3887,
+    1837
+   ],
+   "paiec_rt/predict.py": [
+    15681,
+    5849
+   ],
+   "paiec_rt/prior.py": [
+    44199,
+    15128
+   ],
+   "paiec_rt/subjects.py": [
+    12361,
+    4560
+   ],
+   "prior.json": [
+    84389,
+    25775
+   ],
+   "requirements.txt": [
+    630,
+    391
+   ]
+  }
+ },
+ "load_c1_proto": {
+  "model": "hier",
+  "numpy_import_ms_median": 80.83,
+  "model_py_exec_ms_median": 32.97,
+  "model_py_exec_ms_max": 36.47,
+  "make_ms_median": 0.009,
+  "table_rows": 494,
+  "included": 127
+ },
+ "validator_c1_proto": {
+  "returncode": 0,
+  "stdout_head": "OK: /Users/nikitapolomosnov/PycharmProjects/PAIEC/data/p2_work/pool_design/code/archive_c1_proto.zip looks like a valid submission ZIP.",
+  "stderr_tail": ""
+ }
+}

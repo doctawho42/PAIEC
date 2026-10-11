@@ -1,0 +1,191 @@
+{
+ "K": 100,
+ "parts": {
+  "level": {
+   "benchmarks": 137,
+   "multi_pair": 124,
+   "name": {
+    "capped_benchmarks_with_repeated_names": {
+     "ai2d_test": {
+      "named_rows_kept": 100,
+      "names_kept": 89,
+      "names_uncapped": 216,
+      "pairs": 254
+     },
+     "alignment_faking": {
+      "named_rows_kept": 100,
+      "names_kept": 6,
+      "names_uncapped": 74,
+      "pairs": 4278
+     },
+     "bird_sql": {
+      "named_rows_kept": 100,
+      "names_kept": 12,
+      "names_uncapped": 15,
+      "pairs": 120
+     },
+     "hallusionbench": {
+      "named_rows_kept": 100,
+      "names_kept": 89,
+      "names_uncapped": 215,
+      "pairs": 253
+     }
+    },
+    "linked_names": 214,
+    "named_rows": 1780,
+    "names": 447,
+    "rows": 3446
+   },
+   "pairs_uncapped": 12889,
+   "rr": {
+    "capped_benchmarks_with_repeated_names": {
+     "ai2d_test": {
+      "named_rows_kept": 100,
+      "names_kept": 100,
+      "names_uncapped": 216,
+      "pairs": 254
+     },
+     "alignment_faking": {
+      "named_rows_kept": 100,
+      "names_kept": 74,
+      "names_uncapped": 74,
+      "pairs": 4278
+     },
+     "bird_sql": {
+      "named_rows_kept": 100,
+      "names_kept": 15,
+      "names_uncapped": 15,
+      "pairs": 120
+     },
+     "hallusionbench": {
+      "named_rows_kept": 100,
+      "names_kept": 100,
+      "names_uncapped": 215,
+      "pairs": 253
+     }
+    },
+    "linked_names": 224,
+    "named_rows": 1780,
+    "names": 522,
+    "rows": 3446
+   },
+   "sid": {
+    "capped_benchmarks_with_repeated_names": {
+     "ai2d_test": {
+      "named_rows_kept": 100,
+      "names_kept": 92,
+      "names_uncapped": 216,
+      "pairs": 254
+     },
+     "alignment_faking": {
+      "named_rows_kept": 100,
+      "names_kept": 37,
+      "names_uncapped": 74,
+      "pairs": 4278
+     },
+     "bird_sql": {
+      "named_rows_kept": 100,
+      "names_kept": 15,
+      "names_uncapped": 15,
+      "pairs": 120
+     },
+     "hallusionbench": {
+      "named_rows_kept": 100,
+      "names_kept": 94,
+      "names_uncapped": 215,
+      "pairs": 253
+     }
+    },
+    "linked_names": 179,
+    "named_rows": 1782,
+    "names": 529,
+    "rows": 3446
+   },
+   "uncapped_linked_names": 342
+  },
+  "subject": {
+   "benchmarks": 128,
+   "multi_pair": 115,
+   "name": {
+    "capped_benchmarks_with_repeated_names": {
+     "ai2d_test": {
+      "named_rows_kept": 100,
+      "names_kept": 89,
+      "names_uncapped": 216,
+      "pairs": 254
+     },
+     "bird_sql": {
+      "named_rows_kept": 100,
+      "names_kept": 12,
+      "names_uncapped": 15,
+      "pairs": 120
+     },
+     "hallusionbench": {
+      "named_rows_kept": 100,
+      "names_kept": 89,
+      "names_uncapped": 215,
+      "pairs": 253
+     }
+    },
+    "linked_names": 212,
+    "named_rows": 1641,
+    "names": 438,
+    "rows": 3136
+   },
+   "pairs_uncapped": 8388,
+   "rr": {
+    "capped_benchmarks_with_repeated_names": {
+     "ai2d_test": {
+      "named_rows_kept": 100,
+      "names_kept": 100,
+      "names_uncapped": 216,
+      "pairs": 254
+     },
+     "bird_sql": {
+      "named_rows_kept": 100,
+      "names_kept": 15,
+      "names_uncapped": 15,
+      "pairs": 120
+     },
+     "hallusionbench": {
+      "named_rows_kept": 100,
+      "names_kept": 100,
+      "names_uncapped": 215,
+      "pairs": 253
+     }
+    },
+    "linked_names": 222,
+    "named_rows": 1641,
+    "names": 448,
+    "rows": 3136
+   },
+   "sid": {
+    "capped_benchmarks_with_repeated_names": {
+     "ai2d_test": {
+      "named_rows_kept": 100,
+      "names_kept": 92,
+      "names_uncapped": 216,
+      "pairs": 254
+     },
+     "bird_sql": {
+      "named_rows_kept": 100,
+      "names_kept": 15,
+      "names_uncapped": 15,
+      "pairs": 120
+     },
+     "hallusionbench": {
+      "named_rows_kept": 100,
+      "names_kept": 94,
+      "names_uncapped": 215,
+      "pairs": 253
+     }
+    },
+    "linked_names": 176,
+    "named_rows": 1643,
+    "names": 492,
+    "rows": 3136
+   },
+   "uncapped_linked_names": 340
+  }
+ }
+}

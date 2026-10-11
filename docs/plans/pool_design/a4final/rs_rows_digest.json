@@ -1,0 +1,14 @@
+{
+ "experiments/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "rs_compositions": "c1520f4be78e37dcfd8783d42c456b69582ad1028c7e653860fb9ecfe1199170",
+ "rs_rows": {
+  "digest": "9a601549b2d99739487e7c3808da616f24f9072506671043de878020f59a9b5c",
+  "files": 520,
+  "rule": "sha256 of sorted 'path\\tsha256\\n' lines"
+ },
+ "streaming_ingestion.py": {
+  "clone_commit": "82d330ddcdb16016a3ae9e048db7e588ba2c6a39",
+  "sha256": "c6f2610f9c8b6cad8a2338ddc07a0cb25d40bca761a6628937a2cee2705a6267"
+ },
+ "what": "planning values of the lock entries V1 to V3 (re-computed by the lock)"
+}

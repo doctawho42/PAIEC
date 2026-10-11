@@ -1,0 +1,6 @@
+[(('ai2d_test', 'hallusionbench'), 36), (('ikp', 'workbench_revisited'), 3), (('agi_elo', 'icpc2_code_selector'), 2), (('editbench', 'researchcodebench'), 2), (('helm_bbq', 'ikp'), 2), (('legalbench', 'mmlupro'), 2), (('openbiorq', 'software_world_models'), 2), (('afrimedqa', 'llmail_inject'), 1)]
+other cells with a different harness string: all 755 0.769
+other cells with a different harness string: k1 94 0.711
+other cells with a different harness string: k2-4 180 0.753
+other cells with a different harness string: k5+ 481 0.857
+[('', 19), ('HELM', 14), ('VLMEvalKit', 4), ('Korean LLM Benchmark Suite', 2), ('OpenCompass', 2), ('AgentRewardBench / AgentLab GenericAgent', 2)]

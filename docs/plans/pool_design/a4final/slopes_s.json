@@ -1,0 +1,141 @@
+{
+ "bench": {
+  "S": 49,
+  "benchmarks_with_rows": 46,
+  "bins": {
+   "1": {
+    "cells": 52,
+    "corr": 0.729,
+    "k_mean": 1.0,
+    "model_w_clip_tau": 0.127,
+    "model_w_raw_tau": 0.349,
+    "names": null,
+    "slope": 0.655
+   },
+   "2": {
+    "cells": 41,
+    "corr": 0.568,
+    "k_mean": 2.0,
+    "model_w_clip_tau": 0.226,
+    "model_w_raw_tau": 0.517,
+    "names": null,
+    "slope": 0.608
+   },
+   "3+": {
+    "cells": 162,
+    "corr": 0.713,
+    "k_mean": 8.44,
+    "model_w_clip_tau": 0.552,
+    "model_w_raw_tau": 0.819,
+    "names": null,
+    "slope": 0.741
+   },
+   "3-4": {
+    "cells": 27,
+    "corr": 0.624,
+    "k_mean": 3.59,
+    "model_w_clip_tau": 0.344,
+    "model_w_raw_tau": 0.658,
+    "names": null,
+    "slope": 0.614
+   },
+   "5+": {
+    "cells": 135,
+    "corr": 0.629,
+    "k_mean": 9.41,
+    "model_w_clip_tau": 0.578,
+    "model_w_raw_tau": 0.834,
+    "names": null,
+    "slope": 0.755
+   }
+  },
+  "criterion_C3_kept": false,
+  "linked": 85,
+  "rows": 1226,
+  "s2_res": 3.2299,
+  "s2d_res": 1.3728,
+  "slope_boot_cells_95": {
+   "1": [
+    0.515,
+    0.654,
+    0.813
+   ],
+   "3+": [
+    0.625,
+    0.741,
+    0.851
+   ]
+  },
+  "tau2_res": 0.7347
+ },
+ "family": {
+  "S": 44,
+  "benchmarks_with_rows": 40,
+  "bins": {
+   "1": {
+    "cells": 48,
+    "corr": 0.639,
+    "k_mean": 1.0,
+    "model_w_clip_tau": 0.096,
+    "model_w_raw_tau": 0.432,
+    "names": null,
+    "slope": 0.61
+   },
+   "2": {
+    "cells": 28,
+    "corr": 0.541,
+    "k_mean": 2.0,
+    "model_w_clip_tau": 0.176,
+    "model_w_raw_tau": 0.603,
+    "names": null,
+    "slope": 0.551
+   },
+   "3+": {
+    "cells": 67,
+    "corr": 0.787,
+    "k_mean": 5.4,
+    "model_w_clip_tau": 0.366,
+    "model_w_raw_tau": 0.804,
+    "names": null,
+    "slope": 0.757
+   },
+   "3-4": {
+    "cells": 29,
+    "corr": 0.778,
+    "k_mean": 3.45,
+    "model_w_clip_tau": 0.269,
+    "model_w_raw_tau": 0.724,
+    "names": null,
+    "slope": 0.639
+   },
+   "5+": {
+    "cells": 38,
+    "corr": 0.633,
+    "k_mean": 6.89,
+    "model_w_clip_tau": 0.424,
+    "model_w_raw_tau": 0.84,
+    "names": null,
+    "slope": 0.992
+   }
+  },
+  "criterion_C3_kept": false,
+  "linked": 74,
+  "rows": 1001,
+  "s2_res": 3.7579,
+  "s2d_res": 1.8726,
+  "slope_boot_cells_95": {
+   "1": [
+    0.429,
+    0.609,
+    0.796
+   ],
+   "3+": [
+    0.606,
+    0.759,
+    0.904
+   ]
+  },
+  "tau2_res": 1.4241
+ },
+ "what": "The identity-transfer slopes on the selection half and the legacy five only"
+}

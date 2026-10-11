@@ -1,0 +1,88 @@
+{
+ "E": 132,
+ "count": {
+  "C": 14,
+  "S": 0
+ },
+ "families": [
+  "bridging_gap",
+  "harmbench",
+  "helm_thaiexam",
+  "legalbench",
+  "medhelm_ehr_sql"
+ ],
+ "helm_hosted": {
+  "helm_afr": {
+   "family": "bridging_gap",
+   "half": "C",
+   "suite": "mmlu-winogrande-afr"
+  },
+  "helm_bbq": {
+   "family": "harmbench",
+   "half": "C",
+   "suite": "safety"
+  },
+  "helm_thaiexam": {
+   "family": "helm_thaiexam",
+   "half": "C",
+   "suite": "thaiexam"
+  },
+  "legalbench": {
+   "family": "legalbench",
+   "half": "C",
+   "suite": "lite"
+  },
+  "medhelm_ehr_sql": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_head_qa": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_med_mcqa": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_med_qa": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_medbullets": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_medcalc_bench": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_medec": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_medhallu": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_pubmed_qa": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  },
+  "medhelm_race_based_med": {
+   "family": "medhelm_ehr_sql",
+   "half": "C",
+   "suite": "medhelm"
+  }
+ },
+ "rule": "own catalogue source_url: host crfm.stanford.edu, first path segment helm",
+ "what": "The descriptive HELM-hosted cut (amendment 4; the re-check's recommended item)."
+}

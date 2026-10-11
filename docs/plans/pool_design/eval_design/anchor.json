@@ -1,0 +1,52 @@
+{
+ "what": "How far a refitted attribute ridge moves the effective level of a fixed mu0",
+ "benchmarks": 132,
+ "pairs": 12668,
+ "archive3": {
+  "benchmark_weighted_mean": -1.0265258311356105,
+  "sd_of_benchmark_means": 1.9448819049016262,
+  "pair_weighted_mean": -0.16788255818310394,
+  "pair_sd": 1.2346140142915407,
+  "named_pair_mean": -0.4993627366903849,
+  "unnamed_pair_mean": 0.14419142443302274,
+  "named_pairs": 6143,
+  "unnamed_pairs": 6525
+ },
+ "pool_prototype": {
+  "benchmark_weighted_mean": -0.01917972568630257,
+  "sd_of_benchmark_means": 0.2834978898236391,
+  "pair_weighted_mean": 0.01654027995158809,
+  "pair_sd": 0.2441405007584789,
+  "named_pair_mean": -0.035783188403215906,
+  "unnamed_pair_mean": 0.0658005199674595,
+  "named_pairs": 6143,
+  "unnamed_pairs": 6525
+ },
+ "shift_of_effective_level_at_attr_scale_0.5": {
+  "benchmark_weighted": 0.5036730527246539,
+  "pair_weighted": 0.092211419067346,
+  "note": "pool prototype minus archive-3: the effective centre mu0 + 0.5 m moves by this when LEVEL's mu0 -2.5 is kept over the refitted ridge; C2 subtracts it from mu0"
+ },
+ "archive3_hyper": {
+  "mu0": -2.5,
+  "sigma_mu": 2.5,
+  "nu_mu": 0.0,
+  "sigma_theta": 0.1,
+  "sigma_delta": 2.382000817605215,
+  "sigma_attr": 1.0179595665817982,
+  "sigma_d": 2.671083633914518,
+  "sigma_g": 1.5421508550685508,
+  "slip": 0.01,
+  "guess": 0.5,
+  "text_share": 0.2,
+  "id_cap": 0.1,
+  "attr_scale": 0.5,
+  "shift": 0.0
+ },
+ "pool_prototype_meta": {
+  "total_var": 2.607525635109617,
+  "s2_res": 2.564124408840379,
+  "tau2_res": 0.40298296450903937,
+  "linked": 167
+ }
+}

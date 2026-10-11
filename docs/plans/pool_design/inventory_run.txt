@@ -1,0 +1,18 @@
+catalogue {'entries': 255, 'release': {'public': 252, 'withheld': 3}, 'public_by_type': {'binary': 143, 'mixed': 45, 'continuous_bounded': 14, 'continuous': 14, 'likert_5': 4, 'ordinal': 14, 'continuous_unbounded': 5, 'fraction': 8, 'likert_10': 1, 'nominal': 2, 'win_rate': 2}, 'public_granularity': {'item': 252}, 'withheld': ['imagenet_hard', 'swe_together', 'visual_memory']} 3s
+25/252 13s
+50/252 19s
+75/252 24s
+100/252 26s
+125/252 29s
+150/252 46s
+175/252 85s
+200/252 89s
+225/252 92s
+250/252 104s
+legacy matharena {'subjects_identical': True, 'subjects_old_new': [104, 104], 'rows_old_new': [92944, 92944], 'response_multiset_identical_ignoring_item_id': True, 'row_order_identical': False, 'item_ids_old_new_shared': [1755, 1755, 1755], 'eligible_pairs_old_new': [81, 81], 'pairs_only_old': 0, 'pairs_only_new': 0, 'n_items_differ': 0, 'k_first_differ': 0, 'k_first_abs_diff_sum': 0, 'k_all_differ': 0, 'old_level_cc': 0.7347339897105646, 'new_level_cc': 0.7347339897105646}
+legacy multi_swebench {'subjects_identical': True, 'subjects_old_new': [82, 82], 'rows_old_new': [57975, 57975], 'response_multiset_identical_ignoring_item_id': False, 'row_order_identical': True, 'item_ids_old_new_shared': [2126, 2127, 339], 'eligible_pairs_old_new': [82, 82], 'pairs_only_old': 0, 'pairs_only_new': 0, 'n_items_differ': 27, 'k_first_differ': 0, 'k_first_abs_diff_sum': 0, 'k_all_differ': 0, 'old_level_cc': -1.6132632140659424, 'new_level_cc': -1.614322099103322}
+legacy real_webagents {'subjects_identical': True, 'subjects_old_new': [33, 33], 'rows_old_new': [4449, 4449], 'response_multiset_identical_ignoring_item_id': True, 'row_order_identical': True, 'item_ids_old_new_shared': [233, 233, 233], 'eligible_pairs_old_new': [26, 26], 'pairs_only_old': 0, 'pairs_only_new': 0, 'n_items_differ': 0, 'k_first_differ': 0, 'k_first_abs_diff_sum': 0, 'k_all_differ': 0, 'old_level_cc': -0.9174939784294551, 'new_level_cc': -0.9174939784294551}
+legacy researchcodebench {'subjects_identical': True, 'subjects_old_new': [31, 31], 'rows_old_new': [6784, 6784], 'response_multiset_identical_ignoring_item_id': True, 'row_order_identical': True, 'item_ids_old_new_shared': [212, 212, 212], 'eligible_pairs_old_new': [31, 31], 'pairs_only_old': 0, 'pairs_only_new': 0, 'n_items_differ': 0, 'k_first_differ': 0, 'k_first_abs_diff_sum': 0, 'k_all_differ': 0, 'old_level_cc': -0.7412282121186733, 'new_level_cc': -0.7412282121186733}
+legacy swe_rebench {'subjects_identical': True, 'subjects_old_new': [1, 1], 'rows_old_new': [67074, 67074], 'response_multiset_identical_ignoring_item_id': True, 'row_order_identical': True, 'item_ids_old_new_shared': [6306, 6306, 6306], 'eligible_pairs_old_new': [1, 1], 'pairs_only_old': 0, 'pairs_only_new': 0, 'n_items_differ': 0, 'k_first_differ': 0, 'k_first_abs_diff_sum': 0, 'k_all_differ': 0, 'old_level_cc': -0.09901851265730816, 'new_level_cc': -0.09901851265730816}
+legacy mmdocrag {'subjects_identical': True, 'subjects_old_new': [68, 68], 'rows_old_new': [342695, 342695], 'response_multiset_identical_ignoring_item_id': True, 'row_order_identical': True, 'item_ids_old_new_shared': [2000, 2000, 2000], 'eligible_pairs_old_new': [51, 51], 'pairs_only_old': 0, 'pairs_only_new': 0, 'n_items_differ': 0, 'k_first_differ': 0, 'k_first_abs_diff_sum': 0, 'k_all_differ': 0, 'old_level_cc': 3.5477552197903655, 'new_level_cc': 3.5477552197903655}
+done 111.2 s
