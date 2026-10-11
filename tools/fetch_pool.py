@@ -64,6 +64,8 @@ def main(argv=None):
     ap.add_argument("--items", action="store_true", help="also fetch items.parquet")
     ap.add_argument("--only", default=None, help="comma-separated benchmarks")
     ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument("--items-skip", default="",
+                    help="comma-separated benchmarks whose item table is not fetched (e.g. not in the training set and too large)")
     a = ap.parse_args(argv)
     from huggingface_hub import HfApi
     import pandas as pd
@@ -78,6 +80,7 @@ def main(argv=None):
     t0 = time.time()
     manifest = {"repo": REPO, "revision": rev, "fetched_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "tables": ["benchmarks", "subjects", "responses"] + (["items"] if a.items else []),
+                "items_skipped": sorted(x for x in a.items_skip.split(",") if x),
                 "benchmarks": {}}
 
     def one(b):
@@ -95,7 +98,8 @@ def main(argv=None):
         if rec["release"] != "public":
             rec["status"] = "not public"
             return b, rec
-        for t in ["subjects", "responses"] + (["items"] if a.items else []):
+        skip = {x for x in a.items_skip.split(",") if x}
+        for t in ["subjects", "responses"] + (["items"] if a.items and b not in skip else []):
             p = get(f"{b}/formatted_tables/{t}.parquet", rev, a.out)
             if p is not None:
                 rec["files"][f"{t}.parquet"] = {"bytes": os.path.getsize(p), "sha256": sha256(p)}
