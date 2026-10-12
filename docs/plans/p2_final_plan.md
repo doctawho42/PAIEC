@@ -550,3 +550,29 @@ amendment governs; the design file and its sha256 are unchanged.
   2026-10-11 21:24 UTC (3d38232); its heading's date is the Moscow date.
 
 Confirmed by the author on 2026-10-12.
+
+## Amendment 4b (2026-10-12): what "every pooled hyperparameter" covers, and a wider freeze
+
+Committed on 2026-10-12, before the lock of amendment 4 and before any
+predictor was scored on the pool. Where this amendment, amendment 4a and
+`docs/plans/p2_pool_eval.md` differ, this amendment governs.
+
+- **The attribute ridge's residual variance is a pooled hyperparameter.** The
+  pre-lock run found that the three degenerate fits of amendment 4a, through
+  their posterior variances, raise the attribute ridge's residual variance
+  s2_res to 28.33, so every subject's attribute variance u is on average about
+  12 times what it is without them (0.260 against 0.022; archive-3 0.180). In
+  amendment 4a's rule, "every pooled hyperparameter" includes s2_res and so u:
+  both are computed without the benchmarks that rule leaves out. The subject
+  standings and the identity table still use every row, as amendment 4a says;
+  sigma_delta is read as if the three were absent (2.040).
+- **The freeze covers the rows and the completeness checks.** The decision
+  arithmetic frozen by amendment 4a also includes the functions that decide
+  which rows reach it and whether a stage is complete (`load_rows`,
+  `missing_tasks`, `row_path`), the per-pair Brier (`score_preds`), and the
+  list of stages that gate condition (g) reads, which becomes a constant of the
+  locked block. Every constants-block object is checked against its locked
+  digest when each post-lock stage starts and ends, so a run-time change to one
+  (for example to the rule's thresholds) fails the stage.
+
+Confirmed by the author on 2026-10-12.
