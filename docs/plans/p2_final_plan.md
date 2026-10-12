@@ -517,3 +517,36 @@ for a descriptive placement; if archive-4 ships, run 4's table is used as §4
 allows. `docs/report/draft.md:305`, App G.2 and App G.6 are amended as
 p2_pool_eval §11 words them. The author confirms, in the commit of this
 amendment, that nothing else from the feedback was read for this evaluation.
+
+## Amendment 4a (2026-10-12): degenerate fits, and the decision arithmetic frozen
+
+Committed on 2026-10-12 before the lock of amendment 4 and before any
+predictor was scored on the pool, so amendment 4's precedence clause does not
+yet bind. Where this amendment and `docs/plans/p2_pool_eval.md` differ, this
+amendment governs; the design file and its sha256 are unchanged.
+
+- **Degenerate fits.** The dry run of the `fits` stage (no score computed)
+  found three free per-benchmark fits whose item variance is far outside the
+  rest: multi_moe 963,196 (Newton not converged), finegrain_t2i 298 and
+  revolve 101, each on 2 to 5 pairs. Over the 124 free fits the median item
+  variance is 6.6, the 90th percentile 17.7 and the largest of the others
+  35.9 (disco). Kept, the three push every candidate's sigma_delta to 7.39
+  (archive-3 2.38; 2.04 without them). Rule, applied to every candidate and
+  fixed from these fit diagnostics alone: a benchmark whose free fit has an
+  item variance above 50 is left out of every pooled hyperparameter (the item
+  variance, sigma_delta, the group share and the level distribution of C2 and
+  the matching of C1m). Its pairs still serve the subject standings and the
+  identity table, and its benchmark stays in the evaluation sets. On this pool
+  the rule leaves out exactly multi_moe, finegrain_t2i and revolve; the lock
+  records the list, and the threshold is a constant of the locked block.
+- **The decision arithmetic is frozen.** The functions of
+  `experiments/pool_eval.py` that compute the decision (the paired
+  differences, the cluster and two-way SEs, PB, JK, latency, the selection
+  and the gate) are frozen by an AST rule like `paiec/pool.py`'s, recorded at
+  the lock. A post-lock fix that would change any of them is outside the fix
+  scope of amendment 4 (section 4.4, Reading 4), so it gives "archive-3
+  stays" for the candidates it affects.
+- **Date of commit 1.** Amendment 4 was committed on 2026-10-12 Moscow time,
+  2026-10-11 21:24 UTC (3d38232); its heading's date is the Moscow date.
+
+Confirmed by the author on 2026-10-12.
