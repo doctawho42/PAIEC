@@ -576,3 +576,29 @@ predictor was scored on the pool. Where this amendment, amendment 4a and
   (for example to the rule's thresholds) fails the stage.
 
 Confirmed by the author on 2026-10-12.
+
+## Amendment 4c (2026-10-13): the calendar moved by two days
+
+Committed on 2026-10-13 at about 16:15 UTC, before the lock of amendment 4 and
+before any predictor was scored on the pool, so amendment 4's precedence clause
+does not yet bind. The pre-lock work of amendments 4a and 4b (re-running every
+pre-lock stage from an empty state) was interrupted twice by network outages on
+2026-10-12 and 2026-10-13. On 2026-10-13 the author allowed the dates to move.
+Every hard stop of amendment 4 (section 4.5 and `RULE_TEXT` Readings 1 and 4)
+moves by two days, all at 23:59 UTC:
+
+| stop | was | now |
+|---|---|---|
+| the lock committed | 2026-10-13 | 2026-10-15 |
+| the selection, then the gate, committed | 2026-10-15 | 2026-10-17 |
+| archive-4 built, through S3 and announced (amendment 5) | 2026-10-16 | 2026-10-18 |
+| the one regression upload | 2026-10-17 | 2026-10-19 |
+| the final recorded | 2026-10-20 | 2026-10-22 |
+
+Missing any of them still leaves archive-3 the final. Nothing else changes: the
+candidates, the split, the regimes, the seeds, the counts, the statistics, the
+gate and the fix scope stay as amendments 4, 4a and 4b fix them. The lock records
+this amendment's text digest with those of 4a and 4b; where `RULE_TEXT` names a
+date, this amendment's date governs.
+
+Confirmed by the author on 2026-10-13.
