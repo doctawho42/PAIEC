@@ -1,0 +1,1420 @@
+{
+ "benchmarks": 255,
+ "families": 230,
+ "family_of": {
+  "abstract_reason": "abstract_reason",
+  "adaptivestep": "adaptivestep",
+  "advprompter": "advprompter",
+  "aegis": "aegis",
+  "afrieval": "afrieval",
+  "afrimedqa": "afrimedqa",
+  "agc_bench": "agc_bench",
+  "agentdojo": "agentdojo",
+  "agentic_review_perturbation": "agentic_review_perturbation",
+  "agi_elo": "agi_elo",
+  "ai2d_test": "ai2d_test",
+  "aider": "aider",
+  "algotune": "algotune",
+  "alignment_faking": "alignment_faking",
+  "alpacaeval": "alpacaeval",
+  "alpha_sql": "alpha_sql",
+  "annotating_errors_wcf": "annotating_errors_wcf",
+  "appworld": "appworld",
+  "arcagi": "arcagi",
+  "atmossci_bench": "atmossci_bench",
+  "auditing_sabotage_bench": "auditing_sabotage_bench",
+  "autoresearchbench": "autoresearchbench",
+  "averimatec": "averimatec",
+  "babilong": "babilong",
+  "bbq": "bbq",
+  "beavertails": "beavertails",
+  "bedd_basalt": "bedd_basalt",
+  "benger": "benger",
+  "bertaqa": "bertaqa",
+  "bigfinancebench": "bigfinancebench",
+  "biggen": "biggen",
+  "bird_sql": "bird_sql",
+  "brace": "brace",
+  "bridging_gap": "bridging_gap",
+  "care_enzymes": "care_enzymes",
+  "causal_axioms": "causal_axioms",
+  "cellverse": "cellverse",
+  "ceobench": "ceobench",
+  "ceval": "ceval",
+  "chartmuseum": "chartmuseum",
+  "chatgpt_drift": "chatgpt_drift",
+  "chi_bench": "chi_bench",
+  "chipbench": "chipbench",
+  "clasheval": "clasheval",
+  "classroom_ai": "classroom_ai",
+  "cmmlu": "cmmlu",
+  "coffeebench": "coffeebench",
+  "complexbench": "complexbench",
+  "confagents": "confagents",
+  "corebench": "corebench",
+  "critic_discernment_game": "critic_discernment_game",
+  "crow": "crow",
+  "cruxeval": "cruxeval",
+  "csedb": "csedb",
+  "cseo_bench": "cseo_bench",
+  "das_med_hallucination": "das_med_hallucination",
+  "data_juicer2": "data_juicer2",
+  "dataclawbench": "dataclawbench",
+  "dave": "dave",
+  "dbpa": "dbpa",
+  "decodingtrust": "decodingtrust",
+  "decompile_bench": "decompile_bench",
+  "devbench": "devbench",
+  "disco": "disco",
+  "donotanswer": "donotanswer",
+  "doris_mae": "doris_mae",
+  "dpai": "dpai",
+  "dqvis": "dqvis",
+  "editbench": "editbench",
+  "edu_circuit_hw": "edu_circuit_hw",
+  "eduguardbench": "eduguardbench",
+  "edumath": "edumath",
+  "egoschema": "egoschema",
+  "ehrflowbench": "ehrflowbench",
+  "elicitation_game": "elicitation_game",
+  "embodied_agent_interface": "embodied_agent_interface",
+  "emoji_attack": "emoji_attack",
+  "engdesign": "engdesign",
+  "engibench": "engibench",
+  "enginemt_qa": "enginemt_qa",
+  "evouna": "evouna",
+  "faithcot": "faithcot",
+  "felm": "felm",
+  "fetv": "fetv",
+  "fewshot_ttt_bbh": "fewshot_ttt_bbh",
+  "fgbench": "fgbench",
+  "financebench": "financebench",
+  "find_interp": "find_interp",
+  "finegrain_t2i": "finegrain_t2i",
+  "frontieror": "frontieror",
+  "genai_learning": "genai_learning",
+  "ghosts_math": "ghosts_math",
+  "goodai_ltm_benchmark": "goodai_ltm_benchmark",
+  "haiid": "haiid",
+  "hallusionbench": "ai2d_test",
+  "harmbench": "harmbench",
+  "healthadminbench": "healthadminbench",
+  "helm_afr": "bridging_gap",
+  "helm_airbench": "helm_airbench",
+  "helm_anthropic_redteam": "harmbench",
+  "helm_bbq": "harmbench",
+  "helm_bold": "helm_bold",
+  "helm_cleva": "helm_cleva",
+  "helm_harmbench": "harmbench",
+  "helm_real_toxicity_prompts": "helm_bold",
+  "helm_simple_safety_tests": "harmbench",
+  "helm_thaiexam": "helm_thaiexam",
+  "helm_xstest": "harmbench",
+  "hivmedqa": "hivmedqa",
+  "hle": "hle",
+  "icpc2_code_selector": "icpc2_code_selector",
+  "igakuqa": "igakuqa",
+  "igakuqa119": "igakuqa119",
+  "ikp": "ikp",
+  "image2struct": "image2struct",
+  "imagenet_hard": "imagenet_hard",
+  "imgedit": "imgedit",
+  "indeterminacy": "indeterminacy",
+  "ineqmath": "ineqmath",
+  "infibench": "infibench",
+  "interchangeable_token_embeddings": "interchangeable_token_embeddings",
+  "intercode": "intercode",
+  "jailbreakbench": "jailbreakbench",
+  "jetts": "jetts",
+  "judgetuning": "judgetuning",
+  "katakomba": "katakomba",
+  "kernelbench": "kernelbench",
+  "kmmlu": "kmmlu",
+  "kormedmcqa": "kmmlu",
+  "kris_bench": "kris_bench",
+  "lambda_fp_course": "lambda_fp_course",
+  "lawbench": "lawbench",
+  "legal_rag_bench": "legal_rag_bench",
+  "legalbench": "legalbench",
+  "lexeval": "lexeval",
+  "lingoly": "lingoly",
+  "live_agent_risk": "live_agent_risk",
+  "liveaopsbench": "liveaopsbench",
+  "livebench": "livebench",
+  "llm4ir": "llm4ir",
+  "llm_bp_tag": "llm_bp_tag",
+  "llm_survey_simulation": "llm_survey_simulation",
+  "llm_uncertainty_bench": "llm_uncertainty_bench",
+  "llmail_inject": "llmail_inject",
+  "llms_lean_formalization": "llms_lean_formalization",
+  "lohi_drug_discovery": "lohi_drug_discovery",
+  "matharena": "matharena",
+  "matharena_platform": "matharena_platform",
+  "mathconstraint": "mathconstraint",
+  "mathvista_mini": "ai2d_test",
+  "medhelm_ehr_sql": "medhelm_ehr_sql",
+  "medhelm_head_qa": "medhelm_ehr_sql",
+  "medhelm_med_mcqa": "medhelm_ehr_sql",
+  "medhelm_med_qa": "medhelm_ehr_sql",
+  "medhelm_medbullets": "medhelm_ehr_sql",
+  "medhelm_medcalc_bench": "medhelm_ehr_sql",
+  "medhelm_medec": "medhelm_ehr_sql",
+  "medhelm_medhallu": "medhelm_ehr_sql",
+  "medhelm_pubmed_qa": "medhelm_ehr_sql",
+  "medhelm_race_based_med": "medhelm_ehr_sql",
+  "medwatermark_fws": "medwatermark_fws",
+  "mind2web": "mind2web",
+  "mj_bench": "mj_bench",
+  "mlip_arena": "mlip_arena",
+  "mlrbench": "mlrbench",
+  "mmbench_v11": "ai2d_test",
+  "mmdocrag": "mmdocrag",
+  "mmedbench": "mmedbench",
+  "mmlu": "mmlu",
+  "mmlupro": "mmlupro",
+  "mmmu_dev_val": "ai2d_test",
+  "mmoral_bench": "mmoral_bench",
+  "mochi": "mochi",
+  "moe_cap": "moe_cap",
+  "monkey_power_laws": "kernelbench",
+  "morphkv": "morphkv",
+  "mtbbench": "mtbbench",
+  "multi_moe": "multi_moe",
+  "multi_swebench": "multi_swebench",
+  "multimodal_stem_ai": "multimodal_stem_ai",
+  "mypcbench": "mypcbench",
+  "naep_llm_students": "naep_llm_students",
+  "nanobaselib": "nanobaselib",
+  "naturalreasoning": "naturalreasoning",
+  "nester": "nester",
+  "nis3d": "nis3d",
+  "oasst": "oasst",
+  "ocrbench_v2": "ocrbench_v2",
+  "ood_prediction": "ood_prediction",
+  "openbiorq": "openbiorq",
+  "perumedqa": "perumedqa",
+  "phyblock": "phyblock",
+  "pku_saferlhf": "pku_saferlhf",
+  "planbench": "planbench",
+  "preference_dissection": "preference_dissection",
+  "prism": "prism",
+  "prm800k": "prm800k",
+  "proofaug": "proofaug",
+  "proteininvbench": "proteininvbench",
+  "prox": "prox",
+  "psychosis_bench": "psychosis_bench",
+  "putnam_axiom": "putnam_axiom",
+  "qatch": "qatch",
+  "rakuda": "rakuda",
+  "rclicks": "rclicks",
+  "real_pocqi": "real_pocqi",
+  "real_webagents": "real_webagents",
+  "reasoning_gym": "reasoning_gym",
+  "refgrader": "refgrader",
+  "researchclawbench": "researchclawbench",
+  "researchcodebench": "researchcodebench",
+  "revolve": "revolve",
+  "rewardbench": "rewardbench",
+  "risebench": "risebench",
+  "safeagentbench": "safeagentbench",
+  "scale_mrt": "scale_mrt",
+  "sciarena": "sciarena",
+  "scigym": "scigym",
+  "sib200": "sib200",
+  "software_world_models": "software_world_models",
+  "stanford_orb": "stanford_orb",
+  "statqa": "statqa",
+  "subjective_qa": "subjective_qa",
+  "sugarcrepe": "sugarcrepe",
+  "sustainable_food": "sustainable_food",
+  "svrpbench": "svrpbench",
+  "swe_rebench": "swe_rebench",
+  "swe_smith": "swe_smith",
+  "swe_together": "swe_together",
+  "swepolybench": "swepolybench",
+  "synthpai": "synthpai",
+  "tau2_bench": "tau2_bench",
+  "taubench": "taubench",
+  "tengu": "rakuda",
+  "tensortrust": "tensortrust",
+  "theagentcompany": "theagentcompany",
+  "threeeed": "threeeed",
+  "truthfulqa_mc": "mmlu",
+  "tulu_human_eval": "tulu_human_eval",
+  "tumlu": "tumlu",
+  "vhelm": "vhelm",
+  "visit_bench": "visit_bench",
+  "visual_memory": "visual_memory",
+  "visual_riddles": "visual_riddles",
+  "visualwebarena": "visualwebarena",
+  "vl_rewardbench": "vl_rewardbench",
+  "weavebench": "weavebench",
+  "wikihow_agent": "wikihow_agent",
+  "wildvision": "wildvision",
+  "wmt_mqm": "wmt_mqm",
+  "wonderbread": "wonderbread",
+  "workarena": "visualwebarena",
+  "workbench_revisited": "workbench_revisited",
+  "worldcentralbanks": "worldcentralbanks",
+  "xstest": "xstest"
+ },
+ "joining_keys": {
+  "ai2d_test": [
+   "src:huggingface.co/datasets/VLMEval"
+  ],
+  "bridging_gap": [
+   "paper:arxiv:2412.12417"
+  ],
+  "harmbench": [
+   "paper:arxiv:2402.04249",
+   "src:crfm.stanford.edu/helm/safety"
+  ],
+  "helm_bold": [
+   "src:crfm.stanford.edu/helm/classic"
+  ],
+  "kernelbench": [
+   "src:huggingface.co/datasets/ScalingIntelligence"
+  ],
+  "kmmlu": [
+   "src:github.com/daekeun-ml/evaluate-llm-on-korean-dataset"
+  ],
+  "medhelm_ehr_sql": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "mmlu": [
+   "src:huggingface.co/open-llm-leaderboard-old"
+  ],
+  "rakuda": [
+   "src:github.com/shisa-ai/shaberi"
+  ],
+  "visualwebarena": [
+   "src:huggingface.co/datasets/McGill-NLP"
+  ]
+ },
+ "keys": {
+  "abstract_reason": [
+   "paper:arxiv:2505.23833",
+   "src:github.com/MAC-AutoML/abstract-reason-benchmark"
+  ],
+  "adaptivestep": [
+   "paper:proceedings.mlr.press/v267/liu25aq.html",
+   "src:github.com/Lux0926/ASPRM"
+  ],
+  "advprompter": [
+   "paper:arxiv:2404.16873",
+   "src:github.com/thu-coai/AISafetyLab"
+  ],
+  "aegis": [
+   "paper:aclanthology.org/2025.naacl-long.306",
+   "src:huggingface.co/datasets/nvidia"
+  ],
+  "afrieval": [
+   "paper:doi:10.1162/tacl_a_00416",
+   "src:github.com/masakhane-io/masakhane-ner"
+  ],
+  "afrimedqa": [
+   "paper:aclanthology.org/2025.acl-long.96",
+   "src:github.com/intron-innovation/AfriMed-QA"
+  ],
+  "agc_bench": [
+   "paper:arxiv:2607.01152",
+   "src:huggingface.co/datasets/agcbench-2026"
+  ],
+  "agentdojo": [
+   "paper:arxiv:2406.13352",
+   "src:github.com/ethz-spylab/agentdojo"
+  ],
+  "agentic_review_perturbation": [
+   "paper:arxiv:2606.19749",
+   "src:github.com/ChicagoHAI/OpenAIReview"
+  ],
+  "agi_elo": [
+   "paper:openreview:hYVhxKGD8Y",
+   "src:github.com/SS47816/AGI-Elo"
+  ],
+  "ai2d_test": [
+   "paper:arxiv:1603.07396",
+   "src:huggingface.co/datasets/VLMEval"
+  ],
+  "aider": [
+   "src:github.com/paraemsi/Reducing-violations-paper-data"
+  ],
+  "algotune": [
+   "paper:openreview:dF1tD9hjvn",
+   "src:github.com/oripress/AlgoTune"
+  ],
+  "alignment_faking": [
+   "paper:alignment.anthropic.com/2025/alignment-faking-mitigations",
+   "src:huggingface.co/datasets/Anthropic"
+  ],
+  "alpacaeval": [
+   "paper:arxiv:2404.04475",
+   "src:github.com/tatsu-lab/alpaca_eval"
+  ],
+  "alpha_sql": [
+   "paper:arxiv:2502.17248",
+   "src:github.com/HKUSTDial/Alpha-SQL"
+  ],
+  "annotating_errors_wcf": [
+   "paper:arxiv:2508.06810",
+   "src:github.com/coynestevencharles/annotating-errors-wcf"
+  ],
+  "appworld": [
+   "paper:arxiv:2407.18901",
+   "src:github.com/StonyBrookNLP/appworld-leaderboard"
+  ],
+  "arcagi": [
+   "paper:arxiv:1911.01547",
+   "src:huggingface.co/datasets/arcprize"
+  ],
+  "atmossci_bench": [
+   "paper:openreview:vDm8VWYYuX",
+   "src:github.com/Relaxed-System-Lab/AtmosSci-Bench"
+  ],
+  "auditing_sabotage_bench": [
+   "paper:arxiv:2604.16286",
+   "src:github.com/ejcgan/auditing-sabotage-bench"
+  ],
+  "autoresearchbench": [
+   "paper:arxiv:2604.25256",
+   "src:github.com/CherYou/AutoResearchBench"
+  ],
+  "averimatec": [
+   "paper:arxiv:2505.17978",
+   "src:github.com/heruberuto/AVerImaTec_Shared_Task"
+  ],
+  "babilong": [
+   "paper:arxiv:2406.10149",
+   "src:huggingface.co/datasets/RMT-team"
+  ],
+  "bbq": [
+   "paper:aclanthology.org/2022.findings-acl.165",
+   "src:github.com/nyu-mll/BBQ"
+  ],
+  "beavertails": [
+   "paper:arxiv:2307.04657",
+   "src:github.com/PKU-Alignment/beavertails"
+  ],
+  "bedd_basalt": [
+   "paper:arxiv:2312.02405",
+   "src:zenodo.org/records/8021960"
+  ],
+  "benger": [
+   "paper:arxiv:2605.28183",
+   "src:zenodo.org/records/20489788"
+  ],
+  "bertaqa": [
+   "paper:arxiv:2406.07302",
+   "src:github.com/juletx/BertaQA"
+  ],
+  "bigfinancebench": [
+   "paper:arxiv:2606.03829",
+   "src:huggingface.co/datasets/RogoAI"
+  ],
+  "biggen": [
+   "paper:arxiv:2406.05761",
+   "src:huggingface.co/datasets/prometheus-eval"
+  ],
+  "bird_sql": [
+   "paper:arxiv:2305.03111",
+   "src:github.com/petavue/NL2SQL-Benchmark"
+  ],
+  "brace": [
+   "paper:openreview:MdEkxa6PV9",
+   "src:github.com/inseong00/CAF-Score"
+  ],
+  "bridging_gap": [
+   "paper:arxiv:2412.12417",
+   "src:github.com/InstituteforDiseaseModeling/Bridging-the-Gap-Low-Resource-African-Languages"
+  ],
+  "care_enzymes": [
+   "paper:arxiv:2406.15669",
+   "src:github.com/jsunn-y/CARE"
+  ],
+  "causal_axioms": [
+   "paper:arxiv:2407.07612",
+   "src:github.com/AniketVashishtha/Causal_Axioms"
+  ],
+  "cellverse": [
+   "paper:arxiv:2505.07865",
+   "src:github.com/zfkarl/CellVerse"
+  ],
+  "ceobench": [
+   "paper:arxiv:2606.18543",
+   "src:ceobench.com/trajectory-viewer"
+  ],
+  "ceval": [
+   "paper:arxiv:2305.08322",
+   "src:github.com/liyucheng09/Contamination_Detector"
+  ],
+  "chartmuseum": [
+   "paper:arxiv:2505.13444",
+   "src:github.com/Liyan06/ChartMuseum"
+  ],
+  "chatgpt_drift": [
+   "paper:arxiv:2307.09009",
+   "src:github.com/lchen001/LLMDrift"
+  ],
+  "chi_bench": [
+   "paper:arxiv:2605.16679",
+   "src:github.com/actava-ai/leaderboard"
+  ],
+  "chipbench": [
+   "paper:openreview:gDkQ5iesrI",
+   "src:huggingface.co/datasets/MIRA-Lab"
+  ],
+  "clasheval": [
+   "paper:arxiv:2404.10198",
+   "src:github.com/kevinwu23/StanfordClashEval"
+  ],
+  "classroom_ai": [
+   "paper:arxiv:2601.06225",
+   "src:github.com/harryoh99/ClassroomAI"
+  ],
+  "cmmlu": [
+   "paper:arxiv:2306.09212",
+   "src:huggingface.co/datasets/opencompass"
+  ],
+  "coffeebench": [
+   "paper:arxiv:2606.16613",
+   "src:pub.sakana.ai/coffeebench/trajectories.html"
+  ],
+  "complexbench": [
+   "paper:arxiv:2407.03978",
+   "src:github.com/thu-coai/ComplexBench"
+  ],
+  "confagents": [
+   "paper:arxiv:2508.04915",
+   "src:github.com/PKU-AICare/evaluation-playground"
+  ],
+  "corebench": [
+   "paper:arxiv:2409.11363",
+   "src:github.com/siegelz/core-bench"
+  ],
+  "critic_discernment_game": [
+   "paper:arxiv:2506.22920",
+   "src:github.com/PinzhengWang322/Critic_Discernment_Game"
+  ],
+  "crow": [
+   "paper:arxiv:2411.12768",
+   "src:github.com/NayMyatMin/BackdoorLLM"
+  ],
+  "cruxeval": [
+   "paper:arxiv:2401.03065",
+   "src:github.com/facebookresearch/cruxeval"
+  ],
+  "csedb": [
+   "paper:arxiv:2507.23486",
+   "src:github.com/Medlinker-MG/CSEDB"
+  ],
+  "cseo_bench": [
+   "paper:arxiv:2506.11097",
+   "src:huggingface.co/datasets/parameterlab"
+  ],
+  "das_med_hallucination": [
+   "paper:arxiv:2508.00923",
+   "src:github.com/JZPeterPan/DAS-Medical-Red-Teaming-Agents"
+  ],
+  "data_juicer2": [
+   "paper:arxiv:2501.14755",
+   "src:arxiv.org/html/2501.14755v3"
+  ],
+  "dataclawbench": [
+   "paper:arxiv:2605.02503",
+   "src:github.com/GTML-LAB-sysu/DataClaw"
+  ],
+  "dave": [
+   "paper:openreview:4ZAX1NT0ms",
+   "src:huggingface.co/datasets/gorjanradevski"
+  ],
+  "dbpa": [
+   "paper:arxiv:2506.07947",
+   "src:github.com/vanderschaarlab/dbpa"
+  ],
+  "decodingtrust": [
+   "paper:arxiv:2306.11698",
+   "src:github.com/AI-secure/DecodingTrust"
+  ],
+  "decompile_bench": [
+   "paper:openreview:vZ7fJntf0a",
+   "src:huggingface.co/datasets/LLM4Binary"
+  ],
+  "devbench": [
+   "paper:arxiv:2406.10215",
+   "src:github.com/alvinwmtan/dev-bench"
+  ],
+  "disco": [
+   "paper:proceedings.mlr.press/v267/duarte25a.html",
+   "src:github.com/avduarte333/DIS-CO"
+  ],
+  "donotanswer": [
+   "paper:arxiv:2308.13387",
+   "src:huggingface.co/datasets/LibrAI"
+  ],
+  "doris_mae": [
+   "paper:arxiv:2310.04678",
+   "src:zenodo.org/records/8299749"
+  ],
+  "dpai": [
+   "paper:dpaia.dev/",
+   "src:dpaia.dev"
+  ],
+  "dqvis": [
+   "paper:openreview:AnJaRzEZZs",
+   "src:huggingface.co/datasets/HIDIVE"
+  ],
+  "editbench": [
+   "paper:arxiv:2511.04486",
+   "src:github.com/waynchi/editbench"
+  ],
+  "edu_circuit_hw": [
+   "paper:arxiv:2602.00095",
+   "src:github.com/gt-learning-innovation/CIRCUIT_EDU_HW_ACL"
+  ],
+  "eduguardbench": [
+   "paper:arxiv:2511.06890",
+   "src:github.com/YL1N/EduGuardBench"
+  ],
+  "edumath": [
+   "paper:arxiv:2510.06965",
+   "src:github.com/bryanchrist/EDUMATH"
+  ],
+  "egoschema": [
+   "paper:arxiv:2308.09126",
+   "src:github.com/CeeZh/LLoVi"
+  ],
+  "ehrflowbench": [
+   "paper:arxiv:2508.02621",
+   "src:github.com/yhzhu99/HealthFlow"
+  ],
+  "elicitation_game": [
+   "paper:arxiv:2502.02180",
+   "src:github.com/Felhof/sandbagging-elicitation"
+  ],
+  "embodied_agent_interface": [
+   "paper:arxiv:2410.07166",
+   "src:github.com/embodied-agent-interface/embodied-agent-interface"
+  ],
+  "emoji_attack": [
+   "paper:arxiv:2411.01077",
+   "src:github.com/zhipeng-wei/EmojiAttack"
+  ],
+  "engdesign": [
+   "paper:arxiv:2509.16204",
+   "src:github.com/AGI4Engineering/EngDesign"
+  ],
+  "engibench": [
+   "paper:openreview:YowD33Q89V",
+   "src:github.com/IDEALLab/EngiOpt"
+  ],
+  "enginemt_qa": [
+   "paper:arxiv:2506.20093",
+   "src:github.com/Pandalin98/ITFormer-ICML25"
+  ],
+  "evouna": [
+   "paper:arxiv:2305.12421",
+   "src:github.com/wangcunxiang/QA-Eval"
+  ],
+  "faithcot": [
+   "paper:arxiv:2510.04040",
+   "src:github.com/se7esx/FaithCoT-BENCH"
+  ],
+  "felm": [
+   "paper:arxiv:2310.00741",
+   "src:huggingface.co/datasets/hkust-nlp"
+  ],
+  "fetv": [
+   "paper:arxiv:2311.01813",
+   "src:github.com/llyx97/FETV-EVAL"
+  ],
+  "fewshot_ttt_bbh": [
+   "paper:arxiv:2411.07279",
+   "src:github.com/adamzweiger/Fewshot-TTT"
+  ],
+  "fgbench": [
+   "paper:openreview:VIsPHMMiW8",
+   "src:huggingface.co/datasets/xuan-liu"
+  ],
+  "financebench": [
+   "paper:arxiv:2311.11944",
+   "src:github.com/patronus-ai/financebench"
+  ],
+  "find_interp": [
+   "paper:arxiv:2309.03886",
+   "src:github.com/multimodal-interpretability/FIND"
+  ],
+  "finegrain_t2i": [
+   "paper:arxiv:2512.02161",
+   "src:huggingface.co/datasets/KevinDavidHayes"
+  ],
+  "frontieror": [
+   "paper:arxiv:2605.25246",
+   "src:frontieror.vercel.app/tasks.html"
+  ],
+  "genai_learning": [
+   "paper:pnas.org/doi/10.1073/pnas.2422633122",
+   "src:github.com/obastani/GenAICanHarmLearning"
+  ],
+  "ghosts_math": [
+   "paper:arxiv:2301.13867",
+   "src:github.com/friederrr/GHOSTS"
+  ],
+  "goodai_ltm_benchmark": [
+   "paper:arxiv:2409.20222",
+   "src:github.com/GoodAI/goodai-ltm-benchmark"
+  ],
+  "haiid": [
+   "paper:arxiv:2107.07015",
+   "src:github.com/kailas-v/human-ai-interactions"
+  ],
+  "hallusionbench": [
+   "paper:arxiv:2310.14566",
+   "src:huggingface.co/datasets/VLMEval"
+  ],
+  "harmbench": [
+   "paper:arxiv:2402.04249",
+   "src:github.com/justinphan3110cais/harmbench_website"
+  ],
+  "healthadminbench": [
+   "paper:arxiv:2604.09937",
+   "src:github.com/som-shahlab/health-admin-bench"
+  ],
+  "helm_afr": [
+   "paper:arxiv:2412.12417",
+   "src:crfm.stanford.edu/helm/mmlu-winogrande-afr"
+  ],
+  "helm_airbench": [
+   "paper:arxiv:2407.17436",
+   "src:crfm.stanford.edu/helm/air-bench"
+  ],
+  "helm_anthropic_redteam": [
+   "paper:arxiv:2209.07858",
+   "src:crfm.stanford.edu/helm/safety"
+  ],
+  "helm_bbq": [
+   "paper:arxiv:2110.08193",
+   "src:crfm.stanford.edu/helm/safety"
+  ],
+  "helm_bold": [
+   "paper:arxiv:2101.11718",
+   "src:crfm.stanford.edu/helm/classic"
+  ],
+  "helm_cleva": [
+   "paper:arxiv:2308.04813",
+   "src:crfm.stanford.edu/helm/cleva"
+  ],
+  "helm_harmbench": [
+   "paper:arxiv:2402.04249",
+   "src:crfm.stanford.edu/helm/safety"
+  ],
+  "helm_real_toxicity_prompts": [
+   "paper:arxiv:2009.11462",
+   "src:crfm.stanford.edu/helm/classic"
+  ],
+  "helm_simple_safety_tests": [
+   "paper:arxiv:2311.08370",
+   "src:crfm.stanford.edu/helm/safety"
+  ],
+  "helm_thaiexam": [
+   "paper:arxiv:2312.13951",
+   "src:crfm.stanford.edu/helm/thaiexam"
+  ],
+  "helm_xstest": [
+   "paper:arxiv:2308.01263",
+   "src:crfm.stanford.edu/helm/safety"
+  ],
+  "hivmedqa": [
+   "paper:arxiv:2507.18143",
+   "src:zenodo.org/records/15868085"
+  ],
+  "hle": [
+   "paper:arxiv:2501.14249",
+   "src:github.com/kenmueller/supai-hle"
+  ],
+  "icpc2_code_selector": [
+   "paper:arxiv:2507.14681",
+   "src:github.com/almeidava93/llm-as-code-selectors-paper"
+  ],
+  "igakuqa": [
+   "paper:arxiv:2303.18027",
+   "src:github.com/jungokasai/IgakuQA"
+  ],
+  "igakuqa119": [
+   "paper:github.com/naoto-iwase/igakuqa119",
+   "src:github.com/naoto-iwase/IgakuQA119"
+  ],
+  "ikp": [
+   "paper:arxiv:2604.24827",
+   "src:github.com/19PINE-AI/ikp"
+  ],
+  "image2struct": [
+   "paper:arxiv:2410.22456",
+   "src:crfm.stanford.edu/helm/image2struct"
+  ],
+  "imagenet_hard": [
+   "paper:arxiv:2304.05538",
+   "src:github.com/taesiri/ZoomIsAllYouNeed"
+  ],
+  "imgedit": [
+   "paper:openreview:uUCSrMlfD3",
+   "src:huggingface.co/datasets/Andy1621"
+  ],
+  "indeterminacy": [
+   "paper:arxiv:2503.05965",
+   "src:huggingface.co/datasets/lguerdan"
+  ],
+  "ineqmath": [
+   "paper:arxiv:2506.07927",
+   "src:github.com/lupantech/ineqmath"
+  ],
+  "infibench": [
+   "paper:arxiv:2404.07940",
+   "src:figshare.com/articles/dataset"
+  ],
+  "interchangeable_token_embeddings": [
+   "paper:arxiv:2410.17161",
+   "src:huggingface.co/necrashter/interchangeable-token-embeddings"
+  ],
+  "intercode": [
+   "paper:arxiv:2306.14898",
+   "src:github.com/princeton-nlp/intercode"
+  ],
+  "jailbreakbench": [
+   "paper:arxiv:2404.01318",
+   "src:github.com/JailbreakBench/artifacts"
+  ],
+  "jetts": [
+   "paper:arxiv:2504.15253",
+   "src:github.com/SalesforceAIResearch/jetts-benchmark"
+  ],
+  "judgetuning": [
+   "paper:arxiv:2501.17178",
+   "src:huggingface.co/datasets/judge-arena"
+  ],
+  "katakomba": [
+   "paper:arxiv:2306.08772",
+   "src:wandb.ai/tlab/NetHack"
+  ],
+  "kernelbench": [
+   "paper:arxiv:2502.10517",
+   "src:huggingface.co/datasets/ScalingIntelligence"
+  ],
+  "kmmlu": [
+   "paper:arxiv:2402.11548",
+   "src:github.com/daekeun-ml/evaluate-llm-on-korean-dataset"
+  ],
+  "kormedmcqa": [
+   "paper:arxiv:2403.01469",
+   "src:github.com/daekeun-ml/evaluate-llm-on-korean-dataset"
+  ],
+  "kris_bench": [
+   "paper:arxiv:2505.16707",
+   "src:huggingface.co/datasets/Liang0223"
+  ],
+  "lambda_fp_course": [
+   "paper:arxiv:2603.05646",
+   "src:github.com/jaylene-zhang/ArtifactProgramming2025"
+  ],
+  "lawbench": [
+   "paper:arxiv:2309.16289",
+   "src:github.com/open-compass/LawBench"
+  ],
+  "legal_rag_bench": [
+   "paper:arxiv:2603.01710",
+   "src:huggingface.co/datasets/isaacus"
+  ],
+  "legalbench": [
+   "paper:arxiv:2308.11462",
+   "src:crfm.stanford.edu/helm/lite"
+  ],
+  "lexeval": [
+   "paper:arxiv:2409.20288",
+   "src:github.com/CSHaitao/LexEval"
+  ],
+  "lingoly": [
+   "paper:arxiv:2406.06196",
+   "src:github.com/am-bean/lingOly"
+  ],
+  "live_agent_risk": [
+   "paper:arxiv:2605.22238",
+   "src:github.com/hcekne/risk-game"
+  ],
+  "liveaopsbench": [
+   "paper:arxiv:2501.14275",
+   "src:github.com/LiveMathBench/LiveMathBench.github.io"
+  ],
+  "livebench": [
+   "paper:arxiv:2406.19314",
+   "src:huggingface.co/datasets/livebench"
+  ],
+  "llm4ir": [
+   "paper:arxiv:2502.06854",
+   "src:github.com/hjiang13/LLM4IR"
+  ],
+  "llm_bp_tag": [
+   "paper:arxiv:2502.11836",
+   "src:huggingface.co/datasets/Graph-COM"
+  ],
+  "llm_survey_simulation": [
+   "paper:arxiv:2502.17773",
+   "src:github.com/yw3453/uq-llm-survey-simulation"
+  ],
+  "llm_uncertainty_bench": [
+   "paper:arxiv:2401.12794",
+   "src:github.com/smartyfh/LLM-Uncertainty-Bench"
+  ],
+  "llmail_inject": [
+   "paper:arxiv:2506.09956",
+   "src:huggingface.co/datasets/microsoft"
+  ],
+  "llms_lean_formalization": [
+   "paper:arxiv:2606.05632",
+   "src:github.com/uw-math-ai/LLMsLean"
+  ],
+  "lohi_drug_discovery": [
+   "paper:arxiv:2310.06399",
+   "src:github.com/SteshinSS/lohi_neurips2023"
+  ],
+  "matharena": [
+   "paper:arxiv:2505.23281",
+   "src:github.com/eth-sri/matharena"
+  ],
+  "matharena_platform": [
+   "paper:arxiv:2605.00674",
+   "src:huggingface.co/MathArena"
+  ],
+  "mathconstraint": [
+   "paper:arxiv:2605.08498",
+   "src:github.com/vireshpati/Math-Constraint"
+  ],
+  "mathvista_mini": [
+   "paper:arxiv:2310.02255",
+   "src:huggingface.co/datasets/VLMEval"
+  ],
+  "medhelm_ehr_sql": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_head_qa": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_med_mcqa": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_med_qa": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_medbullets": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_medcalc_bench": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_medec": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_medhallu": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_pubmed_qa": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medhelm_race_based_med": [
+   "paper:arxiv:2505.23802",
+   "src:crfm.stanford.edu/helm/medhelm"
+  ],
+  "medwatermark_fws": [
+   "paper:arxiv:2509.07755",
+   "src:github.com/rochanaph/fact-eval-wllm"
+  ],
+  "mind2web": [
+   "paper:arxiv:2306.06070",
+   "src:huggingface.co/datasets/osunlp"
+  ],
+  "mj_bench": [
+   "paper:arxiv:2407.04842",
+   "src:huggingface.co/datasets/MJ-Bench"
+  ],
+  "mlip_arena": [
+   "paper:openreview:SAT0KPA5UO",
+   "src:huggingface.co/datasets/atomind"
+  ],
+  "mlrbench": [
+   "paper:openreview:JX9DE6colf",
+   "src:github.com/chchenhui/mlrbench"
+  ],
+  "mmbench_v11": [
+   "paper:arxiv:2307.06281",
+   "src:huggingface.co/datasets/VLMEval"
+  ],
+  "mmdocrag": [
+   "paper:openreview:W4b3v9jx1p",
+   "src:github.com/MMDocRAG/MMDocRAG"
+  ],
+  "mmedbench": [
+   "paper:arxiv:2402.13963",
+   "src:huggingface.co/datasets/Henrychur"
+  ],
+  "mmlu": [
+   "paper:arxiv:2009.03300",
+   "src:huggingface.co/open-llm-leaderboard-old"
+  ],
+  "mmlupro": [
+   "paper:arxiv:2406.01574",
+   "src:github.com/TIGER-AI-Lab/MMLU-Pro"
+  ],
+  "mmmu_dev_val": [
+   "paper:arxiv:2311.16502",
+   "src:huggingface.co/datasets/VLMEval"
+  ],
+  "mmoral_bench": [
+   "paper:arxiv:2509.09254",
+   "src:github.com/zmeik/OPTG_Analizer"
+  ],
+  "mochi": [
+   "paper:arxiv:2409.05862",
+   "src:github.com/tzler/mochi_code"
+  ],
+  "moe_cap": [
+   "paper:arxiv:2505.11415",
+   "src:huggingface.co/datasets/auto-cap"
+  ],
+  "monkey_power_laws": [
+   "paper:arxiv:2407.21787",
+   "src:huggingface.co/datasets/ScalingIntelligence"
+  ],
+  "morphkv": [
+   "paper:arxiv:2503.00979",
+   "src:github.com/ghadiaravi13/MorphKV"
+  ],
+  "mtbbench": [
+   "paper:openreview:anzoPBV4jI",
+   "src:github.com/bunnelab/MTBBench"
+  ],
+  "multi_moe": [
+   "paper:arxiv:2505.06481",
+   "src:github.com/hamid-74/Multi-MoE"
+  ],
+  "multi_swebench": [
+   "paper:openreview:MhBZzkz4h9",
+   "src:github.com/multi-swe-bench/experiments"
+  ],
+  "multimodal_stem_ai": [
+   "paper:arxiv:2507.03013",
+   "src:github.com/AnnaSou/multimodal-stem-ai"
+  ],
+  "mypcbench": [
+   "paper:arxiv:2606.16748",
+   "src:mypcbench.com"
+  ],
+  "naep_llm_students": [
+   "paper:arxiv:2507.08232",
+   "src:github.com/kvadityasrivatsa/IRT-for-LLMs-as-Students"
+  ],
+  "nanobaselib": [
+   "paper:papers.neurips.cc/paper_files/paper/2024/file/8bce223b376f52fb86a148097eebb10d-paper-datasets_and_benchmarks_track.pdf",
+   "src:github.com/nanobaselib/NanoBaseLib"
+  ],
+  "naturalreasoning": [
+   "paper:arxiv:2502.13124",
+   "src:huggingface.co/datasets/facebook"
+  ],
+  "nester": [
+   "paper:proceedings.mlr.press/v267/li25cj.html",
+   "src:github.com/stbst1/Nester"
+  ],
+  "nis3d": [
+   "paper:proceedings.neurips.cc/paper_files/paper/2023/hash/0f2cd3d09a132757555b602e2dd43784-abstract-datasets_and_benchmarks.html",
+   "src:zenodo.org/records/11456029"
+  ],
+  "oasst": [
+   "paper:arxiv:2304.07327",
+   "src:huggingface.co/datasets/OpenAssistant"
+  ],
+  "ocrbench_v2": [
+   "paper:arxiv:2501.00321",
+   "src:github.com/Yuliang-Liu/MultimodalOCR"
+  ],
+  "ood_prediction": [
+   "paper:arxiv:2505.11770",
+   "src:github.com/explanare/ood-prediction"
+  ],
+  "openbiorq": [
+   "paper:arxiv:2606.21959",
+   "src:huggingface.co/datasets/Minbyul"
+  ],
+  "perumedqa": [
+   "paper:arxiv:2509.11517",
+   "src:github.com/rodrigo-carrillo/PeruMedQA"
+  ],
+  "phyblock": [
+   "paper:arxiv:2506.08708",
+   "src:github.com/PhyBlock/PhyBlock"
+  ],
+  "pku_saferlhf": [
+   "paper:arxiv:2406.15513",
+   "src:huggingface.co/datasets/PKU-Alignment"
+  ],
+  "planbench": [
+   "paper:arxiv:2206.10498",
+   "src:github.com/karthikv792/LLMs-Planning"
+  ],
+  "preference_dissection": [
+   "paper:arxiv:2402.11296",
+   "src:huggingface.co/datasets/GAIR"
+  ],
+  "prism": [
+   "paper:arxiv:2404.16019",
+   "src:huggingface.co/datasets/HannahRoseKirk"
+  ],
+  "prm800k": [
+   "paper:arxiv:2305.20050",
+   "src:github.com/openai/prm800k"
+  ],
+  "proofaug": [
+   "paper:arxiv:2501.18310",
+   "src:github.com/haoxiongliu/ProofAug"
+  ],
+  "proteininvbench": [
+   "paper:openreview:bqXduvuW5E",
+   "src:zenodo.org/records/8031783"
+  ],
+  "prox": [
+   "paper:arxiv:2409.17115",
+   "src:github.com/GAIR-NLP/math-evaluation-harness"
+  ],
+  "psychosis_bench": [
+   "paper:arxiv:2509.10970",
+   "src:github.com/w-is-h/psychosis-bench"
+  ],
+  "putnam_axiom": [
+   "paper:openreview:kqj2Cn3Sxr",
+   "src:huggingface.co/datasets/3ricme"
+  ],
+  "qatch": [
+   "paper:proceedings.neurips.cc/paper_files/paper/2023/hash/62a24b69b820d30e9e5ad4f15ff7bf72-abstract-datasets_and_benchmarks.html",
+   "src:github.com/spapicchio/QATCH"
+  ],
+  "rakuda": [
+   "paper:passaglia.jp/llm-ranking",
+   "src:github.com/shisa-ai/shaberi"
+  ],
+  "rclicks": [
+   "paper:arxiv:2410.11722",
+   "src:github.com/emb-ai/rclicks"
+  ],
+  "real_pocqi": [
+   "paper:arxiv:2606.28960",
+   "src:huggingface.co/datasets/jjfenglab"
+  ],
+  "real_webagents": [
+   "paper:openreview:Un1sWxmZuI",
+   "src:realevals.xyz/api/getVerifiedModelData"
+  ],
+  "reasoning_gym": [
+   "paper:openreview:GqYSunGmp7",
+   "src:github.com/open-thought/reasoning-gym-eval"
+  ],
+  "refgrader": [
+   "paper:arxiv:2510.09021",
+   "src:huggingface.co/datasets/hmdmahdavi"
+  ],
+  "researchclawbench": [
+   "paper:arxiv:2606.07591",
+   "src:github.com/InternScience/ResearchClawBench-Home"
+  ],
+  "researchcodebench": [
+   "paper:openreview:3k70Vt0YFS",
+   "src:researchcodebench.github.io"
+  ],
+  "revolve": [
+   "paper:arxiv:2412.03092",
+   "src:github.com/Peiyance/REVOLVE"
+  ],
+  "rewardbench": [
+   "paper:arxiv:2403.13787",
+   "src:huggingface.co/datasets/allenai"
+  ],
+  "risebench": [
+   "paper:openreview:T3UksaPK64",
+   "src:huggingface.co/datasets/zpy777"
+  ],
+  "safeagentbench": [
+   "paper:arxiv:2412.13178",
+   "src:github.com/AnanthapadmanabhanM/TRIDENT-AI-SAFETY"
+  ],
+  "scale_mrt": [
+   "paper:arxiv:2508.19461",
+   "src:huggingface.co/datasets/ScaleAI"
+  ],
+  "sciarena": [
+   "paper:arxiv:2507.01001",
+   "src:huggingface.co/datasets/yale-nlp"
+  ],
+  "scigym": [
+   "paper:arxiv:2507.02083",
+   "src:huggingface.co/datasets/h4duan"
+  ],
+  "sib200": [
+   "paper:arxiv:2309.07445",
+   "src:github.com/dadelani/sib-200"
+  ],
+  "software_world_models": [
+   "paper:arxiv:2606.27406",
+   "src:huggingface.co/collections/JetBrains-Research"
+  ],
+  "stanford_orb": [
+   "paper:arxiv:2310.16044",
+   "src:github.com/StanfordORB/Stanford-ORB"
+  ],
+  "statqa": [
+   "paper:proceedings.neurips.cc/paper_files/paper/2024/file/729786203d330da046dd8091c2d92a66-paper-datasets_and_benchmarks_track.pdf",
+   "src:github.com/HKUSTDial/StatQA"
+  ],
+  "subjective_qa": [
+   "paper:arxiv:2410.20651",
+   "src:github.com/gtfintechlab/SubjECTive-QA"
+  ],
+  "sugarcrepe": [
+   "paper:arxiv:2306.14610",
+   "src:github.com/RAIVNLab/sugar-crepe"
+  ],
+  "sustainable_food": [
+   "paper:arxiv:2503.04734",
+   "src:github.com/thomasat/llms-sustainable-food"
+  ],
+  "svrpbench": [
+   "paper:openreview:yADrJyaBJl",
+   "src:huggingface.co/datasets/MBZUAI"
+  ],
+  "swe_rebench": [
+   "paper:openreview:nMpJoVmRy1",
+   "src:huggingface.co/datasets/nebius"
+  ],
+  "swe_smith": [
+   "paper:openreview:63iVrXc8cC",
+   "src:huggingface.co/datasets/SWE-bench"
+  ],
+  "swe_together": [
+   "paper:arxiv:2606.29957",
+   "src:togetherbench.com/metrics.js"
+  ],
+  "swepolybench": [
+   "paper:arxiv:2504.08703",
+   "src:github.com/amazon-science/SWE-PolyBench"
+  ],
+  "synthpai": [
+   "paper:arxiv:2406.07217",
+   "src:github.com/eth-sri/SynthPAI"
+  ],
+  "tau2_bench": [
+   "paper:arxiv:2506.07982",
+   "src:github.com/sierra-research/tau2-bench"
+  ],
+  "taubench": [
+   "paper:arxiv:2406.12045",
+   "src:github.com/sierra-research/tau-bench"
+  ],
+  "tengu": [
+   "paper:huggingface.co/datasets/lightblue/tengu_bench",
+   "src:github.com/shisa-ai/shaberi"
+  ],
+  "tensortrust": [
+   "paper:arxiv:2311.01011",
+   "src:huggingface.co/datasets/qxcv"
+  ],
+  "theagentcompany": [
+   "paper:arxiv:2412.14161",
+   "src:github.com/TheAgentCompany/experiments"
+  ],
+  "threeeed": [
+   "paper:arxiv:2511.01755",
+   "src:huggingface.co/datasets/RRRong"
+  ],
+  "truthfulqa_mc": [
+   "paper:arxiv:2109.07958",
+   "src:huggingface.co/open-llm-leaderboard-old"
+  ],
+  "tulu_human_eval": [
+   "paper:arxiv:2306.04751",
+   "src:github.com/allenai/open-instruct"
+  ],
+  "tumlu": [
+   "paper:arxiv:2502.11020",
+   "src:github.com/ceferisbarov/TUMLU"
+  ],
+  "vhelm": [
+   "paper:arxiv:2410.07112",
+   "src:storage.googleapis.com/crfm-helm-public/vhelm"
+  ],
+  "visit_bench": [
+   "paper:arxiv:2308.06595",
+   "src:github.com/mlfoundations/VisIT-Bench"
+  ],
+  "visual_memory": [
+   "paper:arxiv:2408.08172",
+   "src:github.com/google-deepmind/visual-memory"
+  ],
+  "visual_riddles": [
+   "paper:arxiv:2407.19474",
+   "src:huggingface.co/datasets/visual-riddles"
+  ],
+  "visualwebarena": [
+   "paper:arxiv:2401.13649",
+   "src:huggingface.co/datasets/McGill-NLP"
+  ],
+  "vl_rewardbench": [
+   "paper:arxiv:2411.17451",
+   "src:huggingface.co/datasets/MMInstruction"
+  ],
+  "weavebench": [
+   "paper:arxiv:2606.09426",
+   "src:weavebench.github.io/trajectories"
+  ],
+  "wikihow_agent": [
+   "paper:arxiv:2507.05528",
+   "src:huggingface.co/datasets/Jiahuan"
+  ],
+  "wildvision": [
+   "paper:arxiv:2406.11069",
+   "src:github.com/WildVision-AI/WildVision-Bench"
+  ],
+  "wmt_mqm": [
+   "paper:arxiv:2104.14478",
+   "src:github.com/google/wmt-mqm-human-evaluation"
+  ],
+  "wonderbread": [
+   "paper:arxiv:2406.13264",
+   "src:github.com/HazyResearch/wonderbread"
+  ],
+  "workarena": [
+   "paper:arxiv:2403.07718",
+   "src:huggingface.co/datasets/McGill-NLP"
+  ],
+  "workbench_revisited": [
+   "paper:arxiv:2606.13715",
+   "src:github.com/olly-styles/WorkBench"
+  ],
+  "worldcentralbanks": [
+   "paper:openreview:cU5W9Z3r8p",
+   "src:github.com/gtfintechlab/WorldCentralBanks"
+  ],
+  "xstest": [
+   "paper:aclanthology.org/2024.naacl-long.301",
+   "src:github.com/paul-rottger/xstest"
+  ]
+ },
+ "multi": {
+  "ai2d_test": [
+   "ai2d_test",
+   "hallusionbench",
+   "mathvista_mini",
+   "mmbench_v11",
+   "mmmu_dev_val"
+  ],
+  "bridging_gap": [
+   "bridging_gap",
+   "helm_afr"
+  ],
+  "harmbench": [
+   "harmbench",
+   "helm_anthropic_redteam",
+   "helm_bbq",
+   "helm_harmbench",
+   "helm_simple_safety_tests",
+   "helm_xstest"
+  ],
+  "helm_bold": [
+   "helm_bold",
+   "helm_real_toxicity_prompts"
+  ],
+  "kernelbench": [
+   "kernelbench",
+   "monkey_power_laws"
+  ],
+  "kmmlu": [
+   "kmmlu",
+   "kormedmcqa"
+  ],
+  "medhelm_ehr_sql": [
+   "medhelm_ehr_sql",
+   "medhelm_head_qa",
+   "medhelm_med_mcqa",
+   "medhelm_med_qa",
+   "medhelm_medbullets",
+   "medhelm_medcalc_bench",
+   "medhelm_medec",
+   "medhelm_medhallu",
+   "medhelm_pubmed_qa",
+   "medhelm_race_based_med"
+  ],
+  "mmlu": [
+   "mmlu",
+   "truthfulqa_mc"
+  ],
+  "rakuda": [
+   "rakuda",
+   "tengu"
+  ],
+  "visualwebarena": [
+   "visualwebarena",
+   "workarena"
+  ]
+ },
+ "multi_in_E": {
+  "ai2d_test": [
+   "ai2d_test",
+   "hallusionbench",
+   "mathvista_mini",
+   "mmbench_v11"
+  ],
+  "bridging_gap": [
+   "bridging_gap",
+   "helm_afr"
+  ],
+  "harmbench": [
+   "harmbench",
+   "helm_bbq"
+  ],
+  "kernelbench": [
+   "kernelbench",
+   "monkey_power_laws"
+  ],
+  "kmmlu": [
+   "kmmlu",
+   "kormedmcqa"
+  ],
+  "medhelm_ehr_sql": [
+   "medhelm_ehr_sql",
+   "medhelm_head_qa",
+   "medhelm_med_mcqa",
+   "medhelm_med_qa",
+   "medhelm_medbullets",
+   "medhelm_medcalc_bench",
+   "medhelm_medec",
+   "medhelm_medhallu",
+   "medhelm_pubmed_qa",
+   "medhelm_race_based_med"
+  ],
+  "mmlu": [
+   "mmlu",
+   "truthfulqa_mc"
+  ],
+  "visualwebarena": [
+   "visualwebarena",
+   "workarena"
+  ]
+ },
+ "multi_member_families": 10,
+ "revision": "54074453da7b9911be0f48e4c560be547bc84d21",
+ "rule": "two catalogue entries are joined when they share a source_url key (host lower-cased without www., plus the first two path segments) or a paper_url key (arXiv id without version, OpenReview forum id, DOI, else host plus path); a family is a connected component, named by its alphabetically first member"
+}
