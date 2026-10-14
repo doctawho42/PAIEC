@@ -26,9 +26,10 @@ license: MIT
 repository-code: "https://github.com/doctawho42/PAIEC"
 keywords:
   - predictive evaluation
+  - Brier score decomposition
+  - benchmark-level cold start
   - item response theory
-  - Brier score
-  - cold start
+  - evaluation methodology
   - PAIEC
 preferred-citation:
   type: report

@@ -438,6 +438,11 @@ base rates are then more extreme than the public ones. Under such rates the
 Predictor would land about 0.01 below the organisers' entry and about 0.05 above
 the best.
 
+The empirical-mean reading of the organisers' entry in this section is
+withdrawn (P2, `results/hidden_runs.json` as committed on 2026-10-07): see
+"The hidden formative runs through Brier = ECE² + p(1-p) (P2: R1 to R3)",
+"What this supersedes".
+
 ## Hierarchical model
 
 `python experiments/hier_eval.py --jobs 8 --skip 'r2|researchcodebench|pair|hier t3 level'`
@@ -689,6 +694,11 @@ pair logit of "Formative feedback, runs 1 and 2" the same two readings are
 -1.51 and -0.71.
 B31 includes model error, which pulls these implied rates toward 0.5, so the
 true ones are if anything more extreme.
+
+The lower-root reading above is withdrawn (P2, `results/hidden_runs.json` as
+committed on 2026-10-07): see
+"The hidden formative runs through Brier = ECE² + p(1-p) (P2: R1 to R3)",
+"What this supersedes".
 
 Nine pairs from one run are thin evidence, but they point the way the
 leaderboard reading did ("Against the live leaderboard"). The hidden pairs are
@@ -6204,6 +6214,11 @@ of its checks hold (`ble`).
 
 BLE and the empirical mean with BLE acquisition remain unmeasured. The best
 leaderboard entry (0.1172, "Against the live leaderboard") stays unexplained.
+
+The sentence that the best entry stays unexplained is withdrawn and replaced
+by a bound (P2, `results/hidden_runs.json` as committed on 2026-10-07): see
+"The hidden formative runs through Brier = ECE² + p(1-p) (P2: R1 to R3)",
+"What this supersedes".
 
 ### On identical runs
 

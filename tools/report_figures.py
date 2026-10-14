@@ -9,7 +9,11 @@ Every figure reads `results/*.json` only, through `Inputs.load`, which refuses
 any other path: nothing comes from `data/`, from session scratch, or from a
 model run. Each figure is one function, `fig_<name>(inp) -> Figure`, and
 `FIGURES` lists them, the review's priorities first (learning curves, the level
-surface, the gate curve, regime sensitivity). Each is written as SVG (text as
+surface, the gate curve, regime sensitivity), the report v2's three last (the
+hidden runs decomposed, the regimes checked against them, and the per-benchmark
+text signals that were the gate curve's panel (c)). The two hidden-run figures
+read `results/hidden_runs.json`'s aggregate blocks only; that file holds no
+benchmark or subject id. Each is written as SVG (text as
 paths) and as PNG at 200 dpi. The files are deterministic for a given
 matplotlib: no dates in them, a fixed SVG hash salt, the bundled DejaVu Sans,
 the Agg backend, and a seeded jitter where points are spread.
@@ -614,14 +618,14 @@ def transfer_points(inp):
 
 
 def fig_gate_curve(inp):
+    """Panels (a) and (b): the gate's scale and the measured covariates on it. The
+    per-benchmark correlations that were panel (c) in v1 are `text_signals` (App F.1)."""
     t = gate_table(inp)
     pts = covariate_points(inp)
-    tp = transfer_points(inp)
     gate = t["gate"]["tl"]
-    fig = plt.figure(figsize=(WIDTH, 5.5))
-    ax = fig.add_axes([0.095, 0.585, 0.37, 0.345])
-    bx_ = fig.add_axes([0.6, 0.585, 0.385, 0.345])
-    cx = fig.add_axes([0.385, 0.075, 0.6, 0.36])
+    fig = plt.figure(figsize=(WIDTH, 2.8))
+    ax = fig.add_axes([0.095, 0.165, 0.37, 0.68])
+    bx_ = fig.add_axes([0.6, 0.165, 0.385, 0.68])
 
     # (a) the gate curve against the honest r of a synthetic covariate
     r = np.asarray(t["r"])
@@ -689,8 +693,17 @@ def fig_gate_curve(inp):
     ax.legend([h for h, _ in handles], [f for _, f in handles], loc="lower left", fontsize=4.9,
               handletextpad=0.1, labelspacing=0.25, borderaxespad=0.1)
     title(ax, "b", "measured covariates, ±1 cluster SE", fontsize=6.3)
+    return fig
 
-    # (c) per benchmark: correlation of text-read signals with item difficulty
+
+def fig_text_signals(inp):
+    """Per benchmark: correlation of text-read signals with item difficulty (v1's
+    Figure 5 panel (c), App F.1 in v2), with the honest-r band over which the
+    transferred slope goes from passing most noise draws to passing every draw."""
+    t = gate_table(inp)
+    tp = transfer_points(inp)
+    fig = plt.figure(figsize=(WIDTH, 2.55))
+    cx = fig.add_axes([0.385, 0.15, 0.6, 0.83])
     labels = [lab for lab, *_ in TRANSFER]
     ypos = {lab: k for k, lab in enumerate(labels)}
     off = {p: (q - 1.5) * 0.17 for q, p in enumerate(PARENTS)}
@@ -714,9 +727,6 @@ def fig_gate_curve(inp):
     cx.legend([Line2D([], [], ls="", marker=PARENT_MARKER[p], color="#444444", ms=3)
                for p in PARENTS], PARENTS, loc="lower left", fontsize=5.0, ncol=1,
               handletextpad=0.1, labelspacing=0.25, borderaxespad=0.2)
-    cx.text(-0.62, 1.04, "$\\bf{c}$", transform=cx.transAxes, fontsize=7.5)
-    cx.text(-0.62, 1.04, "     signals read off the item text, one marker per benchmark",
-            transform=cx.transAxes, fontsize=6.3)
     return fig
 
 
@@ -1327,6 +1337,313 @@ def fig_ideas_forest(inp):
 
 
 # ---------------------------------------------------------------------------
+# v2: the hidden runs read through Brier = ECE^2 + p(1-p)
+#
+# `results/hidden_runs.json` holds no anonymous benchmark or subject id and no
+# output keyed on one (its `about.id_use`); these figures read its aggregate
+# blocks only: per run, the 17 pooled hier pairs, and the replica regimes.
+
+HR = "results/hidden_runs.json"
+RS_LABEL = {"TUNED": "tuned", "AUDIT": "audit", "MIXTURE": "mixture", "READING": "reading",
+            "FLAT": "flat", "R1B": "R1-bf", "R1P": "R1-pu"}
+TEST_LIKE = ["TUNED", "AUDIT", "MIXTURE", "READING", "FLAT"]
+PUBLIC = ["R1B", "R1P"]
+#: the ideal pair-rate learner's priors (population prior and the pair's own labels only);
+#: the first is run 1's lower-root reading, whose lower-root curve panel (a) draws
+IDEAL_PRIORS = ["team inference (-1.6, 1.5)", "pooled reading (-0.70, 1.75)",
+                "R1-like (-0.70, 1.42)"]
+HD_REGIMES = ["TUNED", "READING", "R1B"]  # the replica bars of panel (b)
+HIDDEN = {  # key in decomposition -> (label, arm, marker, line style)
+    "run1": ("run 1", "legacy", "^", (0, (4, 2))),
+    "hier_pooled": ("runs 2 and 3 pooled", "ship", "o", "-"),
+}
+
+
+def terms(excess):
+    """ALC - v split into the B0, B1 to B15 and B31 terms (the weights sum to one)."""
+    e = np.asarray(excess, float)
+    return float(WEIGHTS[0] * e[0]), float(np.dot(WEIGHTS[1:5], e[1:5])), float(WEIGHTS[5] * e[5])
+
+
+def hidden_decomposition_data(inp):
+    h = inp.load(HR)
+    dec, rep = h["decomposition"], h["replica"]["noise"]
+    curves = {}
+    for key, (lab, arm, *_ ) in HIDDEN.items():
+        d = dec[key]
+        curves[key] = {"label": lab, "arm": arm, "pairs": d["pairs"],
+                       "excess": np.asarray(d["excess_by_budget"], float),
+                       "se": np.asarray(d["pair_se"]["excess_by_budget_pair_se"], float)}
+    run23 = " | runs (2, 3)"
+    mix = np.asarray([h["ideal"][p + run23]["mix"] for p in IDEAL_PRIORS], float)
+    ideal = {"lower": np.asarray(h["ideal"][IDEAL_PRIORS[0] + run23]["lower"], float),
+             "band": (mix.min(axis=0), mix.max(axis=0)),
+             "pairs": h["ideal"][IDEAL_PRIORS[0] + run23]["pairs"]}
+    replica = {(r, arm): {"excess": np.asarray(rep[r][arm]["excess_by_budget"], float),
+                          "runs": rep[r][arm]["runs"]}
+               for r in ("TUNED", "R1B") for arm in ("ship", "legacy")}
+    bars = []
+    for arm, runs in (("legacy", ["run1"]), ("ship", ["run2", "run3"])):
+        for r in runs:
+            d = dec[r]
+            bars.append({"label": f"run {r[-1]}", "arm": arm, "hidden": True, "pairs": d["pairs"],
+                         "terms": (d["b0_term"], d["b1_b15_terms"], d["b31_term"]),
+                         "total": d["alc_minus_v"], "whisker": d["pair_alc_minus_v_se"],
+                         "item": tuple(h["item_level"][r]["v_minus_item_oracle_range"]),
+                         "share": tuple(h["item_level"][r]["share_range"])})
+        for reg in HD_REGIMES:
+            n = rep[reg][arm]
+            bars.append({"label": RS_LABEL[reg], "arm": arm, "hidden": False, "runs": n["runs"],
+                         "terms": terms(n["excess_by_budget"]), "total": n["alc_minus_v"],
+                         "whisker": n["alc_minus_v_sd"], "item": None})
+    return {"curves": curves, "ideal": ideal, "replica": replica, "bars": bars,
+            "ratio": tuple(h["item_level"]["ratio_range"])}
+
+
+def fig_hidden_decomposition(inp):
+    d = hidden_decomposition_data(inp)
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(WIDTH, 2.85),
+                                  gridspec_kw={"width_ratios": [1.0, 1.15]})
+    x = bx()
+
+    # (a) B_k - v by budget, on an asinh axis (linear near 0, logarithmic above)
+    lo_, hi_ = d["ideal"]["band"]
+    ax.fill_between(x, lo_, hi_, color="#bdbdbd", alpha=0.75, lw=0, zorder=1)
+    ax.plot(x, d["ideal"]["lower"], color="#555555", ls=(0, (3, 1, 1, 1)), lw=0.9, zorder=2)
+    for (reg, arm), s in d["replica"].items():
+        ax.plot(x, s["excess"], color=C[arm], lw=0.7, ls="-" if reg == "TUNED" else "--",
+                zorder=2, alpha=0.9)
+    for key, c in d["curves"].items():
+        _, arm, mk, ls = HIDDEN[key]
+        ax.errorbar(x, c["excess"], yerr=c["se"], color="k", marker=mk, ls=ls, lw=1.3, ms=3.4,
+                    mfc="white", mew=0.8, elinewidth=0.6, capsize=0, zorder=4)
+    ax.set_yscale("asinh", linear_width=0.005)
+    ticks = [0, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
+    ax.set_yticks(ticks)
+    ax.set_yticklabels([f"{v:g}" for v in ticks])
+    ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+    ax.set_ylim(-0.0045, 0.32)
+    ax.axhline(0, color="#888888", lw=0.5)
+    budget_axis(ax, label=False)
+    ax.set_xlabel("budget B (log$_2$(1+B) axis)")
+    ax.set_ylabel("B$_k$ − V, mean over pairs (asinh axis)", fontsize=6.4, labelpad=1)
+    title(ax, "a", "the cost of not knowing pair rates, by budget", fontsize=6.3)
+    handles = [
+        (Line2D([], [], color="k", marker="^", ls=(0, (4, 2)), lw=1.3, ms=3.4, mfc="white",
+                mew=0.8), f"run 1: legacy Predictor ({d['curves']['run1']['pairs']} pairs)"),
+        (Line2D([], [], color="k", marker="o", ls="-", lw=1.3, ms=3.4, mfc="white", mew=0.8),
+         f"runs 2 and 3: shipped hier ({d['curves']['hier_pooled']['pairs']} pairs)"),
+        (Patch(color="#bdbdbd", alpha=0.75, lw=0), "ideal learner, prior-weighted roots"),
+        (Line2D([], [], color="#555555", ls=(0, (3, 1, 1, 1)), lw=0.9),
+         "ideal learner, lower roots"),
+        (Line2D([], [], color=C["ship"], lw=0.7), "replica, shipped hier"),
+        (Line2D([], [], color=C["legacy"], lw=0.7), "replica, legacy Predictor"),
+        (Line2D([], [], color="#555555", lw=0.7, ls="-"), "replica: tuned (solid), R1-bf (dashed)"),
+    ]
+    ax.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
+              bbox_to_anchor=(-0.17, -0.19), ncol=2, fontsize=4.9, handlelength=2.6,
+              columnspacing=0.8, labelspacing=0.35)
+
+    # (b) ALC - v by its three terms, hidden runs beside replica regimes
+    shade = (1.0, 0.45)
+    pos, xp = [], 0.0
+    for k, b in enumerate(d["bars"]):
+        if k and b["arm"] != d["bars"][k - 1]["arm"]:
+            xp += 0.6
+        pos.append(xp)
+        xp += 1.0
+    for p, b in zip(pos, d["bars"]):
+        col = C[b["arm"]]
+        w = 0.72 if b["hidden"] else 0.6
+        up, down = 0.0, 0.0
+        for j, v in enumerate(b["terms"]):
+            fc = "#111111" if j == 2 else col
+            al = 1.0 if j == 2 else shade[j]
+            base = up if v >= 0 else down
+            ax2.bar(p, v, bottom=base, width=w, color=fc, alpha=al, lw=0, zorder=3)
+            if v >= 0:
+                up += v
+            else:
+                down += v
+        if b["hidden"]:
+            ax2.add_patch(Rectangle((p - w / 2, 0), w, up, fill=False, lw=0.7, edgecolor="k",
+                                    zorder=4))
+            ilo, ihi = b["item"]
+            ax2.bar(p, -ilo, width=w, fill=False, hatch="//////", edgecolor="#6a6a6a", lw=0.4,
+                    zorder=3)
+            ax2.bar(p, -(ihi - ilo), bottom=-ilo, width=w, fill=False, hatch="///",
+                    edgecolor="#b0b0b0", lw=0.4, zorder=3)
+            ax2.text(p, -ihi - 0.003, f"{ilo:.3f}\nto\n{ihi:.3f}", ha="center", va="top",
+                     fontsize=4.3, color="#444444", linespacing=0.9)
+        ax2.errorbar(p, b["total"], yerr=b["whisker"], color="k" if b["hidden"] else "#555555",
+                     lw=0, elinewidth=0.6, capsize=0, zorder=5)
+        ax2.text(p, b["total"] + b["whisker"] + 0.0015, f"{b['total']:.4f}", ha="center",
+                 va="bottom", fontsize=4.1)
+    ax2.axhline(0, color="k", lw=0.6, zorder=6)
+    ax2.text(pos[-1] + 0.55, 0.0015, "V", fontsize=6.0, ha="left", va="bottom")
+    ax2.set_xticks(pos)
+    ax2.set_xticklabels([b["label"] for b in d["bars"]], fontsize=5.4, rotation=90)
+    ax2.tick_params(axis="x", length=0, pad=1.5)
+    ax2.set_xlim(pos[0] - 0.6, pos[-1] + 0.9)
+    ax2.set_ylim(-0.134, 0.1)
+    ax2.grid(axis="x", visible=False)
+    for arm, name in (("legacy", NAMES["legacy"]), ("ship", NAMES["ship"])):
+        ps = [p for p, b in zip(pos, d["bars"]) if b["arm"] == arm]
+        ax2.text((ps[0] + ps[-1]) / 2, -0.25, name, ha="center", va="top", fontsize=5.6,
+                 color="k", transform=ax2.get_xaxis_transform())
+        ax2.plot([ps[0] - 0.35, ps[-1] + 0.35], [-0.235, -0.235], color="#777777", lw=0.5,
+                 transform=ax2.get_xaxis_transform(), clip_on=False)
+    ax2.set_ylabel("Brier relative to V (ALC − V above 0)", fontsize=6.2)
+    title(ax2, "b", "ALC − V by term; below V, the item level", fontsize=6.3)
+    r0, r1 = d["ratio"]
+    handles = [
+        (Patch(color="#777777"), "0.1 (B$_0$ − V)"),
+        (Patch(color="#777777", alpha=shade[1], lw=0), "0.2 Σ$_{k=1}^{15}$ (B$_k$ − V)"),
+        (Patch(color="#111111"), "0.1 (B$_{31}$ − V)"),
+        (Patch(facecolor="white", edgecolor="#6a6a6a", hatch="//////", lw=0.4),
+         f"V − item oracle, estimated\n(borrowed ratio {r0:.3f} to {r1:.3f})"),
+        (Line2D([], [], color="k", lw=0.6), "±1 pair SE (hidden runs),\n"
+         "±1 single-run sd (replica)"),
+    ]
+    ax2.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
+               bbox_to_anchor=(-0.02, -0.31), ncol=2, fontsize=4.9, columnspacing=0.8,
+               labelspacing=0.35, handlelength=1.6)
+    fig.subplots_adjust(left=0.09, right=0.99, top=0.93, bottom=0.39, wspace=0.27)
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# v2: the test-like regimes checked against the hidden runs
+
+RC_CONFIGS = ["legacy", "eb_fit", "smooth", "smcal"]  # comparator minus hier-ship
+RC_DODGE = dict(zip(RC_CONFIGS, [0.018, 0.006, -0.006, -0.018]))
+RC_NAMES = {"smcal": "smoothed, calibrated"}
+
+
+def regime_check_data(inp):
+    rs = inp.load("results/regime_sensitivity.json")["summary"]
+    h = inp.load(HR)
+    sc = inp.load("results/ship_confirm.json")
+    tc = inp.load("results/testlike_check.json")
+    rows = {r: {c: {"D": rs["vs_ship"][r][c]["exact"]["D"],
+                    "se": rs["vs_ship"][r][c]["exact"]["cluster_se"]} for c in RC_CONFIGS}
+            for r in TEST_LIKE + PUBLIC}
+    level = {r: rs["realised"][r]["mean"] for r in TEST_LIKE + PUBLIC}
+    held = next(t for t in sc["table"] if t["regime"] == "tl" and t["comparator"] == "legacy"
+                and t["runs"] == "200-299")
+    va = h["vadjusted"]["legacy_minus_hier"]
+    z = h["replica"]["placement_raw_summary"]["side_by_side_z_alc"]
+    order = sorted(TEST_LIKE, key=lambda r: level[r]) + PUBLIC
+    place = {who: {r: (z[who][r]["raw"], z[who][r]["v_adjusted"]) for r in order}
+             for who in ("run1 (LegacyP)", "runs 2+3 (hier)")}
+    return {"rows": rows, "level": level, "order": order, "place": place,
+            "held_out": {"level": tc["summary"]["check"]["default"]["regime"]["pair_logit"]["mean"],
+                         "D": -held["diff"], "se": held["cluster_se"], "runs": held["runs"]},
+            "hidden": {"D": va["v_adjusted"], "se": va["se"], "raw": va["raw"]}}
+
+
+def fig_regime_check(inp):
+    d = regime_check_data(inp)
+    fig = plt.figure(figsize=(WIDTH, 2.85))
+    ax = fig.add_axes([0.09, 0.36, 0.36, 0.55])
+    pax = fig.add_axes([0.46, 0.36, 0.125, 0.55], sharey=ax)
+    zx = fig.add_axes([0.675, 0.36, 0.315, 0.55])
+    z95 = 1.96
+    hid = d["hidden"]
+    for a in (ax, pax):  # the hidden level is not identified: a band across both axes
+        a.axhspan(hid["D"] - z95 * hid["se"], hid["D"] + z95 * hid["se"], color="#ececec",
+                  lw=0, zorder=0)
+        a.axhline(hid["D"], color="k", lw=0.7, ls=(0, (5, 2)), zorder=1)
+        a.axhline(0, color="#888888", lw=0.5, zorder=1)
+    tl = sorted(TEST_LIKE, key=lambda r: d["level"][r])
+    for c in RC_CONFIGS:
+        col, mk, _ = STYLE[c]
+        xs = np.asarray([d["level"][r] for r in tl]) + RC_DODGE[c]
+        ys = np.asarray([d["rows"][r][c]["D"] for r in tl])
+        es = np.asarray([z95 * d["rows"][r][c]["se"] for r in tl])
+        ax.errorbar(xs, ys, yerr=es, color=col, marker=mk, ms=3.0, lw=0.8, elinewidth=0.6,
+                    capsize=0, mec="white", mew=0.3, zorder=3)
+        for k, r in enumerate(PUBLIC):
+            v = d["rows"][r][c]
+            pax.errorbar(k + RC_DODGE[c] * 6, v["D"], yerr=z95 * v["se"], color=col, marker=mk,
+                         ms=3.0, ls="", elinewidth=0.6, capsize=0, mec="white", mew=0.3,
+                         zorder=3)
+    ho = d["held_out"]
+    ax.errorbar(ho["level"], ho["D"], yerr=z95 * ho["se"], marker="D", ms=4.2, mfc="white",
+                mec="k", mew=0.8, color="k", elinewidth=0.8, capsize=0, ls="", zorder=5)
+    ax.annotate(f"held-out TL runs {ho['runs']}", (ho["level"], ho["D"] + z95 * ho["se"]),
+                xytext=(-2, 6), textcoords="offset points", fontsize=4.9, ha="left")
+    ax.text(-0.17, hid["D"] + z95 * hid["se"] - 0.0015,
+            f"hidden runs, adjusted for V:\n{hid['D']:+.4f} ± 1.96 × {hid['se']:.4f}",
+            fontsize=4.9, ha="right", va="top", color="#333333")
+    groups = {}
+    for r in tl:
+        groups.setdefault(round(d["level"][r], 1), []).append(r)
+    for _, rs_ in groups.items():
+        xm = float(np.mean([d["level"][r] for r in rs_]))
+        ax.text(xm, 1.01, ", ".join(RS_LABEL[r] for r in rs_), transform=ax.get_xaxis_transform(),
+                fontsize=5.0, ha="center", va="bottom", rotation=0)
+    ax.set_xlim(-1.4, -0.15)
+    ax.set_ylim(-0.0065, 0.083)
+    milli(ax)
+    ax.set_xlabel("realised level of the test-like regime (mean pair logit)")
+    ax.set_ylabel("ALC: comparator − shipped hier (10$^{-3}$)")
+    ax.text(-0.2, 1.09, "$\\bf{a}$  comparators against the regimes' level, ±1.96 cluster SE",
+            transform=ax.transAxes, fontsize=6.2)
+    pax.set_xlim(-0.65, 1.65)
+    pax.set_xticks([0, 1])
+    pax.set_xticklabels([f"{RS_LABEL[r]}\n" + f"({d['level'][r]:+.2f})".replace("-", "−")
+                         for r in PUBLIC], fontsize=5.0)
+    pax.tick_params(axis="y", labelleft=False)
+    pax.grid(axis="x", visible=False)
+    pax.text(0.5, 1.01, "public", transform=pax.transAxes, fontsize=5.0, ha="center",
+             va="bottom")
+    handles = [(Line2D([], [], color=STYLE[c][0], marker=STYLE[c][1], ms=3.0, lw=0.8),
+                RC_NAMES.get(c, NAMES[c])) for c in RC_CONFIGS]
+    handles += [(Line2D([], [], ls="", marker="D", ms=4.2, mfc="white", mec="k", mew=0.8),
+                 f"legacy Predictor, held-out TL runs {ho['runs']}"),
+                (Patch(color="#ececec", lw=0), "hidden runs: run 1 − runs 2 and 3,\n"
+                 "adjusted for V, ±1.96 pair SE")]
+    ax.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
+              bbox_to_anchor=(-0.2, -0.21), ncol=2, fontsize=4.9, columnspacing=0.8,
+              labelspacing=0.35)
+
+    # (b) placement z of the hidden runs, raw ALC beside ALC - v
+    order = d["order"]
+    xs = np.arange(len(order), dtype=float)
+    xs[len(TEST_LIKE):] += 0.5
+    zx.axhline(0, color="#888888", lw=0.5)
+    for zz in (-2, 2):
+        zx.axhline(zz, color="k", lw=0.5, ls=(0, (1, 1.5)))
+    for who, mk, dx in (("run1 (LegacyP)", "^", -0.14), ("runs 2+3 (hier)", "o", 0.14)):
+        raw = [d["place"][who][r][0] for r in order]
+        adj = [d["place"][who][r][1] for r in order]
+        for xx, a, b in zip(xs + dx, raw, adj):
+            zx.plot([xx, xx], [a, b], color="#999999", lw=0.5, zorder=2)
+        zx.plot(xs + dx, raw, ls="", marker=mk, ms=3.4, mfc="white", mec="k", mew=0.7, zorder=3)
+        zx.plot(xs + dx, adj, ls="", marker=mk, ms=3.4, color="k", zorder=4)
+    zx.set_xticks(xs)
+    zx.set_xticklabels([RS_LABEL[r] for r in order], fontsize=5.3, rotation=90)
+    zx.tick_params(axis="x", length=0, pad=1.5)
+    zx.grid(axis="x", visible=False)
+    zx.set_xlim(-0.6, xs[-1] + 0.6)
+    zx.set_ylim(-2.6, 4.3)
+    zx.set_ylabel("placement z (single-run sd)")
+    zx.text(-0.2, 1.09, "$\\bf{b}$  hidden runs placed in each regime", transform=zx.transAxes,
+            fontsize=6.2)
+    handles = [(Line2D([], [], ls="", marker="^", ms=3.4, color="k"), "run 1, legacy Predictor"),
+               (Line2D([], [], ls="", marker="o", ms=3.4, color="k"),
+                "runs 2 and 3 pooled, shipped hier"),
+               (Line2D([], [], ls="", marker="s", ms=3.4, mfc="white", mec="k", mew=0.7),
+                "hollow: raw ALC"),
+               (Line2D([], [], ls="", marker="s", ms=3.4, color="k"), "filled: ALC − V")]
+    zx.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
+              bbox_to_anchor=(-0.2, -0.27), ncol=1, fontsize=4.9, labelspacing=0.3,
+              handletextpad=0.2)
+    return fig
+
+
+# ---------------------------------------------------------------------------
 # registry and output
 
 FIGURES = [
@@ -1342,6 +1659,10 @@ FIGURES = [
     ("empirical_mean", fig_empirical_mean),
     ("hier_ablations", fig_hier_ablations),
     ("ideas_forest", fig_ideas_forest),
+    # v2 (2026-10-14): the hidden runs read through the identity, and v1's gate_curve (c)
+    ("hidden_decomposition", fig_hidden_decomposition),
+    ("regime_check", fig_regime_check),
+    ("text_signals", fig_text_signals),
 ]
 
 

@@ -775,13 +775,13 @@ def summary(report: dict) -> str:
 # ----------------------------------------------------------------- page renders
 
 def render_pages(report: dict, which: str, dest: Path, dpi: int = 80) -> list[Path]:
-    """PNGs of chosen pages (comma list, or 'auto': title, Table 1, Figure 5, appendix)."""
+    """PNGs of chosen pages (comma list, or 'auto': title, Table 1, Figure 1, appendix)."""
     pdftoppm = find_tool("pdftoppm", "PDFTOPPM")
     if not pdftoppm:
         raise BuildError("pdftoppm not found (set PDFTOPPM)")
     lp = report.get("label_pages", {})
     if which == "auto":
-        pages = [1, lp.get("tab-1"), lp.get("fig-5"), lp.get("report:appendix-start")]
+        pages = [1, lp.get("tab-1"), lp.get("fig-1"), lp.get("report:appendix-start")]
     else:
         pages = [int(x) for x in which.split(",") if x.strip()]
     pages = [p for p in dict.fromkeys(pages) if p]

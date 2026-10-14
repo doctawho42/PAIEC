@@ -1,6 +1,6 @@
 # References check for `docs/report/draft.md`
 
-Read 2026-10-02, against the draft at HEAD `dd3e372` (branch `official-protocol`). This closes review item m10 / P2.21 on the verification side. It does not edit the draft. Line numbers below are the draft's lines at `dd3e372`. A second check of the restructured draft, its sources and the two items it closed are in §6.
+Read 2026-10-02, against the draft at HEAD `dd3e372` (branch `official-protocol`). This closes review item m10 / P2.21 on the verification side. It does not edit the draft. Line numbers below are the draft's lines at `dd3e372`. A second check of the restructured draft, its sources and the two items it closed are in §6. A third check, on 2026-10-14, of the one reference report v2 adds, Murphy (1973), is §7.
 
 **How each reference was checked.** Existence, title, authors and year came from the arXiv API (all 13 arXiv ids) and Crossref (every DOI listed below). Venues came from the paper's own header or arXiv comment, PMLR, the ACL Anthology, the NeurIPS proceedings and Crossref. For each claim the draft attributes, I read the abstract. Where the abstract was not enough, I read the relevant section of the full text: Ge et al. v2, Krsteski and Meyer v1 and v2, Moreno Cencerrado et al. v3, Truong et al. v1, Zhou et al. (arXiv v2 and the Nature full text via Europe PMC), and Rue et al. (the February 2007 preprint copy, `www2.stat.duke.edu/~scs/Courses/Stat376/Papers/INLAOrig.pdf`, because the JRSS B version is paywalled). For Breslow and Clayton I read the abstract via OpenAlex. Scholar Sidekick was unavailable (no subscription), and DBLP did not respond. Scratch copies are in the session scratchpad, not in the repository.
 
@@ -192,5 +192,23 @@ Not changed: Naeini et al. (2015). Crossref gives the first author's surname as 
 **One attribution corrected (§1.4 of the restructured draft).** §1.4 credited IRT with choosing informative items for three works. Only Maia Polo et al. (tinyBenchmarks) is IRT-based. Vivek et al. select anchor points from correlations of model confidence across models; the v2 full text has no "item response" or "IRT". Li et al. learn an RL acquisition policy, with IRT only as a baseline and an alternative predictor. §1.4 now reads: small informative item sets are chosen with IRT [Maia Polo et al. 2024], anchor points [Vivek et al. 2024] or a learned acquisition policy [Li et al. 2025]. App F.8's wording ("active and anchor-point selection") was already accurate.
 
 **Attributed claims re-checked and supported** (no change): Krsteski and Meyer (17 benchmarks; entropy ρ 0.193 under K-fold and 0.137 leave one benchmark out); the Pacchiardi et al. quote (verbatim in the abstract); Truong et al. (22 datasets, one global model, held-out questions within datasets); Ge et al. (Table 22: Agentless 1.5 at +0.715, SWE-agent at -0.706; additive LLM and scaffold abilities, §5.2); Moreno Cencerrado et al. (better than the baselines except on GSM8K); Lugoloobi et al. 2026 (better than question length and TF-IDF); Rue et al. §3.2.2, eq. (13), the conditional-mean simplification.
+
+**Open.** Nothing in the reference list.
+
+---
+
+## 7 Third check, 2026-10-14: Murphy (1973), for report v2
+
+Report v2 cites one work that §1 to §6 did not check. The v2 outline asks that a new reference be checked here before it enters, never cited from memory.
+
+**Record.** Crossref, `https://api.crossref.org/works/10.1175/1520-0450(1973)012<0595:ANVPOT>2.0.CO;2`, read 2026-10-14: a journal article by Allan H. Murphy (single author), "A New Vector Partition of the Probability Score", *Journal of Applied Meteorology* 12(4): 595-600, June 1973, American Meteorological Society, doi:10.1175/1520-0450(1973)012<0595:ANVPOT>2.0.CO;2. The assembler of v2's main text checked it first; Scholar Sidekick's citation verifier was unavailable ("not subscribed"), so that check rests on Crossref alone. This pass read the Crossref record again the same day and found the same fields.
+
+**Entry, in the style of §4** (v2's References carry it as written):
+
+- + Murphy, A. H. (1973). A new vector partition of the probability score. *Journal of Applied Meteorology* 12(4): 595-600. doi:10.1175/1520-0450(1973)012<0595:ANVPOT>2.0.CO;2
+
+**Claims attributed.** v2 cites it twice. §3.1: "The identity is the one-bin case of the Brier score's partition into reliability, resolution and uncertainty [Murphy 1973] (App D.5)". App D.5: with one prediction value per bin, the display "is the partition of the Brier score into reliability, minus resolution, plus uncertainty [Murphy 1973]". Crossref holds no abstract. The abstract in OpenAlex (`https://api.openalex.org/works/doi:10.1175/1520-0450(1973)012<0595:ANVPOT>2.0.CO;2`, work W2047634553, read 2026-10-14) describes a new partition of the probability (Brier) score into three terms: the uncertainty of the events (the score of the sample relative frequencies), the reliability of the forecasts, and a new measure of their resolution. That supports both attributions in kind. The abstract states neither the formula nor its signs, and the full text was not read (the publisher's page answered HTTP 403 to a script), so the exact form rests on App D.5's own derivation, which does not depend on the citation.
+
+**Not cited.** The optional reference for the origin of ALC (the 2010 to 2011 active-learning challenge, Guyon et al.) stays out of v2 (the author's decision, 2026-10-14), so it was not checked.
 
 **Open.** Nothing in the reference list.

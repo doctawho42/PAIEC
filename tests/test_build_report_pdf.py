@@ -589,7 +589,9 @@ def test_report_pdf_layout(built):
     pages, lp = r["pages"], r["label_pages"]
     assert pages["main_text"][0] == 1 and pages["appendices"][1] == pages["total"]
     assert pages["references"][0] <= pages["main_text"][1] < pages["appendices"][0]
-    assert lp["sec-1"] == 1 and lp["references"] < lp["report:appendix-start"]
+    # §1 starts on the title page or the next one: report v2's title (three lines) and
+    # abstract fill page 1, so §1 opens page 2 (v1.0.1 opened it on page 1)
+    assert lp["sec-1"] <= 2 and lp["references"] < lp["report:appendix-start"]
     labels = B.figures_md_placement(FIGURES_MD.read_text(encoding="utf-8"))
     main = [lab for lab in labels if lab.isdigit()]
     for lab in labels:
@@ -608,7 +610,7 @@ def test_report_pdf_metadata_names_the_author_only(built):
     pypdf = pytest.importorskip("pypdf")
     info = pypdf.PdfReader(built["pdf"]).metadata
     assert info.author == B.front_matter(DRAFT.read_text(encoding="utf-8"))["author"]
-    assert info.title.startswith("Calibrating")
+    assert info.title == B.front_matter(DRAFT.read_text(encoding="utf-8"))["title"]
     assert info.get("/Keywords") == B.front_matter(DRAFT.read_text(encoding="utf-8"))["keywords"]
     assert not any(EMAIL_RE.search(str(v)) for v in info.values())
 

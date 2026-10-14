@@ -23,6 +23,7 @@ These override everything else in this guide.
 6. **Markdown that both pandoc and GitHub render.** Inline math `$...$`, display math `$$` on lines of their own, no raw LaTeX outside math, no HTML. Details in section 6.
 7. **Forbidden characters.** No em dash (U+2014), no en dash (U+2013), no Unicode minus sign (U+2212), no curly quotes, and no `--` in prose (pandoc's smart punctuation turns it into a dash). Use a period, comma, colon, parentheses or "to". `numbers.py` reports each one as an error.
 8. **Text that stays fixed.** Headings (numbers and words); the title block lines ("Author:", "Affiliation:", "Email:", "Code:", "Keywords:"); image lines `![...](fig/<name>.png)` and the "*Figure N.*" label that opens each caption; legend names quoted in captions ("shipped hier", "legacy Predictor", "neighbouring config", "hier, no subject prior"); "*Table N: ...*" labels; every `TODO(team)` and `TODO(record)` marker; the indented shell commands of App G; the two conduct statements named in App I (section 10); the references list (section 10).
+   *Note, 2026-10-14.* Rule 8 bound the edit passes of report v1. Report v2 lifted it: v2 changed headings (for example §4.4, now "When the rules were fixed") and the title block, and its figure and table labels follow v2's numbering (`docs/report/figures.md`, "Placement in the draft"). The legend names and the "*Figure N.*" and "*Table N: ...*" label forms still hold.
 9. **Repository.** No git commit or push, no network. Do not edit anything outside the rewrite's own files.
 
 ---
@@ -119,6 +120,40 @@ Knobs that are configuration labels, not model quantities, stay in words or code
 | acquisition hash rule | $u$, $n_{\mathrm{lab}}$, $n_{\mathrm{items}}$ | u, `labels_remaining`, `items_remaining` | see formula F12 |
 
 Unicode symbols in the draft become TeX: Δ to $\Delta$, ≤ to $\le$, ≥ to $\ge$, ≈ to $\approx$, × to $\times$, → to $\to$ ("LegacyP $\to$ Smooth-cal $\to$ hier-ship"), ² to `^2`, λ to $\lambda$, "1e-9" to $10^{-9}$, "2.1e-11" to $2.1 \times 10^{-11}$, "5e-7" to $5 \times 10^{-7}$, "sqrt(1 - r^2)" to $\sqrt{1 - r^2}$, "iff" to "if and only if". Two Unicode characters stay: "±" in SE formats (section 5), and "σ" inside the model names "hier-ship σ3.5" and "hier-ship σ5".
+
+### 2.5 The pair-rate oracle and the hidden runs (report v2)
+
+Added 2026-10-14 for report v2. These are the symbols of v2's §3 and App D.5 to D.10. They extend §2.1 and change no row above. `docs/findings.md` and the results files write the same quantities in plain text or as keys (`v`, "B0 - ECE0²", "ECE31²"); the report writes the symbols.
+
+| quantity | write | in `docs/findings.md` and the results files | note |
+|---|---|---|---|
+| a pair's evaluated success rate | $\bar y_{sb}$; $\bar y$ when the pair is fixed (App D.5) | "the pair's evaluated rate", "evaluation rate" | the success rate of the responses $\mathcal R_{sb}$, counted as in the Brier score (each repeated trial counted); the realised rate on the pair's evaluated items, not the true rate $p$ |
+| a pair's expected calibration error at budget $k$ | $\mathrm{ECE}_k$; its square $\mathrm{ECE}_k^2$ ($\mathrm{ECE}_0^2$, $\mathrm{ECE}_{31}^2$) | ECE0², ECE31², `ece31_sq` | the organisers' ECE, response-weighted over ten equal-width bins of the predictions [P§ Scoring]; "ECE" in prose; the budget subscript drops only in the short form of the identity, $\mathrm{ECE}^2 + p(1-p)$ (§1.3) |
+| the pair-rate oracle's Brier score | $V_{sb}$ | v of a pair | $V_{sb} = \bar y_{sb}(1 - \bar y_{sb})$, equal to $B_k - \mathrm{ECE}_k^2$ when all of the pair's responses get one prediction at budget $k$ (§3.1); exact for LegacyP (run 1), estimated at $B_0$ for hier-ship (runs 2 and 3) |
+| its run mean | $V$ | `v` | capital $V$ in the report; lowercase `v` only in code font, as a results key; "ALC minus $V$" in prose, "ALC $-\,V$" in table headers; $V$ fixes $p(1-p)$ but not the side of 0.5, so it reads no level |
+| within-pair resolution at budget $k$ | $R_k$; $R_{31}$ at $B_{31}$ | `within_pair_resolution_b31`, `r31` | $R_k = V_{sb} - (B_k - \mathrm{ECE}_k^2)$, so that $B_k - V_{sb} = \mathrm{ECE}_k^2 - R_k$ holds exactly (App D.5); zero for one prediction per pair; always with its budget subscript, since a bare $R$ is App F.8's run-level shift statistic and $R^2$ is explained variance (§2.4) |
+| the label-mean learner's expected $\mathrm{ECE}_{31}^2$ | $F_{sb}$ | `floor_pure_rate_learner_B31_b0_convention` (`late_gap`, $V$ from $B_0$); `floor_pure_rate_learner_B31` (`split_floor`, $V$ read at $B_{31}$) | App D.10's display, $F_{sb} = 2V_{sb}/n + (V_{sb}/31)(n - 31)/(n - 1)$ with $n$ as there; say "the label-mean learner", never "floor" or "pure rate learner", since a prior can lower it |
+| item spread | $\tau$ | `tau` (`requirement`) | the sd of the item logits within a pair, in App D.9's requirement simulation; not the shared residual variance $\tau^2_{\mathrm{res}}$ of §2.3, which keeps its subscript |
+
+First uses in v2's main text: $V$ in the abstract (in plain text); $V_{sb}$, $\mathrm{ECE}_0$ and the short form $\mathrm{ECE}^2$ in §1.3 (contribution 1); $\bar y_{sb}$, $\mathrm{ECE}_k$, $V_{sb}$, and $V$ as the run mean, all defined in §3.1; $R_k$ in §3.2. $F_{sb}$ and $\tau$ appear only in App D.10 and D.9, which define them.
+
+### 2.6 The pool evaluation (report v2)
+
+Added 2026-10-14 for report v2. These are the symbols of §7, Table 5 and App C.6, as App C.6's "Statistics" and "The rule" define them; `results/pool_eval.json` writes them as keys (`selection.stats.<candidate>.<regime>`). They change no row above.
+
+| quantity | write | in `results/pool_eval.json` | note |
+|---|---|---|---|
+| a candidate's paired difference in ALC against archive-3 | $D$ | `D` | candidate minus archive-3 on identical runs and checkpoints, each appearance weighted $1/n_j$ for a run of $n_j$ pairs, so the mean over runs of the run's pair-mean difference; negative favours the candidate. Not the $\Delta$ of §4.2, which compares two predictors on replica runs |
+| the mean $D$ over the two gain regimes | $M(X)$, for candidate $X$ | `selection.candidates.<X>.M` | the mean of $D$ in P-READING and P-AUDIT on S; carried only if eligible and $M(X) \le -0.001$ |
+| the family-cluster bootstrap SE | $\mathrm{SE}_f$ | `SEf` | source families as clusters (2,000 resamples, seed 0) |
+| the subject-cluster and cell-cluster SEs | $\mathrm{SE}_s$; $\mathrm{SE}_{fs}$ | `SEs`; `SEfs` | the same bootstrap with the subject identity key, and with the (family, key) cell, as clusters |
+| the two-way SE | $\mathrm{SE}_2$ | `SE2` | $\sqrt{\max(0, \mathrm{SE}_f^2 + \mathrm{SE}_s^2 - \mathrm{SE}_{fs}^2)}$ |
+| the SE that the rule and Table 5 use | $\mathrm{SE}_g$ | `SEg` | $\max(\mathrm{SE}_f, \mathrm{SE}_2)$; $U_{95} = D + 1.96\,\mathrm{SE}_g$ (`U95`), the pool evaluation's instance of §2.4's $U_{95}$ |
+| the per-family mean | PB | `PB` | the mean over families, each once, of the family's $D_f$, appearances weighted as in $D$; upright letters, no math |
+| the leave-one-family-out bound | JK | `JK` | the largest $D$ left after removing one family's appearances; upright letters, no math |
+| the level functional, a $B_0$ centre | $c(X, \Sigma)$ | `b0_centre.<arm>` (`results/pool_fits.json`) | the benchmark-averaged prior prediction of arm $X$ with no label over the pair set $\Sigma$ ($\Sigma_{\mathrm{real}}$, $\Sigma_{\mathrm{DS}}$), App C.6's display; C1m's $\mu_0$ solves $c(\mathrm{C1m}, \Sigma_{\mathrm{DS}}) = c(\mathrm{A3}, \Sigma_{\mathrm{DS}})$ |
+
+Names, not symbols: S and C (the selection and confirmation sets; App C.6 keeps the design's word "halves", §7 says "sets"), L, U and E (App C.6), Q (the eligible candidates with $M(X) \le -0.001$), (E1) to (E4) (the eligibility conditions), and the regime names P-READING, P-AUDIT, P-TUNED, P-MIXTURE, P-FLAT, the twins P-READING-DS and P-AUDIT-DS, D-READING and D-FLAT, and RS-TUNED to RS-R1P. First uses in the main text: $D$, $\mathrm{SE}_g$ and the regime names in §7 and Table 5; App C.6 defines the rest.
 
 ---
 

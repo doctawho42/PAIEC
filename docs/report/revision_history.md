@@ -1,0 +1,25 @@
+# Revision history of the technical report
+
+This file holds the report's revision history and its commits. Up to report v1.0.1 it was the report's App H.4; from report v2 on it is kept in the repository, outside the PDF (`docs/plans/p2_final_plan.md` §1, decision 3). A seven-character commit id from before the history rewrite of 2026-10-03 resolves through a lightweight tag of the same name (`docs/release.md`, section 9).
+
+## Report v1 (2026-09-28 to 2026-10-04)
+
+Draft v1 is dated 2026-09-28. We revised it on 2026-10-01 (the 14B's entropy job, formative run 3 and the RS study) and on 2026-10-02 for the remaining P1 items of the internal review (its second priority level: what a sound, complete analysis needs). Those items were the missing baselines, the pooling decomposition, the gate's tightening and intervals, the single-subject breakout, the row export and the figures. On 2026-10-02 we also restructured the report for the review's P2 items, which concern clarity, presentation and length. We cut the main text to sections 1 to 7, moved detail to the appendices, and used one name per model and one SE format. We kept the pre-trim text as `docs/report/draft_v1_long.md`. A verification pass the same day restored caveats lost in the trim, labelled the headline table in plain words, completed the references and recorded the submission requirements with their sources (`docs/report/report_requirements.md`). The pass changed no reported result.
+
+We wrote the report against branch `official-protocol`. Every script, results file and test it cites is committed there, and so are the report's own files. We committed the P0 revision (the answers to the review's items blocking submission) in `00bdf04`, and the Kaggle record in the commit after it. The entropy job's kit and rule are in `78e303e`, the entropy job's output and formative run 3 in `380fecf`, the RS study in `7fb7450` and the P1 records in `dd3e372`. The submission archive's code is that of `4d2cc4f`. We tagged the release commit `v1.0.0` and pushed it on 2026-10-03 (`docs/release.md`, sections 6 and 7).
+
+On 2026-10-04 we revised the report once more, in a commit after the release commit (`d64ff8b`, tagged `v1.0.1`). The author decided that the row archives are not hosted and that run 3's headline score stays unrecorded, and left open how the raw-versus-graded judgement of App G.6 was made. The author also confirmed the statements that App G.6 marks as confirmed. We added the wall-time notes of App G.4, corrected the device in App G.1 and the archive count and offline-bank command in App G.4, and restructured App I. This revision changed no reported result.
+
+## Report v2 (from 2026-10-06)
+
+Plan P2 (`docs/plans/p2_final_plan.md`), written and committed in `6a629cb` on 2026-10-06 before any of its checks ran, rebuilt the report around the hidden formative runs (its R1 to R6) and fixed the gates of the checks S1 to S4. Its dated amendments, and the commits that carry the work:
+
+- Amendment 1 (2026-10-06): S1 closed and S3 found no failure, so the code was frozen on archive-3; the hidden-runs analysis was ported to `experiments/hidden_runs.py`, and S4 was prepared (`6915f98`).
+- Amendment 2 (2026-10-06, `a5ef016`): E1 declared before it ran, report v2's framing and title, and the reworded statement on run 3. S4's results followed in `aec3b2a`.
+- Amendment 3 (2026-10-07, `31007b4`): the id-use wording of the run-3 statement, confirmed by the author.
+- 2026-10-07: the P2 data scripts (E1, the factorial, the R5 ports, the R6 pins, the hidden-runs keys) in `9f73fd6`; the R5 results as scored on 2026-10-06 in `d6df0bb`; the P2 data results, re-run from the committed scripts, in `022ae32`; `tools/fetch_pool.py` in `a725df9`, with an option added in `2bfcd17` (2026-10-11).
+- Amendment 4 (`3d38232`, 2026-10-11 UTC), with 4a (`d48f66b`), 4b (`fe2a7f4`) and 4c (`72cc96b`): the expanded public pool and a rule, committed and pushed in advance, for refitting hier's priors on it. The lock was committed in `831ef7d` (2026-10-13 UTC) and the selection in `365664c` (2026-10-14 UTC): no candidate was carried, and archive-3 stays the final submission. `docs/findings.md` gained the P2 sections and amendment 4's negative result in `e9b1010`.
+
+Report v2 restructures the text. The main text is cut to at most 9,000 words (plan P2 §1, decision 3) and leads with the root-free reading of the formative tables (§3, §6.1, §6.2), with the submitted predictor in §5 and the pool evaluation in §7. Report v1's main-text detail moved to the appendices, and the new appendices B.7, B.8, C.5, C.6 and D.5 to D.10 hold the P2 checks, the level choice, the pool evaluation and the hidden-run analysis in full. App H.4, this history, and App I.2, the review map (`docs/report/review_map.md`), left the PDF and stay in the repository, and the main text's results keys moved to `docs/report/sources_main.md`.
+
+Plan P2 §7 schedules report v2's release commit, tagged `v1.1.0`, for 2026-10-26 to 2026-10-27; this file records it when it is made.

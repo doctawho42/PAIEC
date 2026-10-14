@@ -1,6 +1,6 @@
 # Technical report: what the competition requires
 
-Read 2026-10-02 from the official pages listed under Sources. Quotes are short and verbatim. Everything else is paraphrase. Where a page says nothing, this file says so; it does not guess.
+Read 2026-10-02 from the official pages listed under Sources. Quotes are short and verbatim. Everything else is paraphrase. Where a page says nothing, this file says so; it does not guess. The runtime-resources row was added on 2026-10-14, from the competition page read that day (R6 of plan P2).
 
 ## Summary
 
@@ -21,6 +21,7 @@ Read 2026-10-02 from the official pages listed under Sources. Quotes are short a
 | how it is assessed | by the organisers, "criteria adapted from the NeurIPS 2026 Evaluations & Datasets reviewing guidelines"; emphasis on "technical soundness, clarity, reproducibility, and the quality of experimental analysis"; "Methodological novelty will be a secondary consideration."; "We do not currently plan to conduct formal peer review of technical reports." | competition page, Summative evaluation |
 | what it decides | the summative evaluation combines Brier ALC on a common hidden test subset with manual grading of the codebase and the report; the organisers will "review and rerun the released method". The report's weight in presentation selection: "Technical report quality is an important factor in selection" for oral and poster slots (five orals of 60 minutes in total, then a 60-minute poster session). Selection also weighs predictive performance, scientific rigour and contributions to data curation and the community | competition page, Overview and Summative evaluation; launch post |
 | session | in person, Sydney, Friday 11 December 2026, 08:00 to 10:15 Sydney time | competition page, Overview |
+| runtime resources (read 2026-10-14) | each run has 8 hours, setup included; up to 5 model repositories, each of at most 300B parameters and 1,000 GB, 1,024 GB combined; "GPU allocation is automatic"; models cannot be downloaded at run time, and development compute and API keys are the participant's own; during scoring, network access is limited to approved inference APIs, and internet-enabled tools such as web search and browsing are prohibited. Our submission uses no GPU, model repository or inference API: CPU and numpy only is our scope choice (`docs/plans/p2_final_plan.md` §1, decision 1, 2026-10-06), not a platform limit | competition page, Runtime; Q&A, "What are the compute limits?" |
 
 ## What this means for the draft
 
@@ -37,9 +38,9 @@ Read 2026-10-02 from the official pages listed under Sources. Quotes are short a
 
 Page or word limit, template, font or margins, required section headings, a separate supplementary upload, anonymity rules, a camera-ready stage, a poster or slide format, and how the report is weighted against Brier ALC in the summative score. The organisers' contact is aimslab@cs.stanford.edu, and they offer office hours by appointment. Ask them if any of these matters.
 
-## Sources (all read 2026-10-02)
+## Sources (all read 2026-10-02; the competition page again on 2026-10-14)
 
-- Competition page: https://aimslab.stanford.edu/competition (sections Overview, Participation, Evaluation → Summative evaluation, Resources, Q&A, Organizers). The "Submit on Codabench" link (/competition/submit) redirects to Codabench. Codabench's terms point to .../competition#rules, an anchor the page does not have; the rules are under Participation.
+- Competition page: https://aimslab.stanford.edu/competition (sections Overview, Participation, Evaluation → Summative evaluation, Resources, Q&A, Organizers). The "Submit on Codabench" link (/competition/submit) redirects to Codabench. Codabench's terms point to .../competition#rules, an anchor the page does not have; the rules are under Participation. Read again on 2026-10-14 for the runtime-resources row (the Runtime paragraph and the Q&A entry "What are the compute limits?"); the 2026-10-02 reading did not record either.
 - Launch post, 2026-08-15: https://aimslab.stanford.edu/news/predictive-evaluation-competition-opens ("Technical report quality is an important factor in both.").
 - OpenReview venue: https://openreview.net/group?id=NeurIPS.cc/2026/Workshop/PAIEC. Read through the public API: api2.openreview.net/groups?id=NeurIPS.cc/2026/Workshop/PAIEC (public_submissions false, instructions empty, location Sydney) and api2.openreview.net/invitations?id=NeurIPS.cc/2026/Workshop/PAIEC/-/Submission (fields, limits, duedate 1793447940000 = 2026-10-31T11:59:00Z, expdate 2026-10-31T12:29:00Z).
 - Codabench: https://www.codabench.org/competitions/17828/, read through www.codabench.org/api/competitions/17828/. Its overview defers to the competition page; phase "Competition" (id 29785) runs 2026-08-15T00:00Z to 2026-10-31T11:59Z. It says nothing about the report.

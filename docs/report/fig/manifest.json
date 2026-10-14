@@ -1,6 +1,6 @@
 {
  "script": "tools/report_figures.py",
- "script_sha256": "d15488e282765916159b771db1e87022bef5358138dc2b349217ef22773f8e95",
+ "script_sha256": "280c90de592c1ac2f29ea26281d3aac1938b4e03d8af97e84226e3b8e3711394",
  "command": "python tools/report_figures.py",
  "versions": {
   "python": "3.10.8",
@@ -42,7 +42,6 @@
   "gate_curve": {
    "function": "fig_gate_curve",
    "inputs": {
-    "results/emb_transfer.json": "77e67bcb5670fc7cc8b03fd54673a60f3c55def4d78bc6227ad2557b4f85711d",
     "results/finetune_encoder.json": "ad962e9f554644ef8caa8fe9a215b1057c6b035b22815f41db8ca3691bc7c959",
     "results/harness_thresholds.json": "ed29d00abfac9202bb7c0d53694f7ed744c6957c24dfc2c904ab1f2a151e46de",
     "results/hidden_state_probe.json": "8dd2e6034aaf6c3e593c1c538cceb030dbbc14563f668a772fffcc3c0b1e3091",
@@ -51,8 +50,8 @@
     "results/strong_llm_eval.json": "227a340ffa93cec052f46d923643c7c8ef02dd5a3106a7faf91617b662fe5b34"
    },
    "outputs": {
-    "gate_curve.svg": "07aeeb3eef219ab1ceb54672d522c50ba17c98956c63d561d3c1ddeed69ff95f",
-    "gate_curve.png": "48f2360afe2cd65f7c3af73f1de0bb9d0be26cf318b8629e02a918bfbaa9dd60"
+    "gate_curve.svg": "fd3066d9fe4fae0b851817e43e7460bfb74d79a2b928445362300f9d9cb9eae8",
+    "gate_curve.png": "d1be8a0c21aaf8abd6a0d140bba9085040056bf4c42ffdd7225a7e83aaf9cd81"
    }
   },
   "regime_sensitivity": {
@@ -157,6 +156,42 @@
    "outputs": {
     "ideas_forest.svg": "6160b503e5e0a55670f2b2ad380202de2da52aea4f34aed3bacb71f1608d8848",
     "ideas_forest.png": "6a7963ec1779b0f9e70d109bb59fc9e11cc807084df0948f36f35a3b84e5fb3c"
+   }
+  },
+  "hidden_decomposition": {
+   "function": "fig_hidden_decomposition",
+   "inputs": {
+    "results/hidden_runs.json": "442f2bd1e980c368b216c7906c99eed749d23fdc82aec31855bee640df827b6e"
+   },
+   "outputs": {
+    "hidden_decomposition.svg": "cc58b4edc7305a6e041a52045a7f660ce81d5e5666e8155a7e55ddba31776f9b",
+    "hidden_decomposition.png": "343983aad9b63b3701d517bb33f5e5d085812a3435c32bc751702cb66da48180"
+   }
+  },
+  "regime_check": {
+   "function": "fig_regime_check",
+   "inputs": {
+    "results/hidden_runs.json": "442f2bd1e980c368b216c7906c99eed749d23fdc82aec31855bee640df827b6e",
+    "results/regime_sensitivity.json": "74c06d5247bd59b1c4d668960b854c37a0ae501447c391309cd7b288b4d7a201",
+    "results/ship_confirm.json": "72f2f64aa44e42d3d3e3484c2345c83ef2ac83ff8f9ff8550cbea9ee2725c8cd",
+    "results/testlike_check.json": "26dfdc2296cd0038dcfb0013057feead5628c4cd63fb2b150ce5be2caa753849"
+   },
+   "outputs": {
+    "regime_check.svg": "5a730b500103de8e4996131aecc46c1952e81b9b359f17da54d5732cf0c5d013",
+    "regime_check.png": "5f4a2250558de9127cb0d5f61bfae5555d3435a32c66782b01572104b9c5120b"
+   }
+  },
+  "text_signals": {
+   "function": "fig_text_signals",
+   "inputs": {
+    "results/emb_transfer.json": "77e67bcb5670fc7cc8b03fd54673a60f3c55def4d78bc6227ad2557b4f85711d",
+    "results/harness_thresholds.json": "ed29d00abfac9202bb7c0d53694f7ed744c6957c24dfc2c904ab1f2a151e46de",
+    "results/llm4b_close.json": "03de6bc2f93b19c6cd460c29d847f7d513cd39ad7a6d74efe696cb32121306b2",
+    "results/strong_llm_eval.json": "227a340ffa93cec052f46d923643c7c8ef02dd5a3106a7faf91617b662fe5b34"
+   },
+   "outputs": {
+    "text_signals.svg": "428950d7665ccf68c3da1beef14e7b39822145bb02aa4f15828987b1ec825243",
+    "text_signals.png": "d5e74f05cb6ccb282da07f16e8e6252b526710c5175a7a37898e201ee606fdb1"
    }
   }
  }
