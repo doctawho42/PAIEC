@@ -6871,3 +6871,1034 @@ Not released:
   not released either.
 * **The itemsig rows cannot be exported.** They were written to a scratch
   `--rows` directory and are not in `data/`.
+
+## The hidden formative runs through Brier = ECE² + p(1-p) (P2: R1 to R3)
+
+`python experiments/hidden_runs.py`. One process; the stored run took 200.7 s
+inside the process (`provenance.wall_s`). `--no-rows` skips the two blocks
+that read gitignored rows (`curve.test` reads `data/subject_side_rows/`,
+`replica` reads `data/regime_sensitivity_rows/`), and `--no-requirement` skips
+the synthetic requirement block. Every number below is in
+`results/hidden_runs.json`, under the key in brackets.
+`tests/test_hidden_runs.py` covers the script.
+<!-- src: results/hidden_runs.json provenance.command; provenance.wall_s -->
+
+**What it asks.** Plan P2 (`docs/plans/p2_final_plan.md`, sections 2 and 5,
+R1 to R3) rests on exploratory analyses of 2026-10-06 of the organisers'
+formative tables. This script ports them. It recomputes every number from the
+tables in `results/formative/` and from committed results files, and checks it
+against the value the exploratory analysis recorded: 558 values reproduce at
+their recorded precision and 13 are explained in the file (`scratch.counts`).
+All 16 checks hold (`checks`), among them that each table equals the stored
+record pair for pair and that the pair-mean ALC reproduces each recorded
+score. It selects, tunes and ships nothing.
+<!-- src: results/hidden_runs.json scratch.counts (match 558, explained 13, differs 0); checks (16 entries, all ok) -->
+
+**Use of the feedback.** Only aggregate, id-free quantities leave the script.
+The analysis uses the anonymous ids only to find the one subject-benchmark
+pair that appears in two runs (runs 1 and 3) and to group pairs by benchmark
+in its bootstraps, and it chose, tuned and changed nothing (plan amendment 3).
+Besides, the script reads the ids to check each table against the stored
+record field for field and counts the distinct benchmark ids. No id is written
+to the results file, and no output is keyed on one (`about.id_use`).
+<!-- src: results/hidden_runs.json about.id_use; docs/plans/p2_final_plan.md amendment 3 (the confirmed wording) -->
+
+### The identity
+
+When every evaluated response of a pair gets one prediction q, the pair's
+Brier score is (q - o)² + o(1 - o) and its ECE is |q - o|, where o is the
+pair's response-weighted success rate. So v = B - ECE² is the Brier score of
+an oracle that knows each pair's rate, read from the tables with no root to
+choose. The report writes it V.
+
+* **Run 1 checks it.** LegacyP gave one value per pair at every budget. Per
+  pair, B - ECE² varies over the six budgets by at most 1.13e-6, all 9 pairs
+  within the tables' 6-decimal rounding, and the run mean varies by 1.5e-7
+  (`identity.run1.{per_pair_range_max, pairs_within_rounding_bound,
+  range_of_run_mean_over_budgets}`).
+  <!-- src: results/hidden_runs.json identity.run1.per_pair_range_max; identity.run1.pairs_within_rounding_bound; identity.run1.range_of_run_mean_over_budgets -->
+* **hier spreads its predictions within a pair,** so for runs 2 and 3 v is
+  read at B0. On replica rows with known rates, B0 - ECE0² misses p(1-p) by
+  -0.0002 to -0.00005 on average (sd 0.0010 to 0.0016) in all seven RS
+  regimes; at B31 the same estimator is biased low by 0.009 to 0.020
+  (`replica.validation_summary`).
+  <!-- src: results/hidden_runs.json replica.validation_summary.{b0_bias_range, b0_sd_range, b31_bias_range} -->
+* **The tables give p(1-p), not the side of 0.5,** so v reads no level.
+
+### v, ALC - v and the split by budget
+
+| run | predictor | pairs | v | ALC | ALC - v (pair SE) | 0.1 (B0 - v) | 0.2 (B1 + B3 + B7 + B15 - 4v) | 0.1 (B31 - v) |
+|---|---|---|---|---|---|---|---|---|
+| 1 | LegacyP (archive of b68492c) | 9 | 0.1536 | 0.2113 | 0.0577 (0.0190) | 0.0205 | 0.0368 | 0.0003 |
+| 2 | hier-ship (archive of ee5085a, the old multiple-choice floor) | 8 | 0.1797 | 0.1926 | 0.0130 (0.0046) | 0.0057 | 0.0069 | 0.0004 |
+| 3 | hier-ship (archive-3, built at 4d2cc4f) | 9 | 0.1608 | 0.1817 | 0.0208 (0.0026) | 0.0074 | 0.0130 | 0.0004 |
+
+(`tables.run*`, `decomposition.run*.{v, alc, alc_minus_v,
+pair_alc_minus_v_se, b0_term, b1_b15_terms, b31_term}`.)
+<!-- src: results/hidden_runs.json tables.run{1,2,3}.{model,pairs}; decomposition.run{1,2,3}.{v, alc, alc_minus_v, pair_alc_minus_v_se, b0_term, b1_b15_terms, b31_term} -->
+
+* **Most of the remaining loss accrues by B3.** B0, B1 and B3 carry 87.9%,
+  93.0% and 87.2% of ALC - v on runs 1 to 3
+  (`decomposition.run*.share_b0_b1_b3`).
+  <!-- src: results/hidden_runs.json decomposition.run{1,2,3}.share_b0_b1_b3 -->
+* **Many hidden pairs sit near a rate of 0.5.** Pairs with v of 0.20 or
+  more: 3 of 9, 4 of 8 and 2 of 9; pairs below 0.10: 2, 1 and 2. Run 1's
+  pair sd of v is 0.082 (`decomposition.run*.{pairs_v_ge_0.20,
+  pairs_v_lt_0.10, pair_v_sd}`).
+  <!-- src: results/hidden_runs.json decomposition.run{1,2,3}.pairs_v_ge_0.20; decomposition.run{1,2,3}.pairs_v_lt_0.10; decomposition.run1.pair_v_sd -->
+* **hier-ship's 17 pairs pooled** (runs 2 and 3, no subject in both): v
+  0.1697, ALC - v 0.0171 (pair SE 0.0027). In bins of v, below 0.10 (3
+  pairs), 0.10 to 0.20 (8) and 0.20 or more (6) carry 0.28, 0.44 and 0.28 of
+  the pooled ALC - v (`decomposition.hier_pooled`,
+  `decomposition.hier_pooled.bins`).
+  <!-- src: results/hidden_runs.json decomposition.hier_pooled.{pairs, v, alc_minus_v, pair_se_note}; main.hier_pooled_alc_minus_v_se; decomposition.hier_pooled.bins.*.{pairs, share_of_pooled_alc_minus_v} -->
+* **B31 overstates v** by 0.0031 for LegacyP and 0.0036 for hier-ship on
+  both runs (`decomposition.run*.b31_minus_v`). Exactly, B31 - v = ECE31² -
+  R31, where R31 is the within-pair resolution: 0.0074 - 0.0038 on run 2 and
+  0.0060 - 0.0024 on run 3; for LegacyP R31 is 4.5e-8 (`late_gap.run*`). The
+  convention with ECE² taken at each budget gives ALC - v of 0.0157 and
+  0.0215 for runs 2 and 3 (`decomposition.run*.alc_minus_v_ece2_convention`);
+  every other number here takes v from B0.
+  <!-- src: results/hidden_runs.json decomposition.run{1,2,3}.b31_minus_v; late_gap.run{1,2,3}.{ece31_sq, r31}; decomposition.run{2,3}.alc_minus_v_ece2_convention -->
+
+### The ideal pair-rate learner
+
+An exact grid posterior on the pair's rate under a logit-normal population
+prior, from the pair's own labels only: no subject attributes and no other
+pair's labels. Labels are drawn without replacement from the acquisition
+pool, split noise is simulated, and the learner is scored on the hidden
+pairs' own v (seed 11). Three priors: the team's inferred summary (-1.6,
+1.5), the pooled reading (-0.70, 1.75) and R1-like (-0.70, 1.42). Each pair's
+rate is placed at the lower root, at the upper root, or weighted by the prior
+(`ideal`).
+<!-- src: results/hidden_runs.json ideal (prior keys); provenance.seeds.ideal -->
+
+| learner, runs 2 and 3 (17 pairs) | ALC - v | excess at B1 |
+|---|---|---|
+| ideal, team prior, lower roots | 0.0161 | |
+| ideal, prior-weighted, three priors | 0.0250 to 0.0322 | 0.0388 to 0.0526 |
+| ideal, upper roots, three priors | 0.0511 to 0.0899 | |
+| hier-ship | 0.0171 | 0.0208 |
+
+(`ideal.summary_hier`; `ideal.<prior> | runs (2, 3).{mix, observed}[1]`.)
+<!-- src: results/hidden_runs.json ideal.summary_hier.{lower_roots_team_prior, prior_weighted_range, upper_roots_range, observed_hier}; ideal."team inference (-1.6, 1.5) | runs (2, 3)".mix[1]; ideal."pooled reading (-0.70, 1.75) | runs (2, 3)".mix[1]; ideal.*."runs (2, 3)".observed[1] -->
+
+* **hier-ship learns pair rates at the level of this ideal learner.** It has
+  information the ideal lacks (attributes, pooling, item structure), and its
+  B1 advantage may also reflect favourable first labels.
+* **Its B3 rises above B1 + 0.01 on 8 of 17 pairs**
+  (`curve.shape.pairs_B3_gt_B1_plus_0.01`). The ideal learner does so on
+  0.215 to 0.2365 of single pairs under two priors, and 8 or more of 17 has
+  probability 0.011, 0.040 and 0.105 at per-pair rates of 0.20, 0.25 and
+  0.30 (`nonmonotone`).
+  <!-- src: results/hidden_runs.json curve.shape.pairs_B3_gt_B1_plus_0.01; nonmonotone."prior=truth logit N(-0.7,1.42)"."B3>B1+0.01"; nonmonotone."prior=truth logit N(-1.29,1.7)"."B3>B1+0.01"; nonmonotone."P(>=8 of 17 with B3>B1+0.01)".{0.2, 0.25, 0.3} -->
+* **LegacyP's run 1 pays 0.0577,** against 0.0246 to 0.0330 for the
+  prior-weighted ideal learner on its pairs (0.0155 to 0.0981 over all roots
+  and priors).
+  <!-- src: results/hidden_runs.json decomposition.run1.alc_minus_v; ideal.*."runs (1,)".alc_minus_v.{mix, lower, upper} (ranges derived over the three priors) -->
+
+### The item-level share
+
+The tables identify v, not the item oracle. Borrowing the public regimes'
+ratio of item oracle to pair-rate oracle, 0.438 to 0.542
+(`item_level.ratio_range`, from `results/itemsig_eval.json`), the item-level
+share, (v - item oracle) / (ALC - item oracle), is 77.9% to 88.6% for
+hier-ship (`item_level.run3.share_range[0]`, `item_level.run2.share_range[1]`)
+and 54.9% to 60.0% for LegacyP on run 1. The estimate assumes public-like
+within-pair heterogeneity. The plan's "78 to 88 percent" truncates 88.6
+(amendment 1).
+<!-- src: results/hidden_runs.json item_level.ratio_range; item_level.run3.share_range[0]; item_level.run2.share_range[1]; item_level.run1.share_range -->
+
+### Comparisons adjusted for v
+
+* **LegacyP minus hier-ship, adjusted for v, is +0.0405 (pair SE 0.0191),**
+  against +0.0245 raw (`vadjusted.legacy_minus_hier`). On held-out test-like
+  runs 200 to 299 (`results/ship_confirm.json`), hier-ship minus LegacyP is
+  -0.0419 (cluster SE 0.0037; parent-level -0.0378 ± 0.0075). The two are
+  consistent, z = -0.07 (`vadjusted.agreement`).
+  <!-- src: results/hidden_runs.json vadjusted.legacy_minus_hier.{v_adjusted, se, raw}; vadjusted.test_like.blocks."200-299".{shipped_minus_legacy, cluster_se, parent_mean, parent_se}; vadjusted.agreement.z -->
+* **Caveats.** Run 1 and runs 2 and 3 hold different pairs and subjects, so
+  the hidden difference also carries their composition. TL's defaults were
+  chosen as the grid point closest to run 1 at B0 and B1 (report §4.1), so
+  the LegacyP side of the agreement is partly in sample.
+* **Run 3 minus run 2,** adjusted, is +0.0079 (0.0053), against -0.0110 raw
+  (`vadjusted.run3_minus_run2`).
+  <!-- src: results/hidden_runs.json vadjusted.run3_minus_run2.{v_adjusted, se, raw} -->
+* **Noise.** On replica runs of formative size, hier-ship's single-run sd is
+  0.023 to 0.030 for ALC and 0.0086 to 0.0109 for ALC - v, a ratio of 2.3 to
+  3.4 (`replica.noise_summary`).
+  <!-- src: results/hidden_runs.json replica.noise_summary.{ship_alc_sd_range, ship_alc_minus_v_sd_range, ship_sd_ratio_range} -->
+* **Placement.** Against public R1, run 1 lies at z = +8.87 (R1-bf) and
+  +7.21 (R1-pu) at B0 and +4.24 and +2.78 at B1 (`replica.placement_summary`),
+  and at +3.78 and +2.93 on ALC - v. Raw, its ALC lies at z -0.07 to +0.69
+  in every regime, public ones included. hier-ship's runs pooled lie at z
+  -1.67 to -1.08 on ALC - v in the five test-like regimes and at -0.85 and
+  -0.62 on public runs (`replica.placement_raw_summary.side_by_side_z_alc`).
+  The pooled row has 17 pairs against the sd of 9-pair runs, so its z
+  understates its precision.
+  <!-- src: results/hidden_runs.json replica.placement_summary.{run1_vs_R1B_B0_B1, run1_vs_R1P_B0_B1, note}; replica.placement_raw_summary.side_by_side_z_alc."run1 (LegacyP)".{R1B,R1P}.v_adjusted; replica.placement_raw_summary.z_alc_range_all."run1 (LegacyP)"; replica.placement_raw_summary.side_by_side_z_alc."runs 2+3 (hier)".*.v_adjusted -->
+
+### What a run of these benchmarks allows
+
+* **Run-level v.** Runs of 9 pairs bootstrapped from the 26 appearances
+  (seed 7, 20,000 runs) have v 0.160 (sd 0.017) stratified by benchmark and
+  0.164 (sd 0.024) with pairs iid, and v of 0.117 or less with probability
+  0.0066 and 0.030 (`run_spread.v_strat`, `run_spread.v_iid`). hier-ship's
+  ALC over runs of its 17 pairs has sd 0.0143 (stratified) and 0.0205 (iid),
+  and reaches 0.117 with probability 0 and 0.0006
+  (`run_spread.alc_hier_strat`, `run_spread.alc_hier_iid`).
+  <!-- src: results/hidden_runs.json run_spread.boots; run_spread.v_strat.{mean, sd, P_le_0.117}; run_spread.v_iid.{mean, sd, P_le_0.117}; run_spread.alc_hier_strat.{sd, P_le_0.117}; run_spread.alc_hier_iid.{sd, P_le_0.117} -->
+* **Sensitivity to the repeated pair.** One subject-benchmark pair appears in
+  runs 1 and 3. Over the 25 distinct pairs (seed 8, 200,000 runs), v of 0.117
+  or less has probability 0.0053 (stratified) and 0.0278 (iid), against 0.0060
+  and 0.0289 per appearance on the same stream (`run_spread.distinct_pairs`).
+  The per-appearance figures stay the primary ones.
+  <!-- src: results/hidden_runs.json run_spread.distinct_pairs.{distinct_pairs, pairs_in_two_runs, seed, boots, role}; main.P_v_le_0.117_strat_distinct; main.P_v_le_0.117_iid_distinct; main.P_v_le_0.117_strat_per_appearance_seed8; main.P_v_le_0.117_iid_per_appearance_seed8 -->
+* **What 0.117 needs.** On a hidden-like population (v 0.168 to 0.169), an
+  ideal learner that knows the pair's rate from B0 reaches 0.117 only with a
+  covariate whose within-pair r with the items' true logits is 0.95, 0.86 or
+  0.81 at item spreads tau of 2.0, 2.6 and 3.2. With a calibrated prior in
+  place of the known rate, 0.117 is out of reach at tau 2.0 and 2.6 and needs
+  0.98 at 3.2 (`requirement`; seed 3). This is a property of runs and of
+  predictors of pair rates; it says nothing about any entry.
+  <!-- src: results/hidden_runs.json requirement."tau=* | hidden-like v~0.165 (-0.70,1.42)".v; requirement.summary.{hidden_like_req_r_known, hidden_like_req_r_cal, taus}; provenance.seeds.requirement -->
+* **The organisers' entry (0.1801, read 2026-09-24).** On the three hidden
+  compositions an empirical mean is expected at 0.215, 0.247 and 0.224, and
+  scores 0.1801 or less with probability 1.85%, 0% and 0.45%; it would need v
+  of about 0.123 (`entry`). This withdraws the reading of "Against the live
+  leaderboard", which placed the entry's run at E[p(1-p)] of about 0.128 on
+  the assumption that the entry is the empirical mean
+  (`entry.level_reading_of_entry`). We say nothing about what the entry is.
+  <!-- src: results/hidden_runs.json entry.leaderboard.{organisers_entry, read}; entry.run{1,2,3}.{mc_mean, P_mc_le_entry}; entry.v_an_empirical_mean_needs_for_entry; entry.level_reading_of_entry -->
+
+### The curve after B7
+
+* **hier-ship's hidden curve is flat after B7.** Over its 17 pairs the step
+  from B7 to B31 is -0.0012 (SE 0.0028), and from B1 to B3 +0.0016 (SE
+  0.0068) (`curve.shape.platform_steps_mean_se`). Draws of 17 pairs from the
+  replica's ship arm fall by 0.0145 (TL), 0.0215 (R1-bf) and 0.0229 (R1-pu)
+  from B7 to B31, and reach the hidden mean with probability 0.011, 0.00065
+  and 0.00205 (`curve.test.replica`; seed 0). The test treats the 17 pairs as
+  independent, although they share two runs and 7 benchmarks.
+  <!-- src: results/hidden_runs.json curve.shape.platform_steps_mean_se."B7->B31"; curve.shape.platform_steps_mean_se."B1->B3"; curve.test.replica.{tl,r1b,r1p}."B7->B31_mean_of17"[0]; curve.test.replica.{tl,r1b,r1p}."P(mean >= platform)"; provenance.seeds.curve -->
+* **B31, split exactly.** Pair by pair, B31 - v = ECE31² - R31. On runs 2
+  and 3 hier-ship's ECE31² is 0.0074 and 0.0060 and its within-pair
+  resolution R31 is 0.0038 and 0.0024, so B31 - v is 0.0036 on both
+  (`late_gap`). A learner that predicts the plain mean of its 31 labels has an
+  expected ECE31² (split noise between the halves plus the error of the mean
+  of 31 labels drawn without replacement) of 0.0090 and 0.0083 with v from
+  B0 (`late_gap`), or 0.0088 and 0.0082 with v read at B31 (`split_floor`);
+  the results file calls it `floor_pure_rate_learner_B31`. That is not a
+  floor: a prior can
+  lower it, and the ideal learners above pay 0.0076 to 0.0095 at B31 on the
+  17 pairs (`ideal`). hier-ship's ECE31² lies below the label-mean learner's,
+  and its R31 is small, so the hidden items' features give it little at B31.
+  <!-- src: results/hidden_runs.json late_gap.run{2,3}.{ece31_sq, r31, b31_minus_v, floor_pure_rate_learner_B31_b0_convention}; split_floor.run{2,3}.{floor_pure_rate_learner_B31, platform_excess_B31}; ideal."<prior> | runs (2, 3)".{lower, mix, upper}[5] (0.0076 to 0.0095); wording corrected 2026-10-14 per report outline F3 and verify_sec3_appD.md M4: the stored "floor" is the label-mean learner's expected ECE31², not a floor -->
+
+### What this supersedes
+
+* The lower-root reading p(1-p) = B31 ("Against the first real formative
+  feedback", "What actually shipped, after the audit", "Formative feedback,
+  runs 1 and 2") is replaced by v = B0 - ECE0², which identifies p(1-p) but
+  not its side of 0.5.
+* "Against the live leaderboard": the empirical-mean reading of the
+  organisers' entry is withdrawn (above).
+* "Baselines: a plain 1PL, the organisers' empirical mean and BLE (P1.9)":
+  the sentence saying the best leaderboard entry (0.1172) stays unexplained
+  is replaced by the bound above.
+  <!-- src: results/hidden_runs.json entry.leaderboard.best_entry -->
+
+## S1: hier against the exact posterior predictive at dense B1 and B3 (P2)
+
+`python experiments/dense_b1_check.py score`, then `summarise` (resumable;
+`status` reports progress). Every number below is in
+`results/dense_b1_check.json`. `tests/test_dense_b1_check.py` checks the exact
+predictor on a one-pair case against direct quadrature.
+<!-- src: results/dense_b1_check.json commands -->
+
+**What it asks.** On dense real_webagents (split scope 'pair'), hier-ship's
+Brier at B1 is 0.2252 with pooling and 0.2101 on its own pair's labels
+(`results/pooling_decomposition.json`,
+`dense.real_webagents.pair.variants.{ship, ship_own}.budgets[1]`). The plan's
+check S1 asks whether hier's approximations cause this cost, by comparing
+hier's line read with the exact posterior predictive of its own model.
+<!-- src: results/pooling_decomposition.json dense.real_webagents.pair.variants.ship.budgets[1]; dense.real_webagents.pair.variants.ship_own.budgets[1] -->
+
+**Design** (`design`). 100 targets per checkpoint, sampled from all pairs of
+dense real_webagents (26 pairs), with matharena (81) and multi_swebench (82)
+as controls, at B1 and B3, under split scopes 'pair' and 'benchmark'; LEVEL
+over leave-one-benchmark-out priors; the controls cap each pair's evaluation
+items at 32. The exact predictive is computed by importance sampling with
+200,000 draws in 10 batches, and cross-checked by sequential Monte Carlo
+(2,000 particles, 4 replicates). Each target also gets hier's plain Laplace
+prediction and a prediction from the pair's own labels alone.
+<!-- src: results/dense_b1_check.json design.{targets, benches, scopes, budgets, eval_cap, level, is.draws, is.batches, smc.particles, smc.replicates}; summary.*.pairs_sampled -->
+
+**Gate G1** (`gate`). Stage 2 opens only if Brier(hier) - Brier(exact) at B1
+on real_webagents, scope 'pair', is at least 0.003 and its 95% interval
+excludes 0. It is -0.00035, 95% cluster interval [-0.00152, +0.00079], Monte
+Carlo SE 0.00012: **S1 closes.** Under scope 'benchmark' the same rule reads
+-0.00198 [-0.00614, +0.00197] and would not open either.
+<!-- src: results/dense_b1_check.json gate.{rule, difference, interval_95_cluster, mc_se, verdict}; gate.same_rule_scope_benchmark.{difference, interval_95_cluster, would_open} -->
+
+| checkpoint | hier - exact [95% cluster interval] | Laplace - exact | own labels - exact | IS k-hat | SMC against IS, max abs z |
+|---|---|---|---|---|---|
+| real_webagents, pair, B1 | -0.00035 [-0.00152, +0.00079] | -0.00091 | -0.02068 | 0.18 | 4.86 |
+| real_webagents, pair, B3 | +0.00145 [-0.00038, +0.00328] | +0.00092 | +0.03475 | 0.26 | 2.97 |
+| real_webagents, benchmark, B1 | -0.00198 [-0.00614, +0.00197] | -0.00140 | -0.00236 | 0.26 | 3.34 |
+| real_webagents, benchmark, B3 | -0.00073 [-0.00439, +0.00274] | -0.00073 | +0.01577 | 0.29 | 3.17 |
+| matharena, pair, B1 | -0.00070 [-0.00289, +0.00139] | -0.00128 | +0.05387 | 0.27 | 3.04 |
+| matharena, pair, B3 | +0.00037 [-0.00114, +0.00179] | +0.00008 | +0.04918 | 0.21 | 2.72 |
+| matharena, benchmark, B1 | +0.00008 [-0.00159, +0.00173] | -0.00023 | +0.04152 | 0.22 | 3.76 |
+| matharena, benchmark, B3 | -0.00065 [-0.00228, +0.00093] | -0.00087 | +0.01936 | 0.30 | 3.93 |
+| multi_swebench, pair, B1 | +0.00209 [-0.00252, +0.00625] | +0.00021 | +0.00408 | 0.44 | 3.69 |
+| multi_swebench, pair, B3 | +0.00050 [-0.00229, +0.00314] | -0.00092 | +0.01052 | 0.54 | 2.96 |
+| multi_swebench, benchmark, B1 | +0.00225 [-0.00224, +0.00643] | +0.00001 | +0.02258 | 0.51 | 2.19 |
+| multi_swebench, benchmark, B3 | +0.00081 [-0.00169, +0.00336] | -0.00015 | +0.00972 | 0.63 | 2.91 |
+
+(`summary.<bench>.<scope>.<budget>.{"hier - exact", "laplace - exact", "own - exact"}.mean`, `"hier - exact".cluster_boot`; `checks.is_khat`, `checks.smc_vs_is_max_abs_z`.)
+<!-- src: results/dense_b1_check.json summary.*."hier - exact".{mean, cluster_boot[0], cluster_boot[1]}; summary.*."laplace - exact".mean; summary.*."own - exact".mean; checks.is_khat.*; checks.smc_vs_is_max_abs_z.* -->
+
+* **hier tracks its exact posterior predictive.** No interval of hier -
+  exact excludes 0 on any of the 12 checkpoints.
+* **The exact predictive pays the dense B1 cost as hier does.** On
+  real_webagents, scope 'pair', the pair's own labels alone beat the exact
+  posterior predictive at B1 by 0.0207 (cluster interval [-0.0465, +0.0058])
+  and lose to it at B3 by 0.0348. So if the B1 cost is real, it comes from
+  the model's pooling, not from hier's approximations.
+  <!-- src: results/dense_b1_check.json summary."real_webagents.pair.B1"."own - exact".{mean, cluster_boot}; summary."real_webagents.pair.B3"."own - exact".mean -->
+* **Diagnostics.** The importance weights' k-hat is 0.18 to 0.63, above 0.5
+  on three multi_swebench checkpoints, where the SMC estimate stands beside
+  it. hier reproduces the pooling study's stored per-pair Brier bit for bit on
+  all 12 checkpoints, every hier fit converged, and the exact log posterior
+  matches hier's to 0.00056 at the mode and at Laplace draws (`checks`).
+  <!-- src: results/dense_b1_check.json checks.is_khat; checks.population_repro_bit_identical; checks.hier_all_converged; checks.lp_vs_hier_max_abs -->
+* **What stays open.** LegacyP's pooled-difficulty cost at dense B1 on
+  multi_swebench was not part of S1 and is not examined.
+
+## S3: archive-3 under stress (P2)
+
+`python tools/stress_archive.py` (1,660.9 s, `provenance.wall_s`; `--quick
+--out PATH` is a smoke test of the harness only). Every number below is in
+`results/stress_archive.json`. The archive is `dist/paiec.zip`, sha256
+4a882cc7d410e6a9…, archive-3 (`archive.is_archive_3`), loaded through the
+organisers' validator, which accepts it (`validator.ok`).
+<!-- src: results/stress_archive.json provenance.{command, wall_s}; archive.{sha256, is_archive_3}; validator.ok -->
+
+**Parts** (`params`, `fuzz`, `replay`, `dense`, `parallel`):
+
+* fuzz: 10,000 inputs in 8 families (content, unicode, features,
+  interactors, dates, missing fields, `labeled`, combined), with empty and
+  1 MB item_content, nested and None item_features, non-empty interactors
+  and odd release dates;
+* replay: 500 fuzz cases in reverse order in a fresh process, with 0 bit
+  mismatches;
+* dense: 7 pseudo-benchmarks, 20 subjects, 140 pairs and 10 targets per pair
+  at every checkpoint under both split scopes, up to 4,340 labels in
+  `labeled` (59.6 MB of JSON) at B31, with no fit fallback and no
+  unconverged fit;
+* parallel: 16 workers with fresh deep copies, whose predictions equal the
+  dense part's bit for bit at every checkpoint and scope.
+<!-- src: results/stress_archive.json params.{fuzz, replay, workers, subjects, targets_per_pair, dense}; fuzz.families_listed; replay.bit_mismatches; dense.scopes.*.*.{pairs, labels, labeled_json_mb, fit_fallbacks, unconverged}; parallel.bits_equal_to_dense -->
+
+**Gate** (plan section 3): no exception escapes, every output is finite and
+in (0, 1), and per call p99 is under 2 s and the maximum under 30 s. Read on
+all 45,500 calls pooled: **PASS**. The call window's p99 is 0.516 s and its
+maximum 20.21 s; predict alone gives 0.286 s and 19.51 s, and its CPU time
+0.108 s and 10.82 s (`gate.pooled`).
+<!-- src: results/stress_archive.json gate.text; gate.pooled.{calls, p99_window_s, max_window_s, p99_predict_s, max_predict_s, p99_predict_cpu_s, max_predict_cpu_s, pass}; gate.verdict -->
+
+| part | calls | p99, wall | max, wall | p99, CPU | alone |
+|---|---|---|---|---|---|
+| fuzz | 10,000 | 2.146 s | 20.21 s | 1.448 s | fails p99 |
+| replay | 500 | 1.687 s | 8.137 s | 0.926 s | passes |
+| dense | 16,800 | 0.120 s | 1.207 s | 0.048 s | passes |
+| parallel | 18,200 | 0.565 s | 3.036 s | 0.089 s | passes |
+
+(`gate.parts_alone`.)
+<!-- src: results/stress_archive.json gate.parts_alone.{fuzz,replay,dense,parallel}.{calls, p99_window_s, max_window_s, p99_predict_cpu_s, pass} -->
+
+* **Deviation, disclosed in plan amendment 1.** The harness first also
+  required each part to pass alone. A smoke run showed the fuzz part over the
+  p99 bar, and that requirement was dropped before the full run, on the
+  reading that the plan states one criterion for S3. The fuzz part started at
+  load averages of 22.99, 81.9 and 89.74 (1, 5 and 15 minutes) on 8 cores
+  (`fuzz.loadavg_start`, `machine.cpus`).
+  Neither reading would change the submission, because S3 fixes only
+  failures and no call failed.
+  <!-- src: results/stress_archive.json fuzz.loadavg_start; machine.cpus -->
+* **Fallbacks by design.** 540 of the 1,500 missing-field inputs answer
+  exactly 0.5, as the fallback does; no other fuzz family falls back
+  (`fuzz.families.*.{fallback, exactly_half}`).
+  <!-- src: results/stress_archive.json fuzz.families.missing.{calls, fallback, exactly_half}; fuzz.families.*.fallback -->
+* **Outside the gate** (`envelope_not_gated`). With 20,000 `labeled`
+  entries over singleton benchmarks, the first call took 61.8 s and later
+  calls 0.38 s and 0.28 s; with 2,000 entries, 6.3 s; with 15,000 entries on
+  one benchmark of 3,000 subjects, 10.5 s; with 20,000 entries spread over 50
+  benchmarks and 500 subjects, 6.8 s; and with 25 entries whose 5 subjects
+  carry release dates of about 1 MB in a non-ISO format, 10.2 s. No call
+  escaped or returned a non-finite value.
+  <!-- src: results/stress_archive.json envelope_not_gated.probes.singleton_benchmarks_20000.{labeled_entries, first_call_s, later_calls_s, escaped, nonfinite}; envelope_not_gated.probes.singleton_benchmarks_2000.first_call_s; envelope_not_gated.probes.one_benchmark_3000_subjects_x5.{labeled_entries, first_call_s}; envelope_not_gated.probes.flat_20000_over_50x500.{labeled_entries, first_call_s}; envelope_not_gated.probes.long_nonISO_dates_on_5_subjects.{labeled_entries, first_call_s}; envelope_not_gated.probes.*.{escaped, nonfinite} (all 0); the probes' shapes are tools/stress_archive.py ENVELOPE -->
+* **Memory.** The fuzz process peaked at 1,220.8 MB, a parallel worker at
+  460.2 MB and the 16 workers together at 3,163.8 MB (`memory_peak_mb`).
+  <!-- src: results/stress_archive.json memory_peak_mb.{fuzz_process, parallel_worker_max, parallel_concurrent_total_max} -->
+* **A full dense run** would take 2,132 s serially under scope 'pair' and
+  133 s over 16 workers, against the platform's limit of 28,800 s
+  (`projection_full_dense_run`).
+  <!-- src: results/stress_archive.json projection_full_dense_run.pair.{serial_s, over_16_workers_s, platform_limit_s} -->
+
+## S4: ablations at LEVEL on a fresh seed (P2)
+
+```
+export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
+export PYTHONHASHSEED=0
+python experiments/ablations_at_level.py lock
+python experiments/ablations_at_level.py calib
+python experiments/ablations_at_level.py regimes
+python experiments/ablations_at_level.py reproduce
+for k in 0 1 2; do (while :; do python experiments/ablations_at_level.py score \
+    --shard $k/3; [ $? -eq 75 ] || break; done) & done; wait
+python experiments/ablations_at_level.py summarise
+```
+
+Every number below is in `results/ablations_at_level.json`. The lock was
+fixed at 2026-10-06T14:12:18Z, and the rule was applied once, at
+2026-10-06T18:45:45Z (`lock.fixed_at_utc`, `rule.applied_utc`).
+`tests/test_ablations_at_level.py` covers the arithmetic on synthetic data.
+<!-- src: results/ablations_at_level.json lock.fixed_at_utc; rule.applied_utc -->
+
+**What it asks.** The plan's check S4: ablations of hier-ship at LEVEL on a
+fresh regime-sensitivity seed, for the report only and declared no-ship in
+advance. P1a's machinery is reused unchanged: its seven regimes with 80
+test-like and 60 public runs each (520 tasks), split scope 'pair', its
+statistics (2,000 cluster resamples, seed 0) and its rule (App C.2), on seed
+20261006 (`plan`).
+<!-- src: results/ablations_at_level.json plan.{seed, n_runs, split_scope, boots, boot_seed}; summary.complete; lock.checks.seed_fresh -->
+
+**Configs** (`plan.configs`). sigma_delta times 0.85, 0.7 and 0.5 of each
+parent's leave-one-parent-out fit (`sd_x085`, `sd_x07`, `sd_x05`; that fit is
+1.70 with matharena held out and 2.96 with multi_swebench held out); the line
+read off (`noline`), also with sigma_delta x0.7 (`sd_x07_noline`);
+sigma_delta x0.85 with mu0 moved to -2.4715 to keep hier-ship's mean B0
+prediction (`sd_x085_mp`); sigma_mu 3.5 and 5.0 (`wide35`, `wide50`); hier-EB
+on hier-ship (`eb_ship`); and the pilots' absolute values, sigma_delta 2.025,
+1.667 and 1.191 for every parent, that is 0.85, 0.7 and 0.5 times the fit on
+all five public benchmarks, 2.382 (`sd085_abs`, `sd07_abs`, `sd05_abs`,
+`sd07_abs_noline`, and `sd085_abs_mp` at mu0 -2.489). The absolute pilots
+include the scored parent in their sigma_delta, so they are not
+leave-one-parent-out.
+<!-- src: results/ablations_at_level.json calib.hypers_per_parent.ship.{matharena,multi_swebench}.sigma_delta; plan.mu0_mp.{x, abs}; plan.sd_all_public; plan.sd_abs; plan.sd_factors; plan.pilot_names -->
+
+**Realised levels at this seed** (mean pair logit; `summary.regimes.<R>.realised.mean`):
+TUNED -1.20, READING -0.63, AUDIT -1.07, MIXTURE -0.63, FLAT -0.27, R1-bf
+-0.61, R1-pu -0.60. hier-ship minus LegacyP in TUNED is -0.0395 (cluster SE
+0.0035), against -0.0415 (0.0034) known, z = +0.40 (`summary.tuned_consistency`).
+<!-- src: results/ablations_at_level.json summary.regimes.{TUNED,READING,AUDIT,MIXTURE,FLAT,R1B,R1P}.realised.mean; summary.tuned_consistency.{ship_minus_legacy, cluster_se, known, known_se, z} -->
+
+Config minus hier-ship, equal weights (P1a's), D (cluster SE)
+(`summary.table.rows`, weights "equal"):
+
+| config | TUNED | READING | AUDIT | MIXTURE | FLAT | R1-bf | R1-pu |
+|---|---|---|---|---|---|---|---|
+| `legacy` | +0.03953 (0.00354) | +0.02516 (0.00368) | +0.03648 (0.00445) | +0.02602 (0.00404) | +0.01803 (0.00420) | +0.00071 (0.00225) | +0.00118 (0.00168) |
+| `sd_x085` | -0.00019 (0.00011) | -0.00019 (0.00012) | +0.00004 (0.00013) | -0.00020 (0.00014) | +0.00014 (0.00015) | -0.00035 (0.00021) | -0.00034 (0.00013) |
+| `sd_x07` | -0.00024 (0.00021) | -0.00025 (0.00023) | +0.00020 (0.00025) | -0.00025 (0.00029) | +0.00038 (0.00030) | -0.00040 (0.00045) | -0.00046 (0.00027) |
+| `sd_x05` | -0.00007 (0.00034) | -0.00010 (0.00036) | +0.00061 (0.00040) | -0.00004 (0.00047) | +0.00088 (0.00048) | +0.00015 (0.00080) | -0.00022 (0.00046) |
+| `noline` | +0.00040 (0.00019) | +0.00008 (0.00015) | +0.00074 (0.00019) | +0.00002 (0.00018) | +0.00051 (0.00018) | -0.00075 (0.00021) | -0.00048 (0.00013) |
+| `sd_x07_noline` | +0.00026 (0.00034) | -2.9e-6 (0.00032) | +0.00096 (0.00038) | -0.00005 (0.00040) | +0.00098 (0.00041) | -0.00082 (0.00055) | -0.00071 (0.00031) |
+| `sd_x085_mp` | -0.00008 (0.00011) | -0.00017 (0.00011) | +0.00012 (0.00013) | -0.00018 (0.00014) | +0.00010 (0.00014) | -0.00041 (0.00021) | -0.00041 (0.00013) |
+| `wide35` | +0.00048 (0.00027) | +0.00023 (0.00032) | -0.00048 (0.00039) | +0.00060 (0.00045) | -0.00115 (0.00045) | +0.00180 (0.00046) | +0.00035 (0.00034) |
+| `wide50` | +0.00200 (0.00058) | +0.00164 (0.00067) | +0.00017 (0.00081) | +0.00242 (0.00094) | -0.00106 (0.00090) | +0.00472 (0.00098) | +0.00154 (0.00066) |
+| `eb_ship` | -0.00089 (0.00044) | +0.00054 (0.00036) | -0.00052 (0.00035) | +0.00059 (0.00031) | +0.00002 (0.00041) | +0.00098 (0.00042) | +0.00096 (0.00027) |
+| `sd085_abs` | -0.00031 (0.00017) | -0.00038 (0.00016) | -0.00031 (0.00019) | -0.00060 (0.00018) | -0.00067 (0.00021) | -0.00090 (0.00025) | -0.00075 (0.00019) |
+| `sd07_abs` | -0.00031 (0.00026) | -0.00037 (0.00023) | -0.00005 (0.00026) | -0.00056 (0.00027) | -0.00025 (0.00029) | -0.00089 (0.00044) | -0.00087 (0.00027) |
+| `sd05_abs` | -0.00007 (0.00037) | -0.00014 (0.00036) | +0.00048 (0.00040) | -0.00021 (0.00045) | +0.00050 (0.00046) | -0.00025 (0.00078) | -0.00058 (0.00044) |
+| `sd07_abs_noline` | +0.00017 (0.00037) | -0.00015 (0.00032) | +0.00067 (0.00037) | -0.00036 (0.00038) | +0.00036 (0.00039) | -0.00131 (0.00054) | -0.00113 (0.00030) |
+| `sd085_abs_mp` | -0.00027 (0.00018) | -0.00037 (0.00017) | -0.00028 (0.00019) | -0.00059 (0.00018) | -0.00068 (0.00021) | -0.00092 (0.00024) | -0.00078 (0.00019) |
+
+<!-- src: results/ablations_at_level.json summary.table.rows[weights == "equal"].<regime>.{D, cluster_se} -->
+
+The same with hidden-v weights, which give each regime's appearances the
+formative runs' composition in v (26 values in three bins, counts 5, 12 and
+9; `summary.hidden_v`; only the counts are read from the tables):
+
+| config | TUNED | READING | AUDIT | MIXTURE | FLAT | R1-bf | R1-pu |
+|---|---|---|---|---|---|---|---|
+| `legacy` | +0.03586 (0.00342) | +0.02404 (0.00349) | +0.02967 (0.00357) | +0.02697 (0.00419) | +0.01616 (0.00356) | +0.00221 (0.00270) | +0.00113 (0.00197) |
+| `sd_x085` | -0.00039 (0.00009) | -0.00024 (0.00011) | -0.00017 (0.00011) | -0.00024 (0.00014) | -0.00005 (0.00014) | -0.00026 (0.00025) | -0.00025 (0.00014) |
+| `sd_x07` | -0.00065 (0.00018) | -0.00035 (0.00022) | -0.00021 (0.00021) | -0.00032 (0.00028) | +0.00002 (0.00027) | -0.00022 (0.00053) | -0.00029 (0.00029) |
+| `sd_x05` | -0.00072 (0.00029) | -0.00028 (0.00036) | -0.00005 (0.00034) | -0.00014 (0.00047) | +0.00031 (0.00045) | +0.00048 (0.00092) | +0.00007 (0.00049) |
+| `noline` | -0.00004 (0.00014) | -0.00005 (0.00012) | +0.00009 (0.00014) | -0.00005 (0.00016) | +0.00013 (0.00014) | -0.00043 (0.00019) | -0.00032 (0.00011) |
+| `sd_x07_noline` | -0.00050 (0.00026) | -0.00021 (0.00029) | +0.00003 (0.00029) | -0.00018 (0.00038) | +0.00031 (0.00035) | -0.00040 (0.00061) | -0.00041 (0.00034) |
+| `sd_x085_mp` | -0.00031 (0.00009) | -0.00023 (0.00011) | -0.00013 (0.00010) | -0.00021 (0.00013) | -0.00009 (0.00013) | -0.00030 (0.00025) | -0.00032 (0.00014) |
+| `wide35` | +0.00103 (0.00023) | +0.00035 (0.00029) | +0.00039 (0.00030) | +0.00080 (0.00041) | -0.00042 (0.00036) | +0.00177 (0.00063) | +0.00019 (0.00049) |
+| `wide50` | +0.00321 (0.00051) | +0.00191 (0.00061) | +0.00203 (0.00063) | +0.00283 (0.00086) | +0.00046 (0.00074) | +0.00461 (0.00127) | +0.00124 (0.00094) |
+| `eb_ship` | -0.00020 (0.00041) | +0.00076 (0.00042) | +0.00016 (0.00032) | +0.00074 (0.00030) | +0.00048 (0.00038) | +0.00133 (0.00061) | +0.00081 (0.00031) |
+| `sd085_abs` | -0.00056 (0.00015) | -0.00044 (0.00016) | -0.00055 (0.00014) | -0.00060 (0.00018) | -0.00064 (0.00019) | -0.00126 (0.00028) | -0.00091 (0.00020) |
+| `sd07_abs` | -0.00076 (0.00022) | -0.00049 (0.00023) | -0.00050 (0.00021) | -0.00060 (0.00027) | -0.00045 (0.00027) | -0.00114 (0.00050) | -0.00093 (0.00026) |
+| `sd05_abs` | -0.00077 (0.00031) | -0.00033 (0.00035) | -0.00022 (0.00034) | -0.00028 (0.00046) | +0.00002 (0.00043) | -0.00027 (0.00087) | -0.00049 (0.00043) |
+| `sd07_abs_noline` | -0.00062 (0.00029) | -0.00037 (0.00029) | -0.00028 (0.00028) | -0.00046 (0.00036) | -0.00016 (0.00033) | -0.00131 (0.00058) | -0.00107 (0.00029) |
+| `sd085_abs_mp` | -0.00052 (0.00015) | -0.00044 (0.00016) | -0.00053 (0.00014) | -0.00059 (0.00019) | -0.00065 (0.00019) | -0.00127 (0.00028) | -0.00093 (0.00020) |
+
+<!-- src: results/ablations_at_level.json summary.table.rows[weights == "hidden_v"].<regime>.{D, cluster_se}; summary.hidden_v.{counts, shares} -->
+
+* **The rule finds no candidate** (`rule.outcome`), and S4 was declared
+  no-ship in advance. Condition (a) needs a gain of at least 0.002 in READING
+  and AUDIT with U95 below zero; the largest gain of any config in either is
+  0.00052 (`eb_ship` in AUDIT; `rule.thresholds`,
+  `rule.table.<config>.conditions.a`).
+  <!-- src: results/ablations_at_level.json rule.{outcome, candidates, would_pass, shipped, thresholds.gain}; summary.table.rows[equal].*.{READING,AUDIT}.D (largest gain 0.00052, eb_ship in AUDIT; derived) -->
+* **Narrowing sigma_delta is level with hier-ship.** The
+  leave-one-parent-out multiples stay within 0.001 of it everywhere at equal
+  weights. At equal weights the absolute pilot `sd085_abs` gains 0.0003 to
+  0.0009 in every regime (cluster SE 0.00016 to 0.00025), below the rule's
+  0.002, and its sigma_delta includes the scored parent.
+  <!-- src: results/ablations_at_level.json summary.table.rows[equal].{sd_x085,sd_x07,sd_x05}.*.D (largest magnitude 0.00088, derived); summary.table.rows[equal].sd085_abs.*.{D, cluster_se} -->
+* **The line read at LEVEL.** Switching it off costs +0.00002 to +0.00074 in
+  the test-like regimes and gains 0.00048 and 0.00075 on public runs at
+  equal weights (`noline`); with hidden-v weights it is within 0.00013 of
+  hier-ship in the test-like regimes. The line read is a correction of the
+  Laplace under-reaction, worth at most 0.00074 of ALC here, not an ALC gain.
+  Without it a call takes 0.57 ms on average, against hier-ship's 0.97 ms
+  (`summary.latency`).
+  <!-- src: results/ablations_at_level.json summary.table.rows[equal].noline.*.D; summary.table.rows[hidden_v].noline.{TUNED,READING,AUDIT,MIXTURE,FLAT}.D; summary.latency.all.{noline, ship}.mean_ms -->
+* **Wider level priors cost on public runs.** sigma_mu 5.0 loses 0.0047
+  (0.0010) on R1-bf and gains only in FLAT (-0.0011 (0.0009)); sigma_mu 3.5
+  loses 0.0018 (0.0005) on R1-bf. hier-EB on hier-ship is within 0.001 of it
+  in every regime at equal weights; with hidden-v weights it loses 0.00133
+  (0.00061) on R1-bf.
+  <!-- src: results/ablations_at_level.json summary.table.rows[equal].{wide50,wide35}.{R1B,FLAT}.{D,cluster_se}; summary.table.rows[equal].eb_ship.*.D (largest magnitude 0.00098, derived); summary.table.rows[hidden_v].eb_ship.R1B.{D, cluster_se} -->
+
+## E1: EmpMean and 1PL-ship in the four other RS regimes (P2, amendment 2)
+
+```
+python experiments/e1_baselines_rs.py lock
+python experiments/e1_baselines_rs.py score --shard k/3   (k = 0, 1, 2; repeat while it exits with 75)
+python experiments/e1_baselines_rs.py summarise
+```
+
+Every number below is in `results/e1_baselines_rs.json`. `summarise` takes
+2.5 s. `tests/test_e1_baselines_rs.py` covers the script. The rows are in
+`data/e1_baselines_rs_rows/` (gitignored, 400 tasks).
+<!-- src: results/e1_baselines_rs.json commands; wall_s; rows.default_dir -->
+
+**What it asks.** Amendment 2 declared E1 before it ran: score EmpMean (the
+organisers' empirical mean, baselines_p1's `empmean`) and 1PL-ship (the plain
+1PL at hier-ship's level, `rasch`) in READING, AUDIT, MIXTURE and FLAT, on
+P1a's runs (seed 11, runs 0 to 79, split scope 'pair'), paired with hier-ship
+on P1a's stored rows. TUNED is re-scored as the control. It is for the report
+only and ships nothing.
+
+**Checks** (`checks`, `all_checks_hold`). Every check holds. The plan's E1
+bullet is in the amendment's commit and absent before it, and every row was
+scored after that commit. The re-scored TUNED rows equal baselines_p1's bit
+for bit on every run, and their statistics equal baselines_p1's stored
+numbers exactly. P1a's smooth and smcal are reproduced on every run, and its
+ship, onepl and legacy on runs 0 and 79 of each regime.
+<!-- src: results/e1_baselines_rs.json all_checks_hold; checks."lock: e1_bullet_at_amendment_commit"; checks."lock: e1_bullet_absent_before_it"; checks."TUNED: rows equal baselines_p1's bit for bit on every run"; checks."TUNED: statistics equal baselines_p1's stored numbers exactly"; checks."<R>: P1a's ship, onepl, legacy reproduced on runs [0, 79]" -->
+
+**Run history** (`about`, disclosed). A dry run on 6 tasks preceded the
+scored run, and its rows were discarded. The scored run of 2026-10-06 kept
+its rows in a scratch directory that a restart cleared. On 2026-10-07 the 400
+tasks were scored again by the same scoring block: every regime's
+`scored_values_sha256` and every run's digest equal the first run's, so
+every statistic is the first run's bit for bit, and only the timings are
+the second scoring's.
+
+Comparator minus hier-ship, ALC, D (cluster SE); positive means hier-ship is
+better (`summary.t3`; R1-bf and R1-pu from `results/baselines_p1.json`):
+
+| comparator | TUNED (-1.28) | AUDIT (-0.93) | MIXTURE (-0.64) | READING (-0.63) | FLAT (-0.28) | R1-bf | R1-pu |
+|---|---|---|---|---|---|---|---|
+| EmpMean | +0.0339 (0.0030) | +0.0252 (0.0028) | +0.0319 (0.0032) | +0.0337 (0.0028) | +0.0256 (0.0031) | +0.0464 (0.0027) | +0.0449 (0.0030) |
+| 1PL-ship | -0.0017 (0.0013) | +0.0027 (0.0018) | +0.0048 (0.0016) | +0.0042 (0.0015) | +0.0064 (0.0018) | +0.0048 (0.0007) | +0.0050 (0.0007) |
+
+<!-- src: results/e1_baselines_rs.json summary.t3.{empmean,rasch}.columns.{TUNED,AUDIT,MIXTURE,READING,FLAT,R1B,R1P}.{cell, realised_level} -->
+
+* **EmpMean trails hier-ship in every test-like regime,** by 0.0252 to
+  0.0339 (cluster SE 0.0028 to 0.0032), and is better than hier-ship on 0% to
+  5% of runs. Most of its deficit comes at B1, where it jumps to 0 or 1: its
+  Brier there is 0.087 to 0.116 above hier-ship's
+  (`summary.regimes.<R>.budgets_0_1`).
+  <!-- src: results/e1_baselines_rs.json summary.regimes.*.vs_ship.empmean.{D, cluster_se, share_runs_x_better}; summary.regimes.*.budgets_0_1."empmean - ship".B1.{diff, alc_part} -->
+* **1PL-ship ties hier-ship in TUNED and trails it in the other four
+  regimes,** by 0.0027 to 0.0064 (cluster SE 0.0015 to 0.0018), roughly
+  more as the realised level rises. The 95% bootstrap interval excludes 0 in
+  MIXTURE, READING and FLAT, not in AUDIT ([-0.0007, +0.0066]).
+  <!-- src: results/e1_baselines_rs.json summary.regimes.{AUDIT,MIXTURE,READING,FLAT}.vs_ship.rasch.{D, cluster_se, pct95}; summary.regimes.TUNED.vs_ship.rasch.{D, cluster_se} -->
+* **EmpMean against LegacyP** (`summary.regimes.<R>.vs_legacy.empmean`):
+  -0.0095 (0.0049) in TUNED, -0.0061 (0.0060) in AUDIT, +0.0057 (0.0050) in
+  MIXTURE, +0.0089 (0.0049) in READING and +0.0055 (0.0045) in FLAT. EmpMean's
+  point estimate is ahead of LegacyP's only in the two regimes with the
+  lowest realised levels.
+  <!-- src: results/e1_baselines_rs.json summary.regimes.{TUNED,AUDIT,MIXTURE,READING,FLAT}.vs_legacy.empmean.{D, cluster_se}; summary.regimes.*.realised.mean -->
+* **Ranks.** Among the eight configs, hier-ship has the lowest ALC in AUDIT,
+  MIXTURE, READING and FLAT; in TUNED hier-nosubj (`onepl`), 1PL-ship
+  (`rasch`) and Smooth-cal (`smcal`) are ahead of it
+  (`summary.regimes.<R>.rank`).
+  <!-- src: results/e1_baselines_rs.json summary.regimes.*.rank -->
+* **Caveat.** The RS runs redraw the catalogue and the public pairs that
+  chose LEVEL and Smooth-cal, so the calibrated configs carry that
+  selection's optimism ("Regime sensitivity at the feedback's reading").
+
+## The level calibration by model, as a paired 2 x 2 factorial (P2, W3)
+
+`python experiments/factorial_rs.py` (2.3 s; it reads RS's stored rows and
+scores nothing). Every number below is in `results/factorial_rs.json`, under
+`contrasts.<regime>.<contrast>` unless stated. `tests/test_factorial_rs.py`
+covers the script.
+<!-- src: results/factorial_rs.json provenance.{command, wall_s}; about.selects -->
+
+**What it asks.** "Baselines: a plain 1PL, the organisers' empirical mean and
+BLE (P1.9)" found that the share of the gain due to the level calibration
+depends on the order of the steps. The factorial gives every cell a paired
+contrast with a cluster SE, and the interaction. Cells: Smooth (`smooth`) and
+Smooth-cal (`smcal`) for the smoothed mean at its default and calibrated
+level, hier-fit (`eb_fit`) and hier-ship (`ship`) for hier; LegacyP is a
+reference outside the 2 x 2. The runs are RS's (seed 11; test-like regimes
+runs 0 to 79, public runs 0 to 59), so every contrast is paired per pair
+appearance. The interaction is ship - eb_fit - smcal + smooth, negative when
+calibration helps hier more than it helps the smoothed mean.
+<!-- src: results/factorial_rs.json design.{cells, factorial, contrasts.interaction, regimes, scoring_seed} -->
+
+**Checks** (`checks`, all hold). Every cell equals RS's stored statistics
+(largest difference 0.0). The contrasts against hier-ship equal RS's paired
+differences exactly, and those against Smooth and LegacyP equal RS's stored
+tables to 5e-7. The interaction equals RS's stored differences to 3.5e-18.
+<!-- src: results/factorial_rs.json checks[cells_equal_rs_configs].max_abs; checks[pairs_equal_rs_exact].max_abs; checks[pairs_equal_rs_tables].{max_abs, tol}; checks[interaction_equals_rs_stored_differences].max_abs -->
+
+D (cluster SE), ALC:
+
+| contrast | TUNED | READING | AUDIT | MIXTURE | FLAT | R1-bf | R1-pu |
+|---|---|---|---|---|---|---|---|
+| calibration in hier (ship - eb_fit) | -0.0309 (0.0035) | -0.0173 (0.0032) | -0.0233 (0.0042) | -0.0164 (0.0028) | -0.0140 (0.0038) | +0.0010 (0.0010) | -0.0009 (0.0011) |
+| calibration in the smoothed mean (smcal - smooth) | -0.0185 (0.0036) | -0.0018 (0.0036) | -0.0100 (0.0046) | -0.0039 (0.0037) | +0.0000 (0.0040) | +0.0033 (0.0033) | -0.0028 (0.0031) |
+| model at the default level (eb_fit - smooth) | +0.0139 (0.0027) | +0.0077 (0.0021) | +0.0091 (0.0025) | +0.0054 (0.0020) | +0.0037 (0.0026) | -0.0085 (0.0023) | -0.0118 (0.0015) |
+| model at the calibrated level (ship - smcal) | +0.0015 (0.0019) | -0.0078 (0.0021) | -0.0043 (0.0024) | -0.0071 (0.0021) | -0.0103 (0.0024) | -0.0108 (0.0014) | -0.0100 (0.0018) |
+| interaction | -0.0125 (0.0021) | -0.0155 (0.0015) | -0.0133 (0.0017) | -0.0125 (0.0019) | -0.0140 (0.0015) | -0.0023 (0.0026) | +0.0019 (0.0023) |
+| LegacyP - hier-ship | +0.0434 (0.0037) | +0.0248 (0.0037) | +0.0313 (0.0049) | +0.0263 (0.0037) | +0.0200 (0.0044) | +0.0002 (0.0020) | +0.0039 (0.0019) |
+
+<!-- src: results/factorial_rs.json contrasts.{TUNED,READING,AUDIT,MIXTURE,FLAT,R1B,R1P}.{calibration_in_hier, calibration_in_smooth, model_at_default, model_at_calibrated, interaction, legacy_minus_ship}.{D, cluster_se} -->
+
+* **The interaction is negative in every test-like regime,** -0.0125 to
+  -0.0155 (cluster SE 0.0015 to 0.0021), with every 95% cluster interval
+  below 0 and z from -10.5 to -5.9 (`summary.interaction.testlike`). It is
+  negative on 93.75% to 100% of runs, its parent-level mean is -0.0099 to
+  -0.0148, and every leave-one-parent-out value is negative, -0.0168 to
+  -0.0058 (`.share_runs_negative`, `.parent_level`).
+  <!-- src: results/factorial_rs.json summary.interaction.testlike.{D_range, cluster_se_range, z_range, all_ci95_below_zero}; contrasts.{TUNED,READING,AUDIT,MIXTURE,FLAT}.interaction.{share_runs_negative, parent_level.mean, parent_level.leave_one_out_range} -->
+* **It sits at B0 and B1.** B0 contributes -0.0071 to -0.0083 of ALC and B1
+  -0.0049 to -0.0061 in the test-like regimes
+  (`.interaction.budgets[0..1].alc_part`).
+  <!-- src: results/factorial_rs.json contrasts.{TUNED,READING,AUDIT,MIXTURE,FLAT}.interaction.budgets[0].alc_part; contrasts.{TUNED,READING,AUDIT,MIXTURE,FLAT}.interaction.budgets[1].alc_part -->
+* **No interaction is measurable on public runs:** -0.0023 (0.0026) on
+  R1-bf and +0.0019 (0.0023) on R1-pu, where the calibration does nothing
+  measurable for either model. The interaction is a test-like-regime result.
+  <!-- src: results/factorial_rs.json contrasts.{R1B,R1P}.interaction.{D, cluster_se}; contrasts.{R1B,R1P}.{calibration_in_hier, calibration_in_smooth}.{D, cluster_se} -->
+* **The simple effects.** In the test-like regimes, calibrating helps hier by
+  0.0140 to 0.0309 and the smoothed mean by 0.0000 to 0.0185. At the default
+  level hier is worse than the smoothed mean by 0.0037 to 0.0139 (z 1.4 in
+  FLAT). At the calibrated
+  level hier-ship ties Smooth-cal in TUNED and beats it by 0.0043 to 0.0103
+  in the other test-like regimes and by 0.0108 and 0.0100 on public runs.
+  <!-- src: results/factorial_rs.json outline_check.{calibration_in_hier_testlike_range_4dp, calibration_in_smooth_testlike_range_4dp, model_at_default_testlike_range_4dp, model_at_calibrated_by_regime_4dp}; summary.model_at_default.testlike.z_range[0] -->
+* **Caveat.** As for E1, the RS runs redraw the catalogue and public pairs
+  that chose LEVEL and Smooth-cal, so the calibrated cells carry selection
+  optimism and the factorial is not an independent replication. The regimes
+  share clusters, so no pooled interaction is given.
+
+## The post-hoc family under the official protocol (P2, R5)
+
+`python experiments/posthoc_family.py [--scratch DIR]` (650.5 s on one
+process, `provenance.wall_s`; `--scratch` names the session directory with the
+probes' outputs, and without it the probes' printed tables embedded in the
+script are still checked). Every number below is in
+`results/posthoc_family.json`, under the key in brackets.
+`tests/test_posthoc_family.py` covers the script. The report's App F.8 gives
+the same results with each lever's formula.
+<!-- src: results/posthoc_family.json provenance.{command, wall_s} -->
+
+**What it asks.** Plan P2's diagnosis ends: every cheap lever measured on
+2026-10-06 on top of hier-ship is null or negative when fitted leave one
+parent out. The measurements were exploratory probes; this is their port.
+682 of the probes' 685 printed or quoted values reproduce at their
+precision and 3 are explained in the file (`checks`). It selects, tunes and
+ships nothing.
+<!-- src: results/posthoc_family.json checks[3].got (match 682, explained 3; 685 derived as their sum) -->
+
+**Runs and fits** (`about`). Every lever acts on hier-ship's stored per-item
+predictions, so hier is not refitted. The rows are the harness rows of
+archive-3's code (library 3f75a549673aae6a): TL (seed 2, 300 runs), TL-mix
+(seed 3, 150), R1-bf and R1-pu (seed 0, 100 each), 5,371 appearances. A
+lever is fitted per budget on the TL and TL-mix appearances of the other
+parents and scored on the held-out parent; public runs use the fit without
+the target's benchmark, and swe_rebench, which has no test-like parent, the
+fit on all four parents. The SE is a (parent, subject) cluster bootstrap
+with the fit held fixed, so a lower bound. The only feedback input is the
+B0 sections of the formative tables: 26 values of v pooled into three bin
+shares, 0.192, 0.462 and 0.346, for the hidden-v weights; no id is read.
+Each block keeps its probe's random stream, so the numbers reproduce bit for
+bit, and one quirk of the probe is kept: its own-label smoother divides by
+k + n0 even when a pair holds fewer than k labels, which happens on a few
+benchmark-first appearances at B31 only (the script's docstring counts them).
+<!-- src: results/posthoc_family.json about.{regimes, harness_rows_library, se, feedback_use}; maps.n_appearances; update_speed.hidden_v.{n, shares}; experiments/posthoc_family.py docstring ("Random streams" and the swe_rebench fit; no results key) -->
+
+ALC(lever) - ALC(hier-ship), cluster SE, the primary reading (`family.rows`):
+
+| lever | TL | TL-mix | R1-bf | R1-pu | verdict |
+|---|---|---|---|---|---|
+| per-budget temperature (`tonly`) | +0.00020 (0.00069) | +0.00206 (0.00070) | +0.01091 (0.00115) | +0.01165 (0.00099) | negative |
+| affine logit map (`temp`) | +0.00133 (0.00161) | +0.00307 (0.00129) | +0.01503 (0.00192) | +0.01732 (0.00195) | negative |
+| isotonic map (`iso`) | +0.00239 (0.00165) | +0.00290 (0.00113) | +0.01239 (0.00167) | +0.01514 (0.00184) | negative |
+| blend with Smooth-cal (`blend`) | +0.00157 (0.00110) | +0.00336 (0.00099) | +0.00507 (0.00087) | +0.00763 (0.00105) | negative |
+| blend with Smooth, Beta(2,2) (`blend22`) | +1.6e-6 (7.6e-7) | +5.0e-6 (1.7e-6) | +3.8e-6 (1.3e-6) | +9.5e-6 (1.9e-6) | null |
+| run-level shift (`runshift`) | -0.00034 (0.00018) | +0.00005 (0.00025) | +0.00003 (0.00048) | +0.00042 (0.00039) | null |
+| damping lambda_k, logit (`upd`) | +0.00091 (0.00027) | +0.00149 (0.00040) | +0.00002 (0.00016) | -0.00033 (0.00019) | negative |
+| damping lambda_k, probability (`updp`) | +0.00102 (0.00030) | +0.00167 (0.00039) | +0.00011 (0.00017) | -0.00024 (0.00018) | negative |
+| damping lambda_k in [0.3, 1.6] (`damp`) | +0.00071 (0.00022) | +0.00117 (0.00030) | +0.00011 (0.00014) | -0.00024 (0.00016) | negative |
+| Beta-binomial blend (`bba`) | +0.00088 (0.00027) | +0.00135 (0.00040) | -0.00024 (0.00013) | -0.00043 (0.00017) | negative |
+| lambda by label pattern (`pat`) | +0.00092 (0.00027) | +0.00155 (0.00040) | +0.00003 (0.00016) | -0.00028 (0.00019) | negative |
+| lambda by run dispersion (`disp`) | +0.00072 (0.00021) | +0.00107 (0.00032) | -1.5e-6 (0.00012) | -0.00023 (0.00015) | negative |
+| within-pair spread kappa_k (`spr`) | +0.00018 (0.00006) | -3.0e-6 (0.00004) | +4.7e-6 (0.00007) | +0.00003 (0.00004) | negative |
+| B0 between-pair stretch (`bw`) | +0.00004 (0.00019) | +0.00044 (0.00023) | +0.00260 (0.00037) | +0.00312 (0.00042) | negative |
+| B0 within-pair stretch (`wi`) | below 1e-17 | below 1e-17 | below 1e-17 | below 1e-17 | null |
+| B0 stretch, centre fitted (`bwa`) | +0.00050 (0.00058) | +0.00165 (0.00053) | +0.00861 (0.00087) | +0.00983 (0.00090) | negative |
+
+<!-- src: results/posthoc_family.json family.rows.<lever>.{delta, se, verdict}.{tl, mix, r1b, r1p} -->
+
+* **The verdict rule is the builder's, not pre-registered.** It was written
+  into the port after the probes' numbers existed (`about.verdict_rule`):
+  negative if the TL delta exceeds both 2 SE and 0.0001 or a public regime
+  loses more than 0.001; passing only at a TL delta of -0.002 or less with
+  the public guard held; null otherwise. 13 levers are negative, 3 null, and
+  none passes.
+  <!-- src: results/posthoc_family.json about.verdict_rule; family.rows.*.verdict (counted, derived); family.verdicts -->
+* **The best of 44 variants** fitted leave one parent out is the run-level
+  shift, -0.00034 (0.00018) on TL, which loses 0.00042 on R1-pu; the only
+  other negative TL delta is the B0 between-pair stretch fitted on all four
+  regimes, -0.00006 (0.00021). No variant reaches -0.002
+  (`family.best_tl_lopo`, `family.lopo_variants_with_tl_delta_below_0`,
+  `family.any_meets_tl_bar`). Scored with the hidden-v weights, the best TL
+  delta of any such variant is -0.00007 (0.00021).
+  <!-- src: results/posthoc_family.json family.{lopo_variants, best_tl_lopo, lopo_variants_with_tl_delta_below_0, any_meets_tl_bar}; family.rows.runshift.delta.r1p; update_speed.levers."upd|lopo4|fit_w_raw".score_hv.tl.{delta, se} (minimum over every stored lopo and lopo4 score_hv.tl and damping.*.tl_hidden_v, derived) -->
+* **The optimum belongs to the parent** (`family.parameter_spread`). Across
+  folds the B0 temperature is 1.57 to 3.81; the Smooth-cal blend weight at B0
+  is 0.09 with multi_swebench held out and 1.0 with matharena held out; the
+  run shift's c_1 is 0.05 to 0.38; lambda_1 is 0.65 with multi_swebench held
+  out against 0.95 to 1.06 otherwise. In sample, the B0 between-pair slope
+  ranges from 0.52 to 20.1 across parents.
+  <!-- src: results/posthoc_family.json family.parameter_spread.{tonly_b0_temperature_range, blend_b0_weight_by_fold, runshift_c_range_over_folds[1], upd_lambda1_without_multi_swebench, upd_lambda1_range_other_folds, b0_between_pair_slope_by_parent_range} -->
+* **The in-sample ceiling.** An affine map fitted and scored in sample gains
+  0.0043 (TL), 0.0044 (TL-mix), 0.0031 (R1-bf) and 0.0030 (R1-pu), 45% to 60%
+  of it at B0. Its B0 slope is 2.5 to 3.2 everywhere, but hier-ship's mean B0
+  prediction minus the mean outcome is +0.137 and +0.138 on the test-like
+  runs and -0.082 and -0.099 on public runs, so the B0 offset that one kind of
+  run wants is wrong for the other.
+  <!-- src: results/posthoc_family.json family.parameter_spread.{affine_in_sample_ceiling_alc, calibration_b0_slope_range, calibration_b0_mean_p_minus_mean_y}; share at B0 derived as 0.1 maps.calibration.<regime>[0].gain_in_sample over the sum of w_k gain_in_sample (0.49, 0.45, 0.45, 0.60) -->
+* **Budget switching** among the 11 RS configurations, in sample and so
+  optimistic, gains 0.0038 (TUNED) to 0.00003 (READING) chosen per regime.
+  The minimax schedule, chosen once on all seven regimes to minimise the
+  worst one, is hier-ship at B0 to B15 and hier-rec (`aggr`) at B31, and
+  gains 3.3e-7 to 1.7e-5 (`family.budget_switch`).
+  <!-- src: results/posthoc_family.json family.budget_switch.{in_sample_gain_range, robust_schedule, robust_worst_regime_gain, robust_best_regime_gain}; budget_switch.TUNED.configs_in_rows -->
+
+## Acquisition under the official protocol (P2, R5)
+
+`python experiments/acquisition_official.py --jobs 3 [--scratch DIR]`
+(1,570.8 s of wall time for this invocation on 3 processes; 4,669.5 s of
+policy time summed over 182 tasks and 910 policy runs;
+`provenance.{wall_s, scoring}`). `python experiments/acquisition_official.py
+--summarise-only --from-results [PATH] --out OTHER` rebuilds the summary from
+the rows embedded in the results file. Every number below is in
+`results/acquisition_official.json`. `tests/test_acquisition_official.py`
+covers the script. The report's App F.8 gives the same results.
+<!-- src: results/acquisition_official.json provenance.{command, wall_s, scoring.tasks, scoring.policy_runs, scoring.sum_of_policy_wall_s} -->
+
+**What it asks.** Whether a simple acquisition policy beats the platform's
+random rule under the official protocol, measured against a second random
+arm as the noise floor. The legacy replica's answer ("Acquisition and
+calibration") was no. This ports the exploratory measurement of 2026-10-06:
+of its 37 summary values, 36 reproduce at their precision and 1 is a rounding
+of the scratch's own table, explained in the file (`checks`,
+`scratch.explained`).
+<!-- src: results/acquisition_official.json checks[4].got; scratch.counts; scratch.explained -->
+
+**Design** (`about`). hier-ship at LEVEL over leave-one-parent-out priors on
+TL runs 0 to 89 (seed 2), the official replica, split scope 'pair'. Five
+arms per run: random (the platform's rule), placebo (the same rule on a
+salted key), balanced (with slack, prefer a candidate whose feature group
+the pair has not labelled), distinct (with slack, skip a candidate visibly
+identical to one already labelled) and uncertain (BLE's rule on hier's own
+acquisition-time prediction: with slack, take iff |p - 0.5| <= 0.15). Two
+batches on the same runs: fixed (seed 0, the persistent split and stream)
+and salted (seed 1000 + i on run i). Every pair received 31 labels under
+every arm, and no hier fallback occurred. The cluster SE is over 95
+(parent, subject) clusters, 2,000 resamples.
+<!-- src: results/acquisition_official.json about.{regime, config, split_scope, references, se}; summary.{fixed,salted}.{seed, mean_labels_per_pair, failures}; summary.fixed.placebo_minus_random.clusters; experiments/acquisition_official.py (the band 0.15, a design constant) -->
+
+D (cluster SE), ALC, arm minus reference; the interval is D ± 1.96 cluster
+SE, derived:
+
+| batch | arm | minus random | minus placebo | minus the two-arm mean | 95% interval | runs identical to random |
+|---|---|---|---|---|---|---|
+| fixed | placebo | +0.00213 (0.00096) | | | | 0 |
+| fixed | balanced | -0.00022 (0.00091) | -0.00236 (0.00076) | -0.00129 (0.00071) | [-0.00267, +0.00010] | 0 |
+| fixed | distinct | -2.1e-6 (0.00005) | -0.00214 (0.00099) | -0.00107 (0.00048) | [-0.00201, -0.00013] | 49 |
+| fixed | uncertain | +0.00023 (0.00104) | -0.00190 (0.00105) | -0.00083 (0.00090) | [-0.00260, +0.00093] | 0 |
+| salted | placebo | -0.00089 (0.00100) | | | | 0 |
+| salted | balanced | -0.00195 (0.00080) | -0.00106 (0.00080) | -0.00151 (0.00062) | [-0.00271, -0.00030] | 0 |
+| salted | distinct | -0.00007 (0.00008) | +0.00082 (0.00101) | +0.00038 (0.00050) | [-0.00061, +0.00137] | 46 |
+| salted | uncertain | -0.00237 (0.00109) | -0.00148 (0.00099) | -0.00192 (0.00091) | [-0.00370, -0.00015] | 0 |
+
+<!-- src: results/acquisition_official.json summary.{fixed,salted}.placebo_minus_random.{D, cluster_se, identical_runs}; summary.{fixed,salted}.{balanced,distinct,uncertain}.{minus_random, minus_placebo, minus_two_arm_mean}.{D, cluster_se}; summary.{fixed,salted}.{balanced,distinct,uncertain}.minus_random.identical_runs -->
+
+* **Random against random** differs by +0.00213 (2.2 cluster SEs) in the
+  fixed batch and -0.00089 in the salted one, so a single random arm is a
+  noisy reference at this size. Against the placebo, the fixed batch's
+  balanced and distinct arms cross -0.002, although distinct equals random in
+  49 of 90 runs. Against random, the salted uncertain arm reaches -0.00237,
+  while the same arm is +0.00023 in the fixed batch
+  (`summary.range.meets_tl_bar_vs_random`).
+  <!-- src: results/acquisition_official.json summary.{fixed,salted}.placebo_minus_random.{D, cluster_se}; summary.fixed.{balanced,distinct}.minus_placebo.{D, meets_tl_bar}; summary.range.meets_tl_bar_vs_random; summary.fixed.uncertain.minus_random.D -->
+* **Against the two-arm mean** the policies range from -0.00192 to +0.00038,
+  and none reaches the harness gate's test-like bar of -0.002
+  (`summary.range`). balanced lies below that reference in both batches
+  (-0.00129 and -0.00151). Three of the six intervals exclude 0: salted
+  balanced, salted uncertain and fixed distinct. The last differs from random
+  by -2.1e-6, so its -0.00107 against the two-arm mean is half the placebo's
+  gap of +0.00213 in that batch. Its interval excludes 0 only because the
+  fixed batch's placebo arm landed 2.2 cluster SEs above random (the arm's
+  cluster SE, 0.00048, is half the placebo's 0.00096). With six intervals and
+  one placebo draw per batch, an interval that excludes 0 here does not by
+  itself show a gain over random.
+  <!-- src: results/acquisition_official.json summary.range.{policies_minus_two_arm_mean, any_meets_tl_bar_vs_two_arm_mean}; summary.{fixed,salted}.balanced.minus_two_arm_mean.D; summary.{fixed,salted}.{balanced,distinct,uncertain}.minus_two_arm_mean.{D, cluster_se} (intervals derived as D ± 1.96 cluster_se); summary.fixed.distinct.minus_random.D; summary.fixed.placebo_minus_random.{D, cluster_se} (z 2.22, derived); summary.fixed.distinct.minus_two_arm_mean.cluster_se -->
+* **Where the differences sit.** In the salted batch, against the two-arm
+  mean, balanced and uncertain gain 0.0045 and 0.0042 of Brier at B1 (cluster
+  SE 0.0020 each); from B15 on every arm is within 0.0009 of the two-arm mean
+  in both batches. researchcodebench carries the largest per-parent gains
+  (salted uncertain -0.0052, salted balanced -0.0035).
+  <!-- src: results/acquisition_official.json summary.salted.{balanced,uncertain}.minus_two_arm_mean.{by_budget[1], by_budget_cluster_se[1], per_parent.researchcodebench}; summary.*.*.minus_two_arm_mean.by_budget[4..5] (largest magnitude 0.000821, derived) -->
+* **What this is not.** The references and the reading against the bar are
+  the builder's, not pre-registered. The gate also needs public runs and
+  per-parent checks, which were not run, so these are readings against its
+  test-like bar, not gate verdicts. archive-3, built before this
+  measurement, ships no `labeling.py`; nothing here argues for one.
+* **The scratch's own sets.** The exploratory analysis scored the fixed batch
+  on 91 runs (0 to 93 without 83, 90 and 92), and the script recomputes that
+  set too (`summary.fixed_scratch_subset`). On the scratch's sets the
+  policies lie at -0.0009 to -0.0019 against the two-arm mean and random
+  against random reaches 0.0023. The v2 outline's "-0.0008 to -0.0019" does
+  not hold at four decimals (`scratch_ranges.outline_statement_holds` is
+  false): its -0.0008 was derived from rounded summary values, and at full
+  precision that end is -0.000856 (`scratch.explained`).
+  <!-- src: results/acquisition_official.json summary.fixed_scratch_subset.{runs, run_indices}; scratch_ranges.{policies_minus_two_arm_mean, largest_abs_placebo_minus_random, outline_statement_holds}; scratch.explained."fixed_scratch_subset/uncertain/minus_two_arm_mean/D" -->
+
+## The pins, checked online (P2, R6)
+
+`python tools/check_pins.py` (13 s and 29 s on the two checks). Every number
+below is in `results/pins.json`. Each run appends one check to `checks` and
+sets `latest`; a check that cannot reach an endpoint is printed and not
+written, so an outage never overwrites the record. Both endpoints are public
+and were read anonymously. `tests/test_check_pins.py` covers the tool
+offline.
+<!-- src: results/pins.json checks[*].provenance.wall_s; checks[*].measurement_db.auth; checks[*].paiec_baseline.auth -->
+
+**What it asks.** Every recorded result used measurement-db at revision
+bc8204d8 (`paiec/fetch.py` REVISION) and the organisers' baseline repository
+at commit 82d330dd (`about.pins`). The report's App G.2 said whether either
+had moved "cannot be checked offline".
+<!-- src: results/pins.json about.{what, pins} -->
+
+| checked (UTC) | measurement-db `main` | last modified | files listed | top-level directories listed | baseline head | status |
+|---|---|---|---|---|---|---|
+| 2026-10-06T19:12:14 | bc8204d8 (the pin) | 2026-09-18T19:10:30 | 2,181 | 6 | 82d330dd (the pin) | unchanged |
+| 2026-10-07T11:58:18 | 54074453 | 2026-10-07T00:19:43 | 100,000 | 102 | 82d330dd (the pin) | moved |
+
+<!-- src: results/pins.json checks[0].{checked_utc, status}; checks[0].measurement_db.{sha, last_modified, files, top_level_dirs (6 entries)}; checks[0].paiec_baseline.sha; checks[1].{checked_utc, status}; checks[1].measurement_db.{sha, last_modified, files, top_level_dirs (102 entries)}; checks[1].paiec_baseline.sha -->
+
+* **On 2026-10-06 both pins were live.** measurement-db's `main` was
+  bc8204d8, with the six benchmark directories, each with an items table.
+  The baseline repository's head was 82d330dd, committed
+  2026-09-16T03:57:37Z, and the local clone was at the same commit.
+  <!-- src: results/pins.json checks[0].measurement_db.{sha, top_level_dirs, benchmarks_with_items_table, matches_pin}; checks[0].paiec_baseline.{sha, committed, local_clone.head, matches_pin} -->
+* **On 2026-10-07 measurement-db's `main` moved to 54074453** (last modified
+  2026-10-07T00:19:43Z). The listing holds exactly 100,000 files, and its
+  top-level directories stop at `helm_afr` in alphabetical order, so the API
+  truncated it. Its 102 directories are therefore a lower bound, none of the
+  six benchmarks of the pin falls inside it, and the empty
+  `benchmarks_with_items_table` (no `<benchmark>/items.parquet` among the
+  listed files) says nothing about those six. The baseline repository is
+  unchanged.
+  <!-- src: results/pins.json latest.measurement_db.{sha, last_modified, files, top_level_dirs (102 entries, the last helm_afr), benchmarks_with_items_table, matches_pin}; latest.status; latest.paiec_baseline.{sha, matches_pin}; tools/check_pins.py check_dataset (how the listing is read) -->
+* **What the move changes.** No result recorded before this check used
+  54074453: each used bc8204d8, which `paiec/fetch.py` pins.
+  `tools/fetch_pool.py` (committed in a725df9) fetches the expanded pool at
+  54074453 into `data/pool/` (gitignored) for prior fitting, reading each new
+  benchmark's tables under `<benchmark>/formatted_tables/`; it writes no
+  results file. Amendment 4 (committed 2026-10-11T21:24:54Z) fixed in advance
+  a rule for refitting hier's priors on that pool. Under the rule no candidate
+  was carried and archive-3 stays (next section).
+  <!-- src: results/pins.json about.pins.measurement_db; latest.measurement_db.pinned; latest.measurement_db.pinned_in; git log -1 3d38232 -->
+
+## Amendment 4: hier's priors refitted on the expanded pool; no candidate carried (P2)
+
+```
+export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
+export PYTHONHASHSEED=0
+python -m paiec.pool --fit --jobs 4
+python experiments/pool_eval.py split
+python experiments/pool_eval.py regimes --jobs 3
+python experiments/pool_eval.py fits-extra
+python experiments/pool_eval.py reproduce
+python experiments/pool_eval.py timing
+python experiments/pool_eval.py lock
+for st in S RS; do for k in 1 2 3; do (while :; do python experiments/pool_eval.py \
+    score --stage $st --shard $k/3; [ $? -eq 75 ] || break; done) & done; wait; done
+python experiments/pool_eval.py select
+```
+
+Every number below is in `results/pool_eval.json` (`selection`) and
+`results/pool_fits.json`. The rule is amendment 4 of
+`docs/plans/p2_final_plan.md`, with 4a, 4b and 4c. The design is
+`docs/plans/p2_pool_eval.md`. The record's timeline:
+- amendment 4 committed at 2026-10-11T21:24:54Z (3d38232);
+- the lock written at 2026-10-13T20:31:08Z and committed in 831ef7d;
+- the rule applied once, at 2026-10-14T00:38:40Z;
+- the selection committed in 365664c.
+
+`tests/test_pool.py`, `tests/test_pool_eval.py` and
+`tests/test_build_pool.py` cover the code. Each candidate's paired difference
+in Brier ALC, D, is that candidate minus archive-3 (A3) on identical runs, so a
+negative D means the candidate is better.
+<!-- src: results/pool_eval.json lock.{digest, utc}; selection.{utc, rule_text_sha256}; git log -1 3d38232 831ef7d 365664c -->
+
+**What it asks.** measurement-db grew on 2026-10-06/07 (revision 54074453)
+from six benchmarks to 252 public ones. Pools are assigned at random, so a
+held-out public benchmark stands in for a hidden one. The question is whether
+refitting hier's priors on that pool should replace archive-3's
+five-benchmark priors. The refit covers the level, the subject standings and
+the attribute ridge.
+- **C1** refits the priors and keeps LEVEL (mu0 -2.5, sigma_mu 2.5,
+  attr_scale 0.5).
+- **C1m** is C1 with mu0 moved to -2.046, which matches archive-3's B0 centre
+  with dates shifted by +1.25 years.
+- **C2** takes the pool's empirical-Bayes level: mu0 0.131, sigma_mu 2.35,
+  attr_scale 0.5. Its B0 centre is 0.19 above archive-3's with shifted dates
+  and 0.23 above it with real dates.
+
+The pool was split, whole source families at a time, into a selection half S
+(44 benchmarks) and a confirmation half C (88).
+<!-- src: results/pool_fits.json bundles.{C1,C1m,C2}.level; hyper.C2.{mu0, sigma_mu}; b0_centre_minus_A3.C2.{plus_1.25y:all, real:all}; results/pool_eval.json split.halves.{S,C} -->
+
+**The rule.** Selection reads S and the RS guard, which is P1a's seven
+regimes on the five original benchmarks, on stored rows. A candidate is
+eligible if all four conditions hold:
+- **(E1)** on RS: the mean D is at most +0.0005; D is at most +0.002 in each
+  test-like regime and at most +0.001 in RS-R1B and RS-R1P.
+- **(E2)** on S: D is at most +0.002 in P-TUNED, P-MIXTURE and P-FLAT; at most
+  0 in the date-shifted twins P-READING-DS and P-AUDIT-DS; and at most +0.001
+  in the dense regimes D-READING and D-FLAT.
+- **(E3)** latency.
+- **(E4)** completeness and checks.
+
+M(X) is the mean D over the two gain regimes, P-READING and P-AUDIT. A
+candidate is carried only if it is eligible and its M(X) is at most -0.001.
+If none is carried, archive-3 stays, nothing is built or submitted, and the
+gate on C is not read.
+
+**Selection on S.** D (SEg), where SEg is the larger of the family-cluster
+bootstrap SE and the two-way SE. ✗ marks a failed condition.
+
+| S regime | condition | runs | C1 | C1m | C2 |
+|---|---|---|---|---|---|
+| P-READING | gain | 80 | -0.0015 (0.0013) | -0.0030 (0.0017) | -0.0026 (0.0048) |
+| P-AUDIT | gain | 80 | +0.0000 (0.0009) | -0.0004 (0.0013) | +0.0065 (0.0049) |
+| P-TUNED | <= +0.002 | 80 | -0.0000 (0.0008) | -0.0002 (0.0012) | +0.0080 (0.0041) ✗ |
+| P-MIXTURE | <= +0.002 | 80 | -0.0023 (0.0013) | -0.0037 (0.0017) | -0.0024 (0.0046) |
+| P-FLAT | <= +0.002 | 80 | -0.0024 (0.0016) | -0.0054 (0.0017) | -0.0122 (0.0035) |
+| P-READING-DS | <= 0 | 80 | +0.0005 (0.0010) ✗ | -0.0009 (0.0011) | +0.0002 (0.0040) ✗ |
+| P-AUDIT-DS | <= 0 | 80 | +0.0006 (0.0012) ✗ | +0.0002 (0.0010) ✗ | +0.0076 (0.0042) ✗ |
+| D-READING | <= +0.001 | 20 | -0.0005 (0.0010) | -0.0016 (0.0012) | -0.0024 (0.0032) |
+| D-FLAT | <= +0.001 | 20 | -0.0010 (0.0009) | -0.0023 (0.0011) | -0.0041 (0.0026) |
+| M(X) | <= -0.001 | | -0.0007 | -0.0017 | +0.0019 |
+
+<!-- src: results/pool_eval.json selection.stats.<X>.<R>.{D, SEg, runs}; selection.candidates.<X>.{M, E2} -->
+
+**The RS guard (E1).** D on the stored RS runs (80 test-like and 60 public
+runs per regime).
+
+| RS regime | bound | C1 | C1m | C2 |
+|---|---|---|---|---|
+| RS-TUNED | <= +0.002 | -0.0045 | -0.0033 | +0.0114 ✗ |
+| RS-READING | <= +0.002 | +0.0005 | -0.0003 | +0.0045 ✗ |
+| RS-AUDIT | <= +0.002 | -0.0014 | -0.0018 | +0.0058 ✗ |
+| RS-MIXTURE | <= +0.002 | +0.0008 | +0.0000 | +0.0052 ✗ |
+| RS-FLAT | <= +0.002 | +0.0007 | -0.0007 | +0.0017 |
+| RS-R1B | <= +0.001 | +0.0019 ✗ | +0.0009 | +0.0027 ✗ |
+| RS-R1P | <= +0.001 | +0.0014 ✗ | +0.0009 | +0.0050 ✗ |
+| mean | <= +0.0005 | -0.0001 | -0.0006 | +0.0052 ✗ |
+
+<!-- src: results/pool_eval.json selection.candidates.<X>.E1.{regimes.<R>.{D, bound, ok}, mean, mean_ok} -->
+
+All three candidates met (E3) and (E4). Each candidate's mean CPU time per
+call was 0.96 to 0.98 times archive-3's, and its slowest call took 0.16 s or
+less, against E3's bound of 2.0 s. No candidate returned an invalid output.
+<!-- src: results/pool_eval.json selection.table.<X>.{latency.{ratio, max_s}, invalid, complete, checks_ok} -->
+
+**Outcome: no candidate carried, so archive-3 stays.** None of the three is
+eligible, so the set of carried candidates is empty and no candidate is
+selected. Under amendment 4 the gate on C was not read and nothing was built
+or submitted. Archive-3 (sha256 4a882cc7…5090, formative run 3) remains the
+final submission.
+<!-- src: results/pool_eval.json selection.{outcome, Q, X_star, M_min_Q} -->
+
+* **C1m came closest.** It gained in P-READING (-0.0030, SEg 0.0017), was at
+  or below zero in every no-loss and dense regime but one, and held the RS
+  guard. It failed only the P-AUDIT-DS twin, at +0.0002 against a bound of 0
+  with an SEg of 0.0010. That is within noise of the bound, and the rule
+  counts it as a failure, as it was fixed to do in advance for every
+  candidate.
+* **C1 failed in three ways.** Its gain-regime mean (-0.0007) was smaller
+  than the -0.001 the rule requires. It lost on both public RS regimes, by
+  more than 0.001, and in both date-shifted twins.
+* **C2's level helps in some regimes and hurts in others.** It gains in the
+  regimes that keep the pool's own composition (P-FLAT -0.0122, both dense
+  regimes). It loses in the regimes tuned to the formative runs: P-TUNED
+  +0.0080, and six of the seven RS regimes, which put its RS mean at
+  +0.0052.
+* **What this does not show.** No confirmation-half number exists, because
+  the gate was not read, and the selection half holds 44 benchmarks. The
+  result says that no refit of hier's priors met the conditions fixed in
+  advance. It does not say that a refit cannot help: C1m's gains are of the
+  order of their SEs.
+
+**Deviation, disclosed: C-extra and describe-hidden did not run.** Design
+section 10 says that when no candidate is carried, the C-extra arms and the
+post-gate placement of the hidden runs (`describe-hidden`) "still run,
+descriptively". The locked harness refuses both without a selected
+candidate: `stage_candidates` stops C and C-extra, and `describe-hidden`
+requires a gate record. On 2026-10-14 the author decided not to change locked
+code after the outcome was known, so neither stage ran. No row of the
+confirmation half exists, and the pool evaluation never opened
+`results/hidden_runs.json`. Both stages are descriptive, so the decision
+does not depend on them.
+<!-- src: experiments/pool_eval.py stage_candidates, stage_describe_hidden; docs/plans/p2_pool_eval.md section 10 -->
+
+**Checks and provenance.**
+* The scoring covered 600 S tasks (7 regimes x 80 runs plus 2 x 20 dense)
+  and 520 RS tasks. It ran from 2026-10-13T22:50:43Z to 2026-10-14T00:38:12Z
+  on three workers.
+* Each shard passed the lock check at every start (four for S, including
+  one restart; three for RS) and the frozen-object check at its end. One S
+  shard stopped once at the memory guard (exit 75), passed the frozen-object
+  check at that stop, and resumed.
+* Selection passed the lock check, the RS rows digest and the frozen-object
+  check.
+* The lock's own record, including where the freeze stops, is in the message
+  of 831ef7d.
+* Correction: the message of 365664c says "None of the 2,240 calls per
+  candidate returned an invalid output". The count of 2,240 is wrong: it was
+  not taken from the record. The record counts invalid outputs over every
+  S and RS task (`selection.table.<X>.invalid`), and the count is 0 for each
+  candidate.
+<!-- src: results/pool_eval.json checks (score:S, score:RS, select); selection.table.<X>.invalid -->
