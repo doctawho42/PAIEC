@@ -1,13 +1,15 @@
 # PAIEC: a hierarchical response model for a benchmark-level cold start
 
 Code, results and report source for an entry to the
-[Predictive AI Evaluation Competition (PAIEC)](https://aimslab.stanford.edu/competition)
+[Predictive AI Evaluation Competition (PAIEC)](https://aims.stanford.edu/competition)
 at NeurIPS 2026, by Nikita L. Polomoshnov (Moscow State University, nikitapol@fbb.msu.ru).
 The technical report, version 2, is *Reading hidden runs at a benchmark-level
 cold start: a pair-rate oracle, test-like regimes and a calibrated hierarchical
 predictor*; its source is [`docs/report/draft.md`](docs/report/draft.md), and
 [`docs/report/revision_history.md`](docs/report/revision_history.md) records its
-revisions; the draft at tag `v1.0.1` is report v1's last revision.
+revisions; the draft at tag `v1.0.1` is report v1's last revision. Since `v1.2.0`
+the report is set in the NeurIPS 2026 template, with at most 8 pages of main
+text ("The report" below).
 
 **The task.** For an AI system (the *subject*: eight string fields such as
 normalized_name, provider, release_date, harness) and a benchmark *item*
@@ -52,8 +54,11 @@ in the training data. Evaluation workers are recreated at every budget, so
 
 ## Headline results
 
-From the report's main text (§3 to §8); the results keys behind each number are
-in [`docs/report/sources_main.md`](docs/report/sources_main.md). *LegacyP* is
+From the report's main text (§3 to §8), but for two numbers that only its
+appendices state: C2's +0.0019 (Table C.6a) and the 51 appearances (App E.6).
+The results keys behind each number are in
+[`docs/report/sources_main.md`](docs/report/sources_main.md), Table C.6a's also
+at the table. *LegacyP* is
 our first submission's predictor (`paiec/predict.py`). *V* is the pair-rate
 oracle's score, exact for run 1 and estimated at budget 0 for runs 2 and 3.
 Test-like (TL) runs are drawn from public data to resemble the first formative
@@ -70,14 +75,14 @@ replica's runs.
 | the same cost for the ideal pair-rate learner on runs 2 and 3's pairs: at the lower roots; weighted by the prior | 0.0161; 0.0250 to 0.0322 | §6.1 | `hidden_runs.json` |
 | estimated item-level share of what remains, runs 2 and 3 | 78% to 89% | §6.1 | `hidden_runs.json` |
 | LegacyP minus hier-ship: hidden runs, adjusted for V; held-out TL runs 200 to 299; TL runs without the date shift | +0.0405 (0.019); +0.0419 (0.0037); +0.0144 (0.0024) | §6.3 | `hidden_runs.json`, `ship_confirm.json` |
-| LegacyP minus hier-ship on the RS runs: tuned to flat; R1-bf; R1-pu | +0.0434 to +0.0200; +0.0002 (0.0020); +0.0039 (0.0019) | §6.3, Table 3 | `regime_sensitivity.json` |
-| Smooth-cal (a smoothed label mean at a calibrated prior) minus hier-ship: tuned; the other four test-like regimes; R1-bf; R1-pu | -0.0015 (0.0019); +0.0043 to +0.0103; +0.0108 (0.0014); +0.0100 (0.0018) | §6.3, Table 3 | `regime_sensitivity.json` |
-| the organisers' empirical-mean baseline minus hier-ship, all seven RS regimes | +0.0252 to +0.0464 | §6.3, Table 3 | `baselines_p1.json`, `e1_baselines_rs.json` |
+| LegacyP minus hier-ship on the RS runs: tuned to flat; R1-bf; R1-pu | +0.0434 to +0.0200; +0.0002 (0.0020); +0.0039 (0.0019) | §6.3, Table 2 | `regime_sensitivity.json` |
+| Smooth-cal (a smoothed label mean at a calibrated prior) minus hier-ship: tuned; the other four test-like regimes; R1-bf; R1-pu | -0.0015 (0.0019); +0.0043 to +0.0103; +0.0108 (0.0014); +0.0100 (0.0018) | §6.2, Table 2 | `regime_sensitivity.json` |
+| the organisers' empirical-mean baseline minus hier-ship, all seven RS regimes | +0.0252 to +0.0464 | §6.3, Table 2 | `baselines_p1.json`, `e1_baselines_rs.json` |
 | the change in hier-ship's Brier from B7 to B31 on the hidden runs; 17 replica pairs with the same rate mix on TL, R1-bf and R1-pu | -0.0012 (0.0028); -0.0145, -0.0215, -0.0229 | §6.2 | `hidden_runs.json` |
 | V of runs of 9 pairs bootstrapped from the 26 hidden appearances, stratified by benchmark; the chance that V is at most 0.117, the best leaderboard score | 0.160 (sd 0.017); 0.0066 | §3.3 | `hidden_runs.json` |
 | the best within-pair correlation of an item covariate that transfers between benchmarks; what the acceptance gate needs | 0.15; 0.25 | §4.3, §6.4 | `gate_and_ci.json`, `harness_thresholds.json` |
-| hier-ship's loss to LegacyP on swe_rebench, the single-subject public benchmark | 0.0094 ± 0.0016 (SE over 51 appearances) | §8 | `gate_and_ci.json` (`single`) |
-| the pool refit: candidates C1, C1m and C2 minus archive-3, mean of the two gain regimes (at most -0.001 to carry) | -0.0007, -0.0017, +0.0019; none eligible, none carried | §7, Table 5 | `pool_eval.json` |
+| hier-ship's loss to LegacyP on swe_rebench, the single-subject public benchmark | 0.0094 ± 0.0016 (SE over 51 appearances) | §8, App E.6 | `gate_and_ci.json` (`single`) |
+| the pool refit: candidates C1, C1m and C2 minus archive-3, mean of the two gain regimes (at most -0.001 to carry) | -0.0007, -0.0017, +0.0019; none eligible, none carried | §7, Table C.6a | `pool_eval.json` |
 
 In short: on the hidden runs hier-ship pays for not knowing pair rates about
 what an ideal learner with a population prior pays, and an estimated 78% to 89%
@@ -91,7 +96,7 @@ flat. No item-side signal, post-hoc map or acquisition policy we completed
 passes (report §6.4), and a refit of the priors on the expanded public pool was
 not carried, so archive-3 stays the final submission (report §7). On replica
 runs one run's ALC for hier-ship has an sd of 0.023 to 0.030, and its ALC minus
-V one of 0.009 to 0.011 (report §1.3). Limitations are in report §8.
+V one of 0.009 to 0.011 (report §1). Limitations are in report §8.
 
 [`docs/findings.md`](docs/findings.md) is the lab notebook behind the report:
 every number with the script that produced it. Its section "Under the official
@@ -209,14 +214,14 @@ machine.
 
 | result | command | wall time | output |
 |---|---|---|---|
-| official baselines (§2.3, App E.1) | `python experiments/official_baselines.py --runs 600 --jobs 6` | 12 min, 6 processes | `results/official_baselines.json` |
+| official baselines (App E.1) | `python experiments/official_baselines.py --runs 600 --jobs 6` | 12 min, 6 processes | `results/official_baselines.json` |
 | hier-fit vs LegacyP, ablations (App E.1, B.3) | `python experiments/hier_eval.py --jobs 8 --skip 'r2\|researchcodebench\|pair\|hier t3 level'`, then `--summarise` | 2 h 16 min, 8 processes | `results/hier_eval.json` |
 | level calibration (App C.5) | `python experiments/level_calibration.py --stage S --resume --jobs 6` for S = grid, grid2, r1base, eb, t3, prob, eb, screen, confirm, final; then `--summarise` | 3 h 11 min, 6 processes | `results/level_calibration.json` |
 | subject side (App F.7; its rows feed the next row) | `python experiments/subject_side.py --stage verify`, `--stage diag`, `--stage run --jobs 2` (plus `--configs` passes), `--summarise` | about 4 h 25 min, 2 processes | `results/subject_side.json`, rows in `data/subject_side_rows` |
 | hier-ship confirmed (§6.3, App E.2) | `python experiments/ship_confirm.py` | about 5 s | `results/ship_confirm.json` |
-| regime sensitivity (§6.3, App E.2) | `python experiments/regime_sensitivity.py` with `lock`, `smcal`, `regimes --grid`, `reproduce`, then `score --shard 0/2` and `score --shard 1/2` side by side, then `summarise`; `review` after scoring (commands in the script's header) | rows over 2 h 31 min, 2 processes | `results/regime_sensitivity.json` |
-| baselines: plain 1PL, empirical mean (§6.3, App E.4) | `python experiments/baselines_p1.py ble`, then `score` (repeat while it exits with 75), then `summarise` | final pass 21 min; reads the regime-sensitivity rows | `results/baselines_p1.json` |
-| pooling decomposition (§2.3, App A.2) | `python experiments/pooling_decomposition.py score`, `recheck`, `summarise` | 84 min, 1 process | `results/pooling_decomposition.json` |
+| regime sensitivity (§6.2, §6.3, Table 2, App E.2) | `python experiments/regime_sensitivity.py` with `lock`, `smcal`, `regimes --grid`, `reproduce`, then `score --shard 0/2` and `score --shard 1/2` side by side, then `summarise`; `review` after scoring (commands in the script's header) | rows over 2 h 31 min, 2 processes | `results/regime_sensitivity.json` |
+| baselines: plain 1PL, empirical mean (§6.3, Table 2, App E.4) | `python experiments/baselines_p1.py ble`, then `score` (repeat while it exits with 75), then `summarise` | final pass 21 min; reads the regime-sensitivity rows | `results/baselines_p1.json` |
+| pooling decomposition (§2, App A.2) | `python experiments/pooling_decomposition.py score`, `recheck`, `summarise` | 84 min, 1 process | `results/pooling_decomposition.json` |
 | gate, intervals, single-subject benchmark (§4.3, §6.4, App E.6) | `python experiments/gate_and_ci.py --stage S` for S = gate, evidence, scale, ci, single | under 4 min a stage | `results/gate_and_ci.json` |
 | formative run 3 (App D.1) | `python experiments/formative_run3.py` | 0.3 s; needs the `4a882cc7…` archive in `dist/` | `results/formative_run3.json` |
 | the hidden runs through the pair-rate oracle (§3, §6.1, §6.2, App D.5 to D.10) | `python experiments/hidden_runs.py`; `--no-rows` rebuilds Table 1 from committed files | 200.7 s with every block, 1 process | `results/hidden_runs.json` |
@@ -234,6 +239,11 @@ that produced it, and the gap between the libraries is measured there.
 
 About 5 seconds. The figures read the committed `results/*.json` only, so they
 need no data; their bytes are tied to matplotlib 3.9.2 (the `report` extra).
+Each figure is drawn at the width it is printed at, so its type sizes are print
+sizes. `docs/report/fig/manifest.json` records each figure's size and smallest
+type and glyph, and `--check` also fails if a main-text figure (Figures 1 and 2)
+has type under 6 pt, sub- and superscripts included (`docs/report/figures.md`,
+"Type size").
 
 ## The Kaggle kit
 
@@ -246,13 +256,38 @@ Secret and should stay private. Its outputs are not in this repository;
 ## The report
 
 The source is [`docs/report/draft.md`](docs/report/draft.md), with figures in
-`docs/report/fig/` and their captions in `docs/report/figures.md`. Build the
-PDF with
+`docs/report/fig/` and their captions in `docs/report/figures.md`. The PDF uses
+the NeurIPS 2026 template, as the competition asks (about 4 to 8 pages of main
+text, references and appendices excluded): the official style file
+`neurips_2026.sty`, revision 2026-01-29, with the options `sglblindworkshop`
+and `final`. The style file carries no license, so it is not in this
+repository: `tools/report_pdf/neurips_2026.sty` is listed in `.gitignore`.
+Download the official template,
+https://media.neurips.cc/Conferences/NeurIPS2026/Formatting_Instructions_For_NeurIPS_2026.zip
+(sha256 `82473931e3ef710fcd3f4a8cd4119b9de32e56825f90f9e5a6d55f2d01b817d9`),
+and copy `neurips_2026.sty` from it to `tools/report_pdf/`. The build checks
+the copy against the pinned sha256
+(`c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a`,
+`STYLE_SHA256` in `tools/build_report_pdf.py`); when the file is missing or
+differs, it stops and names the download and both pins. Then build the PDF
+with
 
     python tools/build_report_pdf.py            # dist/report/paiec_report.pdf
-    python tools/build_report_pdf.py --strict   # exit 2 on layout problems, placeholders or TODO markers
+    python tools/build_report_pdf.py --strict   # exit 2 on a main text over 8 pages, layout problems, placeholders or TODO markers
 
-It needs pandoc 3.1 or later and XeLaTeX (TeX Live). The build checks with
+`--strict` holds the main text to 8 pages. The main text runs from the title
+to the heading "Acknowledgments and Disclosure of Funding"; that section, the
+references and the appendices do not count, as the NeurIPS instructions say.
+`dist/report/build.json` records the main text's pages
+(`pages.main_text_pages`), its length to its last line
+(`pages.main_text_measured`), the heading it ends before
+(`pages.main_text_ends_before`) and the acknowledgments' page
+(`pages.acknowledgments`), and the build prints each main-text section's share
+of the pages. The main text fills its 8 pages, so an edit before the
+acknowledgments that adds a line needs a cut elsewhere or a move to an
+appendix; rebuild with `--strict` after every such edit.
+
+The build needs pandoc 3.1 or later and XeLaTeX (TeX Live). It checks with
 kpsewhich that the packages `tools/report_pdf/template.tex` loads are installed
 and names any that are missing. pdftotext and pdftoppm (poppler) are optional:
 the first for the check that every number and word of the draft is in the PDF,
@@ -262,7 +297,11 @@ TeX Live 2026) with Times New Roman, Menlo and the committed 200-dpi PNG figures
 STIXGeneral or TeX Gyre Termes (which lacks Cyrillic), and page breaks may
 differ. `--strict` fails until the title block's placeholders and the draft's
 `TODO(...)` markers are gone. The competition's requirements for the report are
-recorded in `docs/report/report_requirements.md`.
+recorded in `docs/report/report_requirements.md`. The PDF goes to OpenReview;
+the selected Codabench submission ID, that of archive-3, goes into the
+OpenReview form's required field "Codabench submission ID" (digits only), and
+no e-mail to the organisers is asked for (`docs/report/report_requirements.md`,
+item 7).
 
 ## Disclosures
 
@@ -298,6 +337,9 @@ disclosure") are the full statement; in short:
   App F.3 were made by the Claude model of the coding session. The code, the
   experiments, the docs and the report were developed with Claude Code
   (Anthropic); the commits' `Co-Authored-By` trailers record it.
+- **Funding and competing interests:** the report's unnumbered section
+  "Acknowledgments and Disclosure of Funding" states that the work received no
+  specific funding and that the author declares no competing interests.
 
 ## License and third-party material
 

@@ -15,6 +15,7 @@ pytest                                 # protocol invariants; run from repo root
 pytest tests/test_official.py::<name>  # single test
 python experiments/official_baselines.py --runs 600 --jobs 6   # baselines under the official protocol (~12 min; --no-dense skips R2)
 python tools/build_submission.py       # fit prior, build dist/paiec.zip, run every packaging check + the organisers' validator
+python tools/build_report_pdf.py --strict   # report PDF; needs tools/report_pdf/neurips_2026.sty (git-ignored, no license) from the official NeurIPS 2026 zip, sha256-checked; --strict holds the main text to 8 pages
 python third_party/paiec_baseline/check_submission_zip.py dist/paiec.zip   # the validator on its own
 ```
 

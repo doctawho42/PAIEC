@@ -330,3 +330,72 @@ def test_regime_check_matches_its_sources():
             assert raw == h["replica"]["placement_raw"][r][who]["z_alc"]
             assert adj == h["replica"]["placement_z"][r][who]["z_alc_minus_v"]
     assert [round(d["place"]["run1 (LegacyP)"][r][1], 2) for r in ("R1B", "R1P")] == [3.78, 2.93]
+
+
+# type size (author decision, 2026-10-20): the main text's figures carry no type under 6 pt
+# at print size (they are drawn at the text width and placed at it), and they do not grow,
+# since the main text is at its 8-page limit
+
+
+def test_drawn_text_records_what_is_drawn():
+    """The measure itself: tick labels, legend entries, annotations and axis labels are
+    recorded at their sizes, a mathtext subscript at 0.7 of its label's, and a hidden text or
+    a tick outside the view is not recorded."""
+    import matplotlib.pyplot as plt
+    with plt.rc_context(RF.RC):
+        fig, ax = plt.subplots(figsize=(RF.WIDTH, 2.0))
+        ax.plot([0, 1], [0, 1], label="entry")
+        ax.legend(fontsize=5.5)
+        ax.set_xticks([0, 0.5, 1, 2])  # 2 lies outside the view and is not drawn
+        ax.set_xlim(0, 1)
+        ax.set_yticks([])
+        ax.tick_params(axis="x", labelsize=6.5)
+        ax.annotate("note", (0.5, 0.5), fontsize=5.9)
+        ax.set_ylabel("B$_k$ − V", fontsize=7.0)
+        ax.text(0.2, 0.2, "hidden", fontsize=3.0, visible=False)
+        t = RF.drawn_text(fig)
+        plt.close(fig)
+    by = {s: (size, glyph) for size, glyph, s in t}
+    assert by["entry"] == (5.5, 5.5) and by["note"] == (5.9, 5.9)
+    assert by["0.5"] == (6.5, 6.5) and "2.0" not in by and "hidden" not in by
+    assert by["B$_k$ − V"][0] == 7.0 and by["B$_k$ − V"][1] == pytest.approx(4.9, abs=1e-6)
+
+
+def test_main_text_figures_are_the_placement_tables():
+    """RF.MAIN_TEXT is exactly the drawn figures that docs/report/figures.md places in the main
+    text (draft figures numbered without an appendix letter)."""
+    import re
+    md = (ROOT / "docs" / "report" / "figures.md").read_text()
+    rows = re.findall(r"^\| Figure ([A-Z]?)\d+ \| [^|]+ \| D\d+ \| `([^`]+)` \|", md, re.M)
+    assert rows and set(RF.MAIN_TEXT) == {stem for letter, stem in rows if not letter}
+    assert RF.MIN_FONT_PT == 6.0
+
+
+@pytest.mark.parametrize("name", sorted(RF.MAIN_TEXT))
+def test_main_text_figure_has_no_type_under_6pt(name):
+    import matplotlib.pyplot as plt
+    fn = dict(RF.FIGURES)[name]
+    with plt.rc_context(RF.RC):
+        fig = fn(RF.Inputs(ROOT))
+        w, h = fig.get_size_inches()
+        t = RF.drawn_text(fig)
+        plt.close(fig)
+    assert w == RF.WIDTH and h <= RF.MAIN_TEXT[name], (w, h)  # the text width, and no taller
+    assert len(t) > 40  # tick labels, legend entries, annotations and bar labels, line by line
+    small = sorted({(size, s) for size, _, s in t if size < RF.MIN_FONT_PT})
+    assert not small, small
+    # nor a smaller glyph: a mathtext sub- or superscript is set at 0.7 of its label's size
+    scripts = sorted({(glyph, s) for _, glyph, s in t if glyph < RF.MIN_FONT_PT})
+    assert not scripts, scripts
+
+
+def test_manifest_records_type_sizes(committed):
+    for name, f in committed["figures"].items():
+        w, h = f["size_in"]
+        assert 0 < w <= RF.WIDTH and h > 0, name
+        assert 0 < f["text_pt"]["min_glyph_pt"] <= f["text_pt"]["min_pt"], name
+    for name, hmax in RF.MAIN_TEXT.items():
+        f = committed["figures"][name]
+        assert f["text_pt"]["min_pt"] >= RF.MIN_FONT_PT and f["text_pt"]["lines_under_min"] == 0
+        assert f["text_pt"]["min_glyph_pt"] >= RF.MIN_FONT_PT, name  # scripts included
+        assert f["size_in"][0] == RF.WIDTH and f["size_in"][1] <= hmax, name

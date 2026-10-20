@@ -2,7 +2,7 @@
 # license: MIT covers this repository's own code and docs only; README.md, "License
 # and third-party material", lists what it does not cover (measurement-db, the
 # organisers' code, formative tables and inventory rows).
-# version: the release tag (docs/release.md, sections 6 and 10), not the Python
+# version: the release tag (docs/release.md, sections 6, 10 and 11), not the Python
 # package's version in pyproject.toml.
 # keywords: the same list as the "Keywords:" line of docs/report/draft.md, which fills
 # the PDF's metadata (tests/test_build_report_pdf.py checks they agree).
@@ -27,7 +27,7 @@ authors:
     given-names: Nikita L.
     affiliation: Moscow State University
     email: nikitapol@fbb.msu.ru
-version: "1.1.0"
+version: "1.2.0"
 license: MIT
 repository-code: "https://github.com/doctawho42/PAIEC"
 keywords:

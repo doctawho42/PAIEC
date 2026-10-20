@@ -157,10 +157,12 @@
 % Page measure: \reportpos{id} records the page and the vertical position of this
 % point (in sp from the foot of the page) in the .aux file as \reportposition{id}{page}
 % {y}; report.lua puts one before every heading and one where the main text ends (before
-% References), and the build turns them into each section's share of the pages and the
-% main text's length. A heading right above keeps its no-break (\if@nobreak), and a
-% skip that ends the material before the mark stays after it, so \addvspace still
-% merges it with the heading's.
+% the acknowledgments, else before References), and the build turns them into each
+% section's share of the pages and the main text's length. The acknowledgments use the
+% style's own ack environment (its \acksection heading, unnumbered), which the NeurIPS
+% instructions do not count as content pages. A heading right above keeps its no-break
+% (\if@nobreak), and a skip that ends the material before the mark stays after it, so
+% \addvspace still merges it with the heading's.
 \makeatletter
 \newcommand{\reportposition}[3]{}
 \newcommand{\reportgeometry}[2]{}

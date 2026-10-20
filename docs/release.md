@@ -3,19 +3,22 @@
 For the person publishing this repository. Written 2026-10-02 against `3e6b770`
 (branch `official-protocol`), before the release files were committed; revised
 2026-10-03 after the release review, again on 2026-10-03 after the history
-rewrite, on 2026-10-04 after publication, and on 2026-10-19 and 2026-10-20
-for report v2 (section 10). It is the record of what was decided and done,
-and the procedure for what is left. The history rewrite is done (section 9).
+rewrite, on 2026-10-04 after publication, on 2026-10-19 and 2026-10-20
+for report v2 (section 10), and again on 2026-10-20 for v1.2.0, report v2 in
+the NeurIPS 2026 template (section 11). It is the record of what was decided
+and done, and the procedure for what is left. The history rewrite is done
+(section 9).
 On 2026-10-03 the release commit was tagged `v1.0.0` and pushed to
 https://github.com/doctawho42/PAIEC, with the branches `main` and
 `official-protocol` and the 21 lightweight tags named by the old commit ids
 (section 7). The commit after it, which resolves the report's open markers
 (section 7, step 0), was tagged `v1.0.1` (`d64ff8b`, 2026-10-04) and pushed.
-The release commit of report v2 is tagged `v1.1.0` (section 10). Every
-command of sections 7 and 10 is for you to run. Seven-character commit ids
-written before the rewrite, in this file and elsewhere, are kept as they were
-and resolve through those tags; full old ids are mapped in
-`docs/commit-map.txt` (section 9.3).
+The release commit of report v2 is tagged `v1.1.0` (section 10) and was
+pushed; the release commit of report v2 in the NeurIPS 2026 template is to be
+tagged `v1.2.0` (section 11). Every command of sections 7, 10 and 11 is for
+you to run. Seven-character commit ids written before the rewrite, in this
+file and elsewhere, are kept as they were and resolve through those tags; full
+old ids are mapped in `docs/commit-map.txt` (section 9.3).
 
 ## 1 Decisions
 
@@ -78,6 +81,7 @@ Excluded, by `.gitignore`:
 | credentials | `.env`, `.env.*`, and now `kaggle.json`. The Kaggle kit reads the Hugging Face token from a Kaggle Secret, never from a file. |
 | local tool state | `.DS_Store`, `.ruff_cache/`, `.remember/` and `.claude/settings.local.json` (added now; on the development machine some were ignored before only by a global ignore file). |
 | `results/*.lock` | empty sidecar files on which a results writer takes a file lock while parallel shards update one results file (such as `results/pool_eval.json.lock`); local state only. The rule was added in `a5ef016`, after `v1.0.1` (section 10). |
+| `tools/report_pdf/neurips_2026.sty` | the NeurIPS 2026 style file that the report PDF needs. It carries no license, so it is never committed (the rule was added in `e29853f`, after `v1.1.0`; section 11). Download the official template zip and copy the file from it; `tools/build_report_pdf.py` checks it against a pinned sha256 (section 11.1). No commit has ever tracked it. |
 
 Not part of this release, and said so in the report (App G.4, App I.1): the
 per-row archives of `tools/export_rows.py` are not hosted (decided by the author
@@ -100,8 +104,9 @@ on 2026-10-04.
    commit.** `results/rate2_truth.json` (180 records, 45 each of matharena,
    multi_swebench, real_webagents and swe_rebench) and `results/ctrl_truth.json`
    (60 multi_swebench records) are the samples of the blind difficulty rating
-   (report §6.3, App F.3; read by `experiments/llm_rating/analysis.py` and
-   `experiments/gate_and_ci.py`). Before the rewrite each record quoted its
+   (report §6.4 and App F.3 since report v2, §6.3 in report v1; read by
+   `experiments/llm_rating/analysis.py` and `experiments/gate_and_ci.py`).
+   Before the rewrite each record quoted its
    item's text, `content.strip()` cut to at most 700 characters for matharena
    and 450 for multi_swebench, swe_rebench and real_webagents in
    `rate2_truth.json` (no real_webagents text reached that cap; the longest was
@@ -361,8 +366,9 @@ they are left as they are too.
 
 - The test counts quoted in report App A.4 and App G.2 are those of section 4:
   528 test functions over 24 test files, 729 collected tests (at `v1.0.0` and
-  `v1.0.1`; since `v1.1.0` they also quote those of section 10.3). The release
-  commit changes no test file.
+  `v1.0.1`; since `v1.1.0` they also quote those of section 10.3, and since
+  `v1.2.0` those of section 11.3). The `v1.0.0` release commit changes no
+  test file.
 - If the report or results change after the tag is pushed, tag the new commit
   `v1.0.1` rather than moving `v1.0.0`. The report changed after the push: the
   commit after the release commit resolves the draft's markers (section 7,
@@ -473,8 +479,11 @@ Also, after publishing:
   and App H.4 say that the release commit is tagged `v1.0.0`; at the release
   commit, App A.4 and App I said "to be tagged".
 - The OpenReview form's code link and keywords (the draft's "Keywords:" line,
-  section 3.5), and the e-mail to the organisers naming the selected Codabench
-  submission (`docs/report/report_requirements.md`, items 4 and 7).
+  section 3.5), and the selected Codabench submission ID, that of archive-3,
+  in the form's required field "Codabench submission ID" (digits only;
+  `docs/report/report_requirements.md`, item 7). The reading of 2026-10-02
+  had an e-mail to the organisers naming the selected submission here; on
+  2026-10-20 neither the competition page nor the form asks for one.
 
 ## 9 The history rewrite
 
@@ -945,3 +954,308 @@ points at the release commit once it is pushed. A link to `tree/v1.1.0` would
 have to go into the release commit itself, before the tag; changed after the
 tag, it needs `v1.1.1` (10.1). The OpenReview form's code link may name the
 root or the tag.
+
+## 11 Release v1.2.0: report v2 in the NeurIPS 2026 template
+
+Written on 2026-10-20, before the release commit, against `e29853f` (branch
+`official-protocol`, one commit ahead of `origin/main` and
+`origin/official-protocol`, which are at `e1b00ff`, tag `v1.1.0`) and the
+uncommitted work of 2026-10-20 in the tree.
+
+### 11.1 The tag
+
+- **Name:** `v1.2.0` (CITATION.cff's `version` is `1.2.0`), decided by the
+  author on 2026-10-20. Annotated, like the earlier release tags, so it
+  records the tagger's address from the local `user.email`,
+  nikitapol@fbb.msu.ru (section 1). A minor version, not the `v1.1.1` that
+  section 10.1 foresaw for a later change to the report. The report keeps its
+  title and its results, but its form changed: it is set in the NeurIPS 2026
+  template with at most 8 pages of main text. Much of the main text moved to
+  the appendices, and the build gained the style check and the page rule. The
+  submission stays archive-3.
+- **The style file.** The competition asks for the NeurIPS template. The
+  build loads the official `neurips_2026.sty` (revision 2026-01-29) with the
+  options `sglblindworkshop` and `final`. That file carries no license, so it
+  is not committed: `tools/report_pdf/neurips_2026.sty` is in `.gitignore`
+  (section 2), and no commit has ever tracked it. The build checks the copy
+  in `tools/report_pdf/` against `STYLE_SHA256` in
+  `tools/build_report_pdf.py`,
+  `c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a`. When
+  the file is missing or differs, it stops and names the official zip,
+  https://media.neurips.cc/Conferences/NeurIPS2026/Formatting_Instructions_For_NeurIPS_2026.zip
+  (sha256 `82473931e3ef710fcd3f4a8cd4119b9de32e56825f90f9e5a6d55f2d01b817d9`).
+  A fresh clone therefore needs that download before the PDF builds (README,
+  "The report").
+- **Commit:** the release commit, the head of `official-protocol` once the
+  work of 2026-10-20 after `e29853f` is committed. That work is:
+  - the NeurIPS section "Acknowledgments and Disclosure of Funding" in the
+    draft (author decision (a) of 2026-10-20), with what the build needs for
+    it (`tools/report_pdf/report.lua`, `tools/build_report_pdf.py`, a comment
+    in `tools/report_pdf/template.tex`, `tests/test_build_report_pdf.py`);
+  - 6-pt type in the two main-text figures (decision (c)):
+    `tools/report_figures.py`, `tests/test_report_figures.py`,
+    `docs/report/fig/{hidden_decomposition,regime_check,formative_runs}.{svg,png}`,
+    `docs/report/fig/manifest.json` and `docs/report/figures.md`;
+  - the release docs: CITATION.cff (version 1.2.0), README.md (the build's
+    style file and page check, the section and table numbers of the cut
+    report, the OpenReview form's submission ID, the funding disclosure), this
+    file (the header, a row in section 2, notes in sections 3.1, 6 and 8, and
+    this section), `docs/report/revision_history.md` (the v1.2.0 entry), one
+    sentence of `docs/report/report_requirements.md` (item 7, on section 8 of
+    this file), the draft's v1.2.0 test counts (App A.4, App G.2) and the
+    style file in App G.4's row for the PDF, and the end of the main text at
+    the acknowledgments heading in `docs/report/style_guide.md` (item 10) and
+    `docs/report/sources_main.md` (its opening paragraph).
+
+  It changes no file under `paiec/`, `submission/`, `experiments/` or
+  `results/`, and no reported result.
+- **Why there, and not at `e29853f`:** `e29853f` set the report in the
+  template, but the draft had no funding or competing-interests statement,
+  which the NeurIPS instructions ask for. The main-text figures had type down
+  to 4.1 pt (sub- and superscripts down to 3.4 pt), and README.md,
+  CITATION.cff and this file still described the build and the report of
+  `v1.1.0`. The release commit is the first at which
+  the report, its build, its citation, the README and this record agree.
+- If the report or results change after `v1.2.0` is pushed, tag the new
+  commit `v1.2.1` rather than moving `v1.2.0`.
+
+### 11.2 The archive check
+
+The archive's code has not changed since `v1.1.0`. On 2026-10-20,
+`git diff --stat v1.1.0 HEAD` and `git diff --stat HEAD` over `paiec/`,
+`submission/`, `tools/build_submission.py`, `requirements.txt` and
+`pyproject.toml` were both empty. So section 10.2's checks give what they gave
+at `2af8fcd`. Its first command printed "archive members unchanged since
+4d2cc4f", and `tools/build_submission.py` still differs from `4d2cc4f` by 619
+inserted lines, all from `831ef7d`. The rebuild from the data, in 11.5, runs
+on the release commit before the tag: the default path must give archive-3
+(sha256 `4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090`)
+byte for byte on the development machine with its default BLAS threading
+(report App G.3). Any other hash stops the release. Section 10.2's
+member-by-member check against `dist/archive-3.zip` can be re-run as written.
+
+### 11.3 Tests, the report build and history checks
+
+On 2026-10-20, on the release tree (`e29853f` with the work of 2026-10-20),
+`python -m pytest --collect-only -q -p no:cacheprovider` collected 1,113
+tests of 809 distinct test functions in 35 files. An AST count of the
+module-level test functions over `tests/test_*.py` also gives 809, or 810
+when the nested helper `tests_that_mutate` of 10.3 is counted too. Report
+App A.4 and App G.2 quote 809, 35 and 1,113 beside the counts of `v1.0.0`
+(528, 24, 729) and `v1.1.0` (790, 35, 1,090). The 19 new test functions are
+all in the two test files of the report's build:
+- `tests/test_build_report_pdf.py`: 27 functions at `v1.1.0`, 36 at
+  `e29853f`, 42 now (48 collected tests, 39 at `e29853f`);
+- `tests/test_report_figures.py`: 16 functions, now 20 (21 collected
+  tests, 16 before).
+
+No other test file has changed since `v1.1.0`. On 2026-10-20, with every
+change of this release in the tree, these runs passed:
+- `python -m pytest -q tests/test_build_report_pdf.py`: 48 passed;
+- `python -m pytest -q tests/test_report_figures.py`: 21 passed;
+- `python tools/report_figures.py --check`: ok.
+
+The whole suite runs before the tag (11.5).
+
+The report build, on 2026-10-20, with every change of this release in the
+tree: `python tools/build_report_pdf.py --strict` (into a scratch output
+directory) exited 0. It reported:
+- the main text: 8 pages, 8.00 to its last line, ending before
+  "Acknowledgments and Disclosure of Funding";
+- the acknowledgments on page 9, the references on pages 9 and 10, and the
+  appendices on pages 11 to 111, 111 pages in all;
+- 0 overfull boxes;
+- 0 numbers and 0 words of the draft missing from the PDF;
+- every font embedded, none Type 3.
+
+Its 21 recorded inputs, the style file among them, matched the files on disk.
+The main text has less than one line to spare: a probe on a scratch copy of
+the draft that lengthened its last main-text paragraph by about a line ran to
+9 pages. Rebuild with `--strict` after any edit before the acknowledgments
+(11.5).
+
+Section 4's history checks, at `e29853f` over every ref (2026-10-20): 43
+commits, 1 of them since `v1.1.0`, no merge commit and no stash, 366 paths ever
+tracked and 518 distinct blobs. They gave:
+- no forbidden path, and no commit that tracks `neurips_2026.sty`;
+- 0 key-shaped strings;
+- 1 generic assignment, the fake `SECRET` of 10.3;
+- the same two blobs over 10 MB;
+- 0 author or committer addresses other than nikitapol@fbb.msu.ru, which is
+  also the tagger's address of all three release tags;
+- 0 strings of item text in the rating files, over all 43 commits.
+
+The changes after `e29853f` add no address, no item text and no local path.
+
+### 11.4 What changed since v1.1.0
+
+One commit, `e29853f` (2026-10-20), and the work of the same day after it.
+
+`e29853f` set the report in the NeurIPS 2026 template. The competition page,
+read on 2026-10-20, asks for that template and about 4 to 8 pages of main
+text, references and appendices excluded (`docs/report/report_requirements.md`).
+
+**The build.** It loads the official style (11.1). A new `--strict` check
+holds the main text to 8 pages.
+
+**The cut.** The main text went from 15 template pages to 8.00, under the
+author's decisions of that day:
+- It keeps the hidden-run reading (Table 1, the decomposition figure), the
+  submitted predictor and the regime check. `v1.1.0`'s Tables 2 and 3 are
+  now one table, Table 2.
+- The pool evaluation is one paragraph. Its selection table, `v1.1.0`'s
+  Table 5, is now Table C.6a in App C.6.
+- §6.4's Table 4 is now Table F.1a in App F.1. §4.3's gate figure, then
+  Figure 1, is now Figure C1 in App C.4, and the conduct details moved to the
+  appendices.
+- The two author-confirmed C1m sentences moved to App G.6, which quotes
+  them word for word but for their pointer to that appendix, cut and marked
+  [...].
+- §1 and §2 lost their subsection headings, and §8 is now "Limitations".
+
+Nothing the main text dropped was lost: it moved to an appendix.
+
+**The record.** `docs/report/report_requirements.md` records the reading of
+2026-10-20:
+- the template and the page limit;
+- that the report need not be anonymous;
+- the Codabench submission ID, now a field of the OpenReview form rather than
+  an e-mail;
+- the OpenReview note's licence, CC BY 4.0.
+
+`docs/report/style_guide.md` replaced the 9,000-word rule with the page rule,
+and `docs/report/sources_main.md` was re-keyed to the cut text.
+`tools/report_pdf/report.lua` learned to link appendix tables such as
+Table C.6a.
+
+The work after `e29853f`, under the author's decisions of 2026-10-20:
+- **(a) Acknowledgments.** The draft has the unnumbered section
+  "Acknowledgments and Disclosure of Funding", after the main text and before
+  the References, with exactly "This work received no specific funding. The
+  author declares no competing interests." The NeurIPS instructions do not
+  count acknowledgments as content pages, so the main text now ends at that
+  heading:
+  - `report.lua` sets the section in the style's `ack` environment and puts
+    the main text's end mark before its heading;
+  - `dist/report/build.json` gains `pages.main_text_ends_before`,
+    `pages.acknowledgments` and `filter.main_end`;
+  - `--strict` also fails when the section does not follow the main text
+    directly: when it comes after References or an appendix, or when a
+    main-text section follows it, which the page measure would otherwise
+    drop from the main text without a word.
+
+  The same change makes `report.lua`'s label patterns ASCII. Under a UTF-8
+  locale, a table label without a letter suffix, followed by a possessive
+  with a curly apostrophe, did not link, though it did under the C locale;
+  it now links under both. The draft has no such possessive, so no link of
+  the PDF changed.
+- **(b) Approval.** The author approved the move of the C1m sentences to
+  App G.6 and the layout of §1 and §2 (no subsection headings, Table 1
+  moved).
+- **(c) Figure type.** Figures 1 and 2 (`hidden_decomposition`,
+  `regime_check`) carry no type under 6 pt at print size, sub- and
+  superscripts included, with the same data and the same 5.5 by 2.85 in
+  size; before, their smallest type was 4.1 and 4.9 pt, and their smallest
+  glyphs (mathtext sub- and superscripts) 3.4 and 4.8 pt. Matplotlib sets a
+  sub- or superscript at 0.7 of its label's size, so their labels write B0,
+  Bk, B31 and log2(1+B) on the line, and Figure 2's unit as "in 0.001". The
+  legend of `formative_runs` (Figure D2) went from 5.5 to 6 pt.
+  `docs/report/fig/manifest.json` records each figure's size and smallest
+  type and glyph (`size_in`, `text_pt`). `python tools/report_figures.py
+  --check` fails when a main-text figure has a glyph under 6 pt or grows
+  taller. The other appendix figures keep their smallest type
+  (`text_pt.min_pt`) of 4.3 to 5.4 pt (`docs/report/figures.md`, "Type
+  size") and their smallest glyph (`text_pt.min_glyph_pt`) of 3.85 to
+  5.4 pt.
+- **(d) This release.**
+
+No results file and no reported result changed. Archive-3 stays the final
+submission. `docs/report/revision_history.md` lists the same changes.
+
+### 11.5 Publish
+
+As in sections 7 and 10.5, from this repository only. The local `main` is
+still behind (`72cc96b`), so push the branch to `main` directly, as in 10.5.
+
+    # on the release commit, with nothing but ignored files in git status
+    git config --local user.email            # must print nikitapol@fbb.msu.ru
+    # the style file, copied from the official zip (11.1), stays ignored
+    shasum -a 256 tools/report_pdf/neurips_2026.sty   # c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a
+    git check-ignore -q tools/report_pdf/neurips_2026.sty && echo "style file ignored"
+    # the whole suite (10.3 and 10.5 name the three tests that start more
+    # than two interpreters), and the figures
+    python -m pytest -q
+    python tools/report_figures.py --check
+    # the PDF for OpenReview needs exit 0; built here, from the release
+    # commit, dist/report/build.json records that commit and a clean tree
+    python tools/build_report_pdf.py --strict
+    # the archive (11.2): archive-3 byte for byte, or stop
+    python tools/build_submission.py
+    shasum -a 256 dist/paiec.zip             # 4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090
+    # section 4's history checks on the release commit (11.3), and no commit
+    # may track the style file (expect 0)
+    git rev-list --all | while read c; do git ls-tree -r --name-only "$c"; done | grep -c 'neurips_2026\.sty$'
+    git tag -a v1.2.0 -m "PAIEC 2026 report v2 in the NeurIPS 2026 template: 8-page main text, funding disclosure, 6-pt main-text figures; final submission archive-3 (members unchanged since 4d2cc4f)" official-protocol
+    git push origin official-protocol
+    git push origin official-protocol:main   # a fast-forward of origin/main
+    git push origin v1.2.0
+
+Optionally, a GitHub release from the tag (`gh release create v1.2.0
+--verify-tag --title "v1.2.0" --notes-file NOTES.md`, or on github.com), with
+these notes:
+
+> Code, results and report source for *Reading hidden runs at a
+> benchmark-level cold start: a pair-rate oracle, test-like regimes and a
+> calibrated hierarchical predictor* (Nikita L. Polomoshnov), an entry to the
+> Predictive AI Evaluation Competition (PAIEC), NeurIPS 2026. v1.2.0 sets
+> report v2 in the NeurIPS 2026 template, as the competition asks.
+>
+> - **Main text.** At most 8 pages, checked by
+>   `python tools/build_report_pdf.py --strict`; the detail is in the
+>   appendices.
+> - **Acknowledgments.** A new section, "Acknowledgments and Disclosure of
+>   Funding", states no specific funding and no competing interests. Like the
+>   references and the appendices, it does not count toward the 8 pages.
+>   `dist/report/build.json` records where the main text ends
+>   (`pages.main_text_ends_before`) and the section's page
+>   (`pages.acknowledgments`).
+> - **Figures.** The two main-text figures now have no type under 6 pt.
+> - **Style file.** The build needs the official style file
+>   `neurips_2026.sty`, which carries no license and is not included.
+>   Download the NeurIPS 2026 formatting zip and copy the file to
+>   `tools/report_pdf/`. The build checks its sha256 and names the download
+>   if it is missing (README, "The report").
+>
+> No reported result changed.
+>
+> **The submission.** The final submission is still archive-3 (sha256
+> 4a882cc7…, formative run 3). Its members other than `prior.json` are
+> unchanged since commit 4d2cc4f, and `paiec/`, `submission/` and
+> `tools/build_submission.py` are unchanged since v1.1.0. The code and docs
+> are MIT-licensed.
+>
+> **Data and third-party code.**
+> - measurement-db is not included: it is gated, so accept its terms and run
+>   `python -m paiec.fetch` (revision bc8204d8…). The pool evaluation used
+>   revision 54074453, which `tools/fetch_pool.py` fetches.
+> - measurement-db's curation is CC BY-SA 4.0, and the benchmarks' content
+>   keeps its upstream licences. No item text from it is included, apart from
+>   a 40-character example in one code comment.
+> - The organisers' baseline repository has no license and is not included;
+>   clone it at commit 82d330dd.
+>
+> **Commit ids.** Seven-character ids written before the history rewrite of
+> 2026-10-03, such as 4d2cc4f, resolve through tags of the same name, and
+> `docs/commit-map.txt` maps every old full id to its new one.
+>
+> `docs/report/revision_history.md` and `docs/release.md` (section 11) list
+> what changed since v1.1.0.
+
+Do not attach the submission archive, the data or the style file to the
+release; the report PDF may be attached once it is final. After pushing,
+check on GitHub that `main` and `official-protocol` point at the release
+commit. The tags should be `v1.0.0`, `v1.0.1`, `v1.1.0`, `v1.2.0` and the 21
+old-id tags, and "Cite this repository" should show version 1.2.0. The
+draft's "Code:" line still names the repository's root (10.5). The OpenReview
+form takes the PDF, the code link, the keywords and the selected Codabench
+submission ID, that of archive-3 (section 8).

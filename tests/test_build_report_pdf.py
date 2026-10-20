@@ -79,6 +79,24 @@ def test_title_block_of_the_draft():
     assert EMAIL_RE.findall(_title_block(text)) == ["nikitapol@fbb.msu.ru"], "only the team's e-mail"
 
 
+#: decision (a) of 2026-10-20: the NeurIPS acknowledgments section's one paragraph
+ACK_SENTENCE = ("This work received no specific funding. "
+                "The author declares no competing interests.")
+
+
+def test_draft_declares_funding_and_competing_interests():
+    """The NeurIPS "Acknowledgments and Disclosure of Funding" section, unnumbered, after
+    the main text and right before References, with exactly the author's sentence."""
+    text = DRAFT.read_text(encoding="utf-8")
+    parts = text.split(f"\n## {B.ACK_TITLE}\n", 1)
+    assert len(parts) == 2 and text.count(f"## {B.ACK_TITLE}") == 1
+    body, after = parts[1].split("\n## ", 1)
+    assert after.startswith("References\n")
+    assert [b.strip() for b in body.split("\n\n") if b.strip() not in ("", "---")] == [ACK_SENTENCE]
+    # after every numbered section of the main text, before every appendix
+    assert "\n## Appendix A:" not in parts[0] and "\n## 8 " in parts[0]
+
+
 def test_keywords_have_one_source():
     """The draft's "Keywords:" line fills the PDF metadata; CITATION.cff repeats it."""
     kw = B.front_matter(DRAFT.read_text(encoding="utf-8"))["keywords"]
@@ -172,9 +190,29 @@ def test_aux_pages_and_page_summary():
     # a figure of the main text that floats past the end of its text counts
     s = B.page_summary(labels, 74, positions, geometry, main_figures=["1", "2"])
     assert s["main_text_pages"] == 9 and s["main_text_basis"] == "end mark and figures"
+    assert s["main_text_ends_before"] == "the end of the document"   # main_end not given
     # without the end mark (an older .tex): the page before References
     s = B.page_summary(labels, 74)
     assert s["main_text"] == [1, 7] and s["references"] == [8, 10]
+    assert "acknowledgments" not in s
+
+
+def test_page_summary_ends_the_main_text_at_the_acknowledgments():
+    """report.lua sets the end mark before the "Acknowledgments and Disclosure of Funding"
+    heading, which the NeurIPS instructions do not count as content pages: the main text
+    is measured to that mark, and build.json names the heading and the section's page."""
+    labels = {"references": 9, B.ACK_LABEL: 8, "report:appendix-start": 11, "report:end": 40}
+    positions = {"report:main-end": (8, _y(0.8) / B.SP_PER_PT),
+                 "acknowledgments-and-disclosure-of-funding": (8, _y(0.8) / B.SP_PER_PT),
+                 "references": (9, _y(0.0) / B.SP_PER_PT)}
+    s = B.page_summary(labels, 40, positions, GEOMETRY, main_end=B.ACK_TITLE)
+    assert s["main_text"] == [1, 8] and s["main_text_measured"] == 7.8
+    assert s["main_text_ends_before"] == B.ACK_TITLE and s["acknowledgments"] == 8
+    assert s["references"] == [9, 10] and s["main_text_basis"] == "end mark"
+    # an acknowledgments section that pushes References to the next page adds nothing
+    # to the main text; without the end mark, the page before the acknowledgments
+    s = B.page_summary(dict(labels, **{B.ACK_LABEL: 9}), 40)
+    assert s["main_text"] == [1, 8] and s["main_text_basis"] == "page before the acknowledgments"
 
 
 def test_section_pages_and_words():
@@ -208,7 +246,35 @@ def test_strict_holds_the_main_text_to_eight_pages():
     assert B.problems(report(8)) == [] and B.problems(report(5)) == []
     bad = B.problems(report(9))
     assert len(bad) == 1 and bad[0].startswith("main text is 9 pages")
+    assert "acknowledgments, references and appendices excluded" in bad[0]
     assert B.problems(report(9), max_main_pages=9) == []
+
+
+def test_strict_wants_the_acknowledgments_right_after_the_main_text():
+    """The page measure ends the main text at the acknowledgments heading only where the
+    NeurIPS template puts the section: after the main text, before References."""
+    heads = [{"id": "sec-1", "level": 2, "text": "1 Introduction"},
+             {"id": "ack", "level": 2, "text": B.ACK_TITLE},
+             {"id": "references", "level": 2, "text": "References"}]
+    assert B.problems({"filter": {"headings": heads, "main_end": B.ACK_TITLE}}) == []
+    # after References (the main text ended there), or a draft whose filter did not end it
+    for main_end in ("References", None):
+        bad = B.problems({"filter": {"headings": heads, "main_end": main_end}})
+        assert len(bad) == 1 and B.ACK_TITLE in bad[0] and "between the main text" in bad[0]
+    # inside the main text: the filter ends the main text at the heading all the same, and
+    # the sections after it would silently stop counting
+    lim = {"id": "sec-2", "level": 2, "text": "2 Limitations"}
+    code = {"id": "code-data-and-conduct", "level": 2, "text": "Code, data and conduct"}
+    for follows in ([lim, code], [code]):
+        bad = B.problems({"filter": {"headings": heads[:2] + follows + heads[2:],
+                                     "main_end": B.ACK_TITLE}})
+        assert (len(bad) == 1 and f'followed by "{follows[0]["text"]}"' in bad[0]
+                and "between the main text" in bad[0])
+    # an appendix right after it is fine (a draft without References)
+    app = [heads[0], heads[1], {"id": "app-A", "level": 2, "text": "Appendix A: data"}]
+    assert B.problems({"filter": {"headings": app, "main_end": B.ACK_TITLE}}) == []
+    # a draft without the section: nothing to check
+    assert B.problems({"filter": {"headings": heads[::2], "main_end": "References"}}) == []
 
 
 PDFFONTS = """name                                 type              encoding         emb sub uni object ID
@@ -489,6 +555,76 @@ def test_filter_links_appendix_tables(mini, tmp_path):
     assert tex.rindex("\\reportneed{", 0, cap) > tex.index("Back to")
 
 
+ACK_SECTION = f"## {B.ACK_TITLE}\n\n{ACK_SENTENCE}\n\n---\n\n"
+ACK_ID = "acknowledgments-and-disclosure-of-funding"
+
+
+def _with_ack(draft: Path) -> None:
+    text = draft.read_text(encoding="utf-8")
+    assert text.count("## References\n") == 1
+    draft.write_text(text.replace("## References\n", ACK_SECTION + "## References\n"),
+                     encoding="utf-8")
+
+
+@needs_pandoc
+@pytest.mark.parametrize("with_ack", [True, False], ids=["with-ack", "without-ack"])
+def test_filter_ends_the_main_text_at_the_acknowledgments(mini, tmp_path, with_ack):
+    """With the NeurIPS "Acknowledgments and Disclosure of Funding" section, the main
+    text's end mark comes before its heading, and the section is set in the style's ack
+    environment (which prints the heading, unnumbered), closed before References;
+    without it, the end mark comes before References, as before."""
+    if with_ack:
+        _with_ack(mini)
+    r = B.build(mini, tmp_path / "out", figures="png", tex_only=True, epoch=0, quiet=True)
+    tex = Path(r["tex"]).read_text(encoding="utf-8").split("\\begin{document}", 1)[1]
+    flt = r["filter"]
+    assert flt["warnings"] == [] and len(flt["unresolved"]) == 2
+    assert tex.count("\\reportpos{report:main-end}") == 1
+    end = tex.index("\\reportpos{report:main-end}")
+    refs = tex.index("\\reportpos{references}")
+    heads = {h["id"]: h for h in flt["headings"]}
+    assert heads["sec-2.1"]["main"] and not heads["references"]["main"]
+    if with_ack:
+        assert flt["main_end"] == B.ACK_TITLE
+        begin, close = tex.index("\\begin{ack}"), tex.index("\\end{ack}")
+        assert tex.count("\\begin{ack}") == tex.count("\\end{ack}") == 1
+        assert end < tex.index(f"\\reportpos{{{ACK_ID}}}") < begin < close < refs
+        # end mark, the heading's own mark, then the environment: nothing between
+        assert tex[end:begin].split() == ["\\reportpos{report:main-end}", f"\\reportpos{{{ACK_ID}}}"]
+        # the heading is the style's (\acksection), with a bookmark and a page label
+        assert ("\\begin{ack}\\phantomsection\\pdfbookmark[1]{" + B.ACK_TITLE + "}{" + ACK_ID
+                + "}\\label{report:ack}\\nobreak") in tex
+        assert "\\section{Acknowledgments" not in tex and tex.count(B.ACK_TITLE) == 1
+        assert ACK_SENTENCE in tex[begin:close]
+        assert not heads[ACK_ID]["main"] and heads[ACK_ID]["words"] == len(ACK_SENTENCE.split())
+    else:
+        assert flt["main_end"] == "References" and "{ack}" not in tex and ACK_ID not in heads
+        assert end < refs
+
+
+@needs_pandoc
+@pytest.mark.parametrize("locale", ["C", "C.UTF-8", "en_US.UTF-8"])
+def test_filter_links_a_possessive_without_a_letter_suffix(mini, tmp_path, monkeypatch, locale):
+    """"Table A.6's" (smart quotes make it "A.6’s") links to Table A.6 under any locale:
+    the label pattern uses ASCII classes, since under a UTF-8 locale Lua's %l took the
+    first byte of "’" (0xE2) for a letter and made the label "A.6\\xE2"."""
+    monkeypatch.setenv("LC_ALL", locale)
+    text = mini.read_text(encoding="utf-8")
+    text = text.replace("Also §9.9 and App B.1.",
+                        "Also §9.9, App B.1, Table A.6's one, Table A.6’s two and Table A.6a's.")
+    text = text.replace("Back to §1 and Table 1.\n\n",
+                        "Back to §1 and Table 1.\n\n*Table A.6: things.*\n\n*Table A.6a: more.*\n\n")
+    mini.write_text(text, encoding="utf-8")
+    r = B.build(mini, tmp_path / "out", figures="png", tex_only=True, epoch=0, quiet=True)
+    tex = Path(r["tex"]).read_text(encoding="utf-8").split("\\begin{document}", 1)[1]
+    flt = r["filter"]
+    assert sorted(u["text"] for u in flt["unresolved"]) == ["App B.1", "§9.9"]
+    assert flt["links"]["table"] == 5     # Table 1 twice, A.6 twice, A.6a once
+    assert tex.count("\\hyperref[tab-A.6]{Table A.6}'s") == 2
+    assert "\\hyperref[tab-A.6a]{Table A.6a}'s" in tex
+    assert "\\label{tab-A.6}\\emph{Table A.6: things.}" in tex
+
+
 @needs_pandoc
 def test_filter_on_the_draft_resolves_everything(tmp_path):
     r = B.build(DRAFT, tmp_path / "out", figures="png", tex_only=True, epoch=0, quiet=True)
@@ -500,6 +636,10 @@ def test_filter_on_the_draft_resolves_everything(tmp_path):
         assert f"\\label{{fig-{label}}}" in tex, label
     assert tex.count("\\reportappendixstart") == 1
     assert tex.count("\\reportpos{report:main-end}") == 1
+    # the NeurIPS acknowledgments section ends the main text (decision (a) of 2026-10-20)
+    assert flt["main_end"] == B.ACK_TITLE and tex.count("\\begin{ack}") == 1
+    assert (tex.index("\\reportpos{report:main-end}") < tex.index("\\begin{ack}")
+            < tex.index(ACK_SENTENCE) < tex.index("\\end{ack}") < tex.index("\\reportpos{references}"))
     # the team's e-mail, in the author block only (as the link and as its text)
     whole = Path(r["tex"]).read_text(encoding="utf-8")
     author = whole.split("\\author{", 1)[1].split("\n}\n", 1)[0]
@@ -821,6 +961,11 @@ def test_report_main_text_within_the_limit(built):
     pages = built["pages"]
     sections = [s for s in built["sections"] if s["main"]]
     assert sections and all("pages" in s and s["words"] > 0 for s in sections)
+    # it ends where the acknowledgments begin, which do not count (nor references and
+    # appendices); the section's page is between the main text and References
+    assert pages["main_text_ends_before"] == B.ACK_TITLE
+    assert pages["main_text"][1] <= pages["acknowledgments"] <= pages["references"][0]
+    assert not {s["id"]: s for s in built["sections"]}[ACK_ID]["main"]
     assert pages["main_text_pages"] <= B.MAX_MAIN_PAGES, (
         f"main text {pages['main_text_pages']} pages ({pages['main_text_measured']} to its last "
         f"line): " + "; ".join(f"{s['title'][:30]} {s['pages']}" for s in sections
@@ -837,6 +982,46 @@ def test_report_pdf_metadata_names_the_author_only(built):
     assert info.title == B.front_matter(DRAFT.read_text(encoding="utf-8"))["title"]
     assert info.get("/Keywords") == B.front_matter(DRAFT.read_text(encoding="utf-8"))["keywords"]
     assert not any(EMAIL_RE.search(str(v)) for v in info.values())
+
+
+@needs_latex
+def test_acknowledgments_do_not_count_as_main_text(mini, tmp_path):
+    """A small draft built without and with the acknowledgments section: the main text
+    keeps its pages and is measured to the acknowledgments heading, not to References;
+    build.json names the heading it ends before and the section's page, the PDF prints
+    the style's heading and the sentence, and its outline lists it. (The measure itself
+    may move a little: the style sets flush-bottom pages, so what else fits on the page
+    changes how much its glue stretches.)"""
+    plain = B.build(mini, tmp_path / "plain", figures="png", epoch=1_700_000_000, quiet=True)
+    _with_ack(mini)
+    ack = B.build(mini, tmp_path / "ack", figures="png", epoch=1_700_000_000, quiet=True)
+    p0, p1 = plain["pages"], ack["pages"]
+    assert p0["main_text_ends_before"] == "References" and "acknowledgments" not in p0
+    assert p1["main_text_ends_before"] == B.ACK_TITLE
+    assert p1["main_text"] == p0["main_text"] and p1["main_text_pages"] == p0["main_text_pages"]
+    assert p1["acknowledgments"] == ack["label_pages"][B.ACK_LABEL] <= p1["references"][0]
+    rows0 = {s["id"]: s for s in plain["sections"]}
+    rows = {s["id"]: s for s in ack["sections"]}
+    assert rows0["references"]["start"] == p0["main_text_measured"]
+    assert rows[ACK_ID]["start"] == p1["main_text_measured"] < rows["references"]["start"]
+    assert not rows[ACK_ID]["main"] and rows[ACK_ID]["pages"] > 0
+    assert B.problems(ack) == B.problems(plain)
+    assert ack["log"]["undefined_refs"] == [] and ack["log"]["missing_glyphs"] == []
+    tc = ack["text_check"]
+    if "skipped" not in tc:
+        assert tc["numbers_missing"] == {} and tc["words_missing"] == {}
+    pdftotext = B.find_tool("pdftotext", "PDFTOTEXT")
+    if pdftotext:
+        text = " ".join(B.pdf_plain(pdftotext, Path(ack["pdf"])).split())
+        assert f"{B.ACK_TITLE} {ACK_SENTENCE}" in text
+        assert text.index(ACK_SENTENCE) < text.index("Brier, G. W. (1950)")
+    pypdf = pytest.importorskip("pypdf")
+
+    def titles(outline):
+        for x in outline:
+            yield from (titles(x) if isinstance(x, list) else [x.title])
+
+    assert B.ACK_TITLE in list(titles(pypdf.PdfReader(ack["pdf"]).outline))
 
 
 @needs_latex

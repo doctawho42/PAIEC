@@ -19,13 +19,20 @@ matplotlib: no dates in them, a fixed SVG hash salt, the bundled DejaVu Sans,
 the Agg backend, and a seeded jitter where points are spread.
 
 `docs/report/fig/manifest.json` records, per figure, the results files it read
-with their sha256, the sha256 of each file written and the function that drew
-it; and once, this script's sha256 and the library versions. `--check` (and
-`tests/test_report_figures.py`) fails when an input or the script changed
-after the figures were drawn, when a figure no longer builds, or, with the same
-matplotlib, when a fresh build differs from the committed files. Captions are
-in `docs/report/figures.md` ("Drawn figures"); they name the keys each panel
-reads.
+with their sha256, the sha256 of each file written, the function that drew it,
+its size in inches and its type sizes (`text_pt`: the smallest font size it
+draws, its smallest glyph, which is a mathtext script where there is one, and
+how many lines of text are under 6 pt); and once, this script's sha256 and the
+library versions. Figures are drawn at their natural width, 5.5 in (the NeurIPS
+text width) or less, and placed at that width, so these are print sizes. The
+main text's figures (`MAIN_TEXT`) carry no type under `MIN_FONT_PT` (6 pt), mathtext
+sub- and superscripts included (so they write B0, Bk and log2 on the line), and
+may not grow past their height, since the main text is at its 8-page limit.
+`--check` (and `tests/test_report_figures.py`) fails when an input or the script
+changed after the figures were drawn, when a figure no longer builds, when a
+main-text figure breaks the type or height rule, or, with the same matplotlib,
+when a fresh build differs from the committed files. Captions are in
+`docs/report/figures.md` ("Drawn figures"); they name the keys each panel reads.
 
 Light CPU only: the largest input (`results/level_calibration.json`, 19 MB) is
 parsed once and shared by the figures that read it.
@@ -219,6 +226,61 @@ def title(ax, letter, text, **kw):
 def widest(blocks: dict) -> str:
     """The span with the most runs (ties: the one listed first)."""
     return max(blocks, key=lambda s: blocks[s]["runs"])
+
+
+# ---------------------------------------------------------------------------
+# type size at print size
+#
+# Every figure is drawn at its natural width, WIDTH (the NeurIPS text width) or less, and
+# the PDF build places it at that width, so a size in pt here is the printed size.
+
+#: the smallest type the main text's figures may carry, in pt, the glyphs of mathtext sub- and
+#: superscripts included (author decision, 2026-10-20)
+MIN_FONT_PT = 6.0
+#: the figures the main text shows (Figures 1 and 2), and the height each may not exceed:
+#: the main text is at its 8-page limit, so they may not grow
+MAIN_TEXT = {"hidden_decomposition": 2.85, "regime_check": 2.85}
+
+
+def drawn_text(fig) -> list[tuple[float, float, str]]:
+    """Every line of text the figure draws, as (font size, smallest glyph, text), sizes in pt.
+
+    Recorded at the renderer while the figure draws, so it holds what is drawn (titles, axis
+    and tick labels, legend entries, annotations, bar labels) and nothing that is hidden; a
+    text of several lines is drawn, and recorded, line by line. The two sizes differ only in
+    mathtext, whose sub- and superscripts are set at 0.7 of the element's size, as TeX sets
+    them."""
+    from matplotlib.mathtext import MathTextParser
+    renderer = fig.canvas.get_renderer()
+    draw = type(renderer).draw_text
+    parser = MathTextParser("path")
+    out = []
+
+    def record(gc, x, y, s, prop, angle, ismath=False, mtext=None):
+        size = float(prop.get_size_in_points())
+        glyph = size
+        if ismath is True:
+            glyphs = parser.parse(s, 72, prop).glyphs
+            if glyphs:
+                glyph = float(min(g[1] for g in glyphs))
+        out.append((size, glyph, s))
+        return draw(renderer, gc, x, y, s, prop, angle, ismath=ismath, mtext=mtext)
+
+    renderer.draw_text = record
+    try:
+        fig.draw(renderer)
+    finally:
+        del renderer.draw_text
+    return out
+
+
+def text_sizes(fig) -> dict:
+    """The smallest type the figure draws (pt), its smallest glyph (a mathtext script, if
+    any; pt), and how many of its lines of text are under MIN_FONT_PT."""
+    t = drawn_text(fig)
+    return {"min_pt": round(min(s for s, _, _ in t), 2),
+            "min_glyph_pt": round(min(g for _, g, _ in t), 2),
+            "lines_under_min": sum(s < MIN_FONT_PT for s, _, _ in t)}
 
 
 # ---------------------------------------------------------------------------
@@ -868,7 +930,7 @@ def fig_formative_runs(inp):
          "shipped hier: tuned test-like ±1 sd (solid), public R1 ±1 sd (dashed)"),
     ]
     fig.legend([h for h, _ in handles], [lab for _, lab in handles], loc="lower center",
-               ncol=2, fontsize=5.5, bbox_to_anchor=(0.5, 0.0), columnspacing=1.2)
+               ncol=2, fontsize=6.0, bbox_to_anchor=(0.5, 0.0), columnspacing=1.2)
     fig.supxlabel(BUDGET_LABEL, fontsize=6.6, y=0.12)
     fig.subplots_adjust(left=0.08, right=0.99, top=0.86, bottom=0.3, wspace=0.08)
     return fig
@@ -1402,8 +1464,12 @@ def hidden_decomposition_data(inp):
 
 def fig_hidden_decomposition(inp):
     d = hidden_decomposition_data(inp)
-    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(WIDTH, 2.85),
-                                  gridspec_kw={"width_ratios": [1.0, 1.15]})
+    fig = plt.figure(figsize=(WIDTH, 2.85))
+    # panel (b) is the wider one, so that its 6-pt bar labels (0.0577) clear their neighbours;
+    # the legends sit below the panels, under panel (b)'s group labels, except the whiskers'
+    bottom, top = 0.385, 0.94
+    ax = fig.add_axes([0.09, bottom, 0.25, top - bottom])
+    ax2 = fig.add_axes([0.445, bottom, 0.548, top - bottom])
     x = bx()
 
     # (a) B_k - v by budget, on an asinh axis (linear near 0, logarithmic above)
@@ -1425,31 +1491,18 @@ def fig_hidden_decomposition(inp):
     ax.set_ylim(-0.0045, 0.32)
     ax.axhline(0, color="#888888", lw=0.5)
     budget_axis(ax, label=False)
-    ax.set_xlabel("budget B (log$_2$(1+B) axis)")
-    ax.set_ylabel("B$_k$ − V, mean over pairs (asinh axis)", fontsize=6.4, labelpad=1)
-    title(ax, "a", "the cost of not knowing pair rates, by budget", fontsize=6.3)
-    handles = [
-        (Line2D([], [], color="k", marker="^", ls=(0, (4, 2)), lw=1.3, ms=3.4, mfc="white",
-                mew=0.8), f"run 1: legacy Predictor ({d['curves']['run1']['pairs']} pairs)"),
-        (Line2D([], [], color="k", marker="o", ls="-", lw=1.3, ms=3.4, mfc="white", mew=0.8),
-         f"runs 2 and 3: shipped hier ({d['curves']['hier_pooled']['pairs']} pairs)"),
-        (Patch(color="#bdbdbd", alpha=0.75, lw=0), "ideal learner, prior-weighted roots"),
-        (Line2D([], [], color="#555555", ls=(0, (3, 1, 1, 1)), lw=0.9),
-         "ideal learner, lower roots"),
-        (Line2D([], [], color=C["ship"], lw=0.7), "replica, shipped hier"),
-        (Line2D([], [], color=C["legacy"], lw=0.7), "replica, legacy Predictor"),
-        (Line2D([], [], color="#555555", lw=0.7, ls="-"), "replica: tuned (solid), R1-bf (dashed)"),
-    ]
-    ax.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
-              bbox_to_anchor=(-0.17, -0.19), ncol=2, fontsize=4.9, handlelength=2.6,
-              columnspacing=0.8, labelspacing=0.35)
+    # no mathtext scripts in the main text's figures: they are set at 0.7 of the label's
+    # size, under MIN_FONT_PT, so B0, Bk and log2 are written on the line
+    ax.set_xlabel("budget B (log2(1+B) axis)", labelpad=2)
+    ax.set_ylabel("Bk − V, pair mean (asinh axis)", fontsize=6.4, labelpad=1)
+    title(ax, "a", "the cost of not knowing pair rates", fontsize=6.3)
 
     # (b) ALC - v by its three terms, hidden runs beside replica regimes
     shade = (1.0, 0.45)
     pos, xp = [], 0.0
     for k, b in enumerate(d["bars"]):
         if k and b["arm"] != d["bars"][k - 1]["arm"]:
-            xp += 0.6
+            xp += 0.5
         pos.append(xp)
         xp += 1.0
     for p, b in zip(pos, d["bars"]):
@@ -1474,41 +1527,62 @@ def fig_hidden_decomposition(inp):
             ax2.bar(p, -(ihi - ilo), bottom=-ilo, width=w, fill=False, hatch="///",
                     edgecolor="#b0b0b0", lw=0.4, zorder=3)
             ax2.text(p, -ihi - 0.003, f"{ilo:.3f}\nto\n{ihi:.3f}", ha="center", va="top",
-                     fontsize=4.3, color="#444444", linespacing=0.9)
+                     fontsize=6.0, color="#444444", linespacing=0.95)
         ax2.errorbar(p, b["total"], yerr=b["whisker"], color="k" if b["hidden"] else "#555555",
                      lw=0, elinewidth=0.6, capsize=0, zorder=5)
         ax2.text(p, b["total"] + b["whisker"] + 0.0015, f"{b['total']:.4f}", ha="center",
-                 va="bottom", fontsize=4.1)
+                 va="bottom", fontsize=6.0)
+    r0, r1 = d["ratio"]
+    ax2.text(pos[0] + 0.5, -0.012, "hatched: V − item oracle,\nestimated (borrowed ratio\n"
+             f"{r0:.3f} to {r1:.3f})", ha="left", va="top", fontsize=6.0, color="#444444",
+             linespacing=1.05)
     ax2.axhline(0, color="k", lw=0.6, zorder=6)
-    ax2.text(pos[-1] + 0.55, 0.0015, "V", fontsize=6.0, ha="left", va="bottom")
+    ax2.text(pos[-1] + 0.5, 0.0015, "V", fontsize=6.3, ha="left", va="bottom")
     ax2.set_xticks(pos)
-    ax2.set_xticklabels([b["label"] for b in d["bars"]], fontsize=5.4, rotation=90)
+    ax2.set_xticklabels([b["label"] for b in d["bars"]], fontsize=6.0, rotation=90)
     ax2.tick_params(axis="x", length=0, pad=1.5)
-    ax2.set_xlim(pos[0] - 0.6, pos[-1] + 0.9)
-    ax2.set_ylim(-0.134, 0.1)
+    ax2.set_xlim(pos[0] - 0.5, pos[-1] + 0.8)
+    ax2.set_ylim(-0.152, 0.108)
+    ax2.set_yticks([-0.1, -0.05, 0, 0.05, 0.1])
     ax2.grid(axis="x", visible=False)
     for arm, name in (("legacy", NAMES["legacy"]), ("ship", NAMES["ship"])):
         ps = [p for p, b in zip(pos, d["bars"]) if b["arm"] == arm]
-        ax2.text((ps[0] + ps[-1]) / 2, -0.25, name, ha="center", va="top", fontsize=5.6,
+        ax2.text((ps[0] + ps[-1]) / 2, -0.258, name, ha="center", va="top", fontsize=6.0,
                  color="k", transform=ax2.get_xaxis_transform())
-        ax2.plot([ps[0] - 0.35, ps[-1] + 0.35], [-0.235, -0.235], color="#777777", lw=0.5,
+        ax2.plot([ps[0] - 0.35, ps[-1] + 0.35], [-0.245, -0.245], color="#777777", lw=0.5,
                  transform=ax2.get_xaxis_transform(), clip_on=False)
-    ax2.set_ylabel("Brier relative to V (ALC − V above 0)", fontsize=6.2)
+    ax2.set_ylabel("Brier score relative to V", fontsize=6.4, labelpad=1)
     title(ax2, "b", "ALC − V by term; below V, the item level", fontsize=6.3)
-    r0, r1 = d["ratio"]
+    ax2.legend([Line2D([], [], color="k", lw=0.6)],
+               ["±1 pair SE (hidden runs),\n±1 single-run sd (replica)"], loc="upper right",
+               fontsize=6.0, handlelength=1.6, handletextpad=0.5, borderaxespad=0.3)
+
+    # legends: panel (a)'s on the left, two columns; panel (b)'s terms on the right
+    y0 = 0.2
     handles = [
-        (Patch(color="#777777"), "0.1 (B$_0$ − V)"),
-        (Patch(color="#777777", alpha=shade[1], lw=0), "0.2 Σ$_{k=1}^{15}$ (B$_k$ − V)"),
-        (Patch(color="#111111"), "0.1 (B$_{31}$ − V)"),
-        (Patch(facecolor="white", edgecolor="#6a6a6a", hatch="//////", lw=0.4),
-         f"V − item oracle, estimated\n(borrowed ratio {r0:.3f} to {r1:.3f})"),
-        (Line2D([], [], color="k", lw=0.6), "±1 pair SE (hidden runs),\n"
-         "±1 single-run sd (replica)"),
+        (Line2D([], [], color="k", marker="^", ls=(0, (4, 2)), lw=1.3, ms=3.4, mfc="white",
+                mew=0.8), f"run 1: legacy Predictor ({d['curves']['run1']['pairs']} pairs)"),
+        (Line2D([], [], color="k", marker="o", ls="-", lw=1.3, ms=3.4, mfc="white", mew=0.8),
+         f"runs 2 and 3: shipped hier ({d['curves']['hier_pooled']['pairs']} pairs)"),
+        (Patch(color="#bdbdbd", alpha=0.75, lw=0), "ideal learner, prior-weighted roots"),
+        (Line2D([], [], color="#555555", ls=(0, (3, 1, 1, 1)), lw=0.9),
+         "ideal learner, lower roots"),
+        (Line2D([], [], color=C["ship"], lw=0.7), "replica, shipped hier"),
+        (Line2D([], [], color=C["legacy"], lw=0.7), "replica, legacy Predictor"),
+        (Line2D([], [], color="#555555", lw=0.7, ls="-"), "replica, tuned (solid)"),
+        (Line2D([], [], color="#555555", lw=0.7, ls="--"), "replica, R1-bf (dashed)"),
     ]
-    ax2.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
-               bbox_to_anchor=(-0.02, -0.31), ncol=2, fontsize=4.9, columnspacing=0.8,
-               labelspacing=0.35, handlelength=1.6)
-    fig.subplots_adjust(left=0.09, right=0.99, top=0.93, bottom=0.39, wspace=0.27)
+    fig.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
+               bbox_to_anchor=(0.0, y0), ncol=2, fontsize=6.0, handlelength=2.4,
+               handletextpad=0.5, columnspacing=1.0, labelspacing=0.3, borderaxespad=0.2)
+    handles = [
+        (Patch(color="#777777"), "0.1 (B0 − V)"),
+        (Patch(color="#777777", alpha=shade[1], lw=0), "0.2 (B1 + B3 + B7 + B15 − 4V)"),
+        (Patch(color="#111111"), "0.1 (B31 − V)"),
+    ]
+    fig.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper right",
+               bbox_to_anchor=(1.0, y0), ncol=1, fontsize=6.0, handlelength=1.6,
+               handletextpad=0.5, labelspacing=0.3, borderaxespad=0.2)
     return fig
 
 
@@ -1545,9 +1619,12 @@ def regime_check_data(inp):
 def fig_regime_check(inp):
     d = regime_check_data(inp)
     fig = plt.figure(figsize=(WIDTH, 2.85))
-    ax = fig.add_axes([0.09, 0.36, 0.36, 0.55])
-    pax = fig.add_axes([0.46, 0.36, 0.125, 0.55], sharey=ax)
-    zx = fig.add_axes([0.675, 0.36, 0.315, 0.55])
+    # panel (a) is wide enough for the regimes' names above it at 6 pt; the public axis for
+    # its two-line tick labels; both legends sit below the panels
+    bottom, height = 0.33, 0.575
+    ax = fig.add_axes([0.083, bottom, 0.42, height])
+    pax = fig.add_axes([0.513, bottom, 0.15, height], sharey=ax)
+    zx = fig.add_axes([0.745, bottom, 0.245, height])
     z95 = 1.96
     hid = d["hidden"]
     for a in (ax, pax):  # the hidden level is not identified: a band across both axes
@@ -1572,41 +1649,34 @@ def fig_regime_check(inp):
     ax.errorbar(ho["level"], ho["D"], yerr=z95 * ho["se"], marker="D", ms=4.2, mfc="white",
                 mec="k", mew=0.8, color="k", elinewidth=0.8, capsize=0, ls="", zorder=5)
     ax.annotate(f"held-out TL runs {ho['runs']}", (ho["level"], ho["D"] + z95 * ho["se"]),
-                xytext=(-2, 6), textcoords="offset points", fontsize=4.9, ha="left")
+                xytext=(-2, 5), textcoords="offset points", fontsize=6.0, ha="left")
     ax.text(-0.17, hid["D"] + z95 * hid["se"] - 0.0015,
             f"hidden runs, adjusted for V:\n{hid['D']:+.4f} ± 1.96 × {hid['se']:.4f}",
-            fontsize=4.9, ha="right", va="top", color="#333333")
+            fontsize=6.0, ha="right", va="top", color="#333333")
     groups = {}
     for r in tl:
         groups.setdefault(round(d["level"][r], 1), []).append(r)
     for _, rs_ in groups.items():
         xm = float(np.mean([d["level"][r] for r in rs_]))
-        ax.text(xm, 1.01, ", ".join(RS_LABEL[r] for r in rs_), transform=ax.get_xaxis_transform(),
-                fontsize=5.0, ha="center", va="bottom", rotation=0)
+        ax.text(xm, 1.008, ", ".join(RS_LABEL[r] for r in rs_), transform=ax.get_xaxis_transform(),
+                fontsize=6.0, ha="center", va="bottom", rotation=0)
     ax.set_xlim(-1.4, -0.15)
     ax.set_ylim(-0.0065, 0.083)
     milli(ax)
-    ax.set_xlabel("realised level of the test-like regime (mean pair logit)")
-    ax.set_ylabel("ALC: comparator − shipped hier (10$^{-3}$)")
-    ax.text(-0.2, 1.09, "$\\bf{a}$  comparators against the regimes' level, ±1.96 cluster SE",
+    ax.set_xlabel("realised level of the regime (mean pair logit)", labelpad=2)
+    # the unit on the line, not as 10$^{-3}$, whose superscript would be under MIN_FONT_PT;
+    # centred a little low, so that its top clears panel (a)'s title
+    ax.set_ylabel("ALC: comparator − shipped hier (in 0.001)", fontsize=6.4, y=0.46)
+    ax.text(-0.16, 1.1, "$\\bf{a}$  comparators against the regimes' level, ±1.96 cluster SE",
             transform=ax.transAxes, fontsize=6.2)
-    pax.set_xlim(-0.65, 1.65)
+    pax.set_xlim(-0.55, 1.55)
     pax.set_xticks([0, 1])
     pax.set_xticklabels([f"{RS_LABEL[r]}\n" + f"({d['level'][r]:+.2f})".replace("-", "−")
-                         for r in PUBLIC], fontsize=5.0)
+                         for r in PUBLIC], fontsize=6.0)
     pax.tick_params(axis="y", labelleft=False)
     pax.grid(axis="x", visible=False)
-    pax.text(0.5, 1.01, "public", transform=pax.transAxes, fontsize=5.0, ha="center",
+    pax.text(0.5, 1.008, "public", transform=pax.transAxes, fontsize=6.0, ha="center",
              va="bottom")
-    handles = [(Line2D([], [], color=STYLE[c][0], marker=STYLE[c][1], ms=3.0, lw=0.8),
-                RC_NAMES.get(c, NAMES[c])) for c in RC_CONFIGS]
-    handles += [(Line2D([], [], ls="", marker="D", ms=4.2, mfc="white", mec="k", mew=0.8),
-                 f"legacy Predictor, held-out TL runs {ho['runs']}"),
-                (Patch(color="#ececec", lw=0), "hidden runs: run 1 − runs 2 and 3,\n"
-                 "adjusted for V, ±1.96 pair SE")]
-    ax.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
-              bbox_to_anchor=(-0.2, -0.21), ncol=2, fontsize=4.9, columnspacing=0.8,
-              labelspacing=0.35)
 
     # (b) placement z of the hidden runs, raw ALC beside ALC - v
     order = d["order"]
@@ -1623,23 +1693,35 @@ def fig_regime_check(inp):
         zx.plot(xs + dx, raw, ls="", marker=mk, ms=3.4, mfc="white", mec="k", mew=0.7, zorder=3)
         zx.plot(xs + dx, adj, ls="", marker=mk, ms=3.4, color="k", zorder=4)
     zx.set_xticks(xs)
-    zx.set_xticklabels([RS_LABEL[r] for r in order], fontsize=5.3, rotation=90)
+    zx.set_xticklabels([RS_LABEL[r] for r in order], fontsize=6.0, rotation=90)
     zx.tick_params(axis="x", length=0, pad=1.5)
     zx.grid(axis="x", visible=False)
     zx.set_xlim(-0.6, xs[-1] + 0.6)
     zx.set_ylim(-2.6, 4.3)
-    zx.set_ylabel("placement z (single-run sd)")
-    zx.text(-0.2, 1.09, "$\\bf{b}$  hidden runs placed in each regime", transform=zx.transAxes,
+    zx.set_ylabel("placement z (single-run sd)", labelpad=1)
+    zx.text(-0.3, 1.1, "$\\bf{b}$  hidden runs placed in each regime", transform=zx.transAxes,
             fontsize=6.2)
+
+    # legends: panel (a)'s on the left, two columns; panel (b)'s on the right
+    y0 = 0.2
+    handles = [(Line2D([], [], color=STYLE[c][0], marker=STYLE[c][1], ms=3.0, lw=0.8),
+                RC_NAMES.get(c, NAMES[c])) for c in RC_CONFIGS]
+    handles += [(Line2D([], [], ls="", marker="D", ms=4.2, mfc="white", mec="k", mew=0.8),
+                 f"legacy Predictor, held-out TL runs {ho['runs']}"),
+                (Patch(color="#ececec", lw=0), "hidden runs: run 1 − runs 2 and 3,\n"
+                 "adjusted for V, ±1.96 pair SE")]
+    fig.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
+               bbox_to_anchor=(0.0, y0), ncol=2, fontsize=6.0, handlelength=2.0,
+               handletextpad=0.5, columnspacing=1.0, labelspacing=0.3, borderaxespad=0.2)
     handles = [(Line2D([], [], ls="", marker="^", ms=3.4, color="k"), "run 1, legacy Predictor"),
                (Line2D([], [], ls="", marker="o", ms=3.4, color="k"),
                 "runs 2 and 3 pooled, shipped hier"),
                (Line2D([], [], ls="", marker="s", ms=3.4, mfc="white", mec="k", mew=0.7),
                 "hollow: raw ALC"),
                (Line2D([], [], ls="", marker="s", ms=3.4, color="k"), "filled: ALC − V")]
-    zx.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper left",
-              bbox_to_anchor=(-0.2, -0.27), ncol=1, fontsize=4.9, labelspacing=0.3,
-              handletextpad=0.2)
+    fig.legend([h_ for h_, _ in handles], [lab for _, lab in handles], loc="upper right",
+               bbox_to_anchor=(1.0, y0), ncol=1, fontsize=6.0, labelspacing=0.3,
+               handletextpad=0.3, borderaxespad=0.2)
     return fig
 
 
@@ -1666,12 +1748,16 @@ FIGURES = [
 ]
 
 
-def save(fig, out: Path, name: str) -> dict[str, str]:
+def save(fig, out: Path, name: str) -> tuple[dict[str, str], dict, list[float]]:
+    """Write the figure's SVG and PNG; return their sha256, its type sizes (measured after
+    both files are written, so measuring cannot change them) and its size in inches."""
     svg, png = out / f"{name}.svg", out / f"{name}.png"
     fig.savefig(svg, format="svg", metadata={"Date": None, "Creator": None})
     fig.savefig(png, format="png", dpi=DPI, metadata={"Software": None})
+    sizes = text_sizes(fig)
+    inches = [round(float(v), 3) for v in fig.get_size_inches()]
     plt.close(fig)
-    return {p.name: sha256_file(p) for p in (svg, png)}
+    return {p.name: sha256_file(p) for p in (svg, png)}, sizes, inches
 
 
 def build(out: Path = OUT, only=None, root: Path = ROOT) -> dict:
@@ -1687,8 +1773,9 @@ def build(out: Path = OUT, only=None, root: Path = ROOT) -> dict:
                     figs[name] = old[name]
                 continue
             inp.begin()
-            files = save(fn(inp), out, name)
-            figs[name] = {"function": fn.__name__, "inputs": inp.record(), "outputs": files}
+            files, sizes, inches = save(fn(inp), out, name)
+            figs[name] = {"function": fn.__name__, "inputs": inp.record(), "outputs": files,
+                          "size_in": inches, "text_pt": sizes}
     manifest = {
         "script": SCRIPT,
         "script_sha256": sha256_file(root / SCRIPT),
@@ -1697,7 +1784,8 @@ def build(out: Path = OUT, only=None, root: Path = ROOT) -> dict:
                      "numpy": np.__version__},
         "settings": {"backend": "Agg", "png_dpi": DPI, "svg_fonttype": RC["svg.fonttype"],
                      "svg_hashsalt": RC["svg.hashsalt"], "font": RC["font.family"],
-                     "width_in": WIDTH},
+                     "width_in": WIDTH, "main_text_min_font_pt": MIN_FONT_PT,
+                     "main_text_max_height_in": MAIN_TEXT},
         "figures": figs,
     }
     mp.write_text(json.dumps(manifest, indent=1) + "\n")
@@ -1707,7 +1795,9 @@ def build(out: Path = OUT, only=None, root: Path = ROOT) -> dict:
 def check(out: Path = OUT, root: Path = ROOT, rebuild: bool = True) -> list[str]:
     """What is wrong with the drawn figures: a missing manifest or file, an
     input or the script changed since drawing, an input outside results/, a
-    figure that no longer builds or reads other files, or (same matplotlib) a
+    figure that no longer builds or reads other files, a main-text figure with
+    type (sub- and superscripts included) under MIN_FONT_PT or taller than its
+    limit, or (same matplotlib) a
     fresh build that differs from the committed bytes."""
     mp = out / "manifest.json"
     if not mp.exists():
@@ -1721,6 +1811,13 @@ def check(out: Path = OUT, root: Path = ROOT, rebuild: bool = True) -> list[str]
         if m is None:
             problems.append(f"{name}: not in the manifest")
             continue
+        if name in MAIN_TEXT:
+            # the smallest glyph too, so a mathtext sub- or superscript counts
+            tp = m.get("text_pt", {})
+            if min(tp.get("min_pt", 0), tp.get("min_glyph_pt", 0)) < MIN_FONT_PT:
+                problems.append(f"{name}: type under {MIN_FONT_PT:g} pt in a main-text figure")
+            if m.get("size_in", [0, 1e9])[1] > MAIN_TEXT[name]:
+                problems.append(f"{name}: taller than {MAIN_TEXT[name]:g} in")
         for rel, sha in m["inputs"].items():
             if not Inputs.allowed(rel):
                 problems.append(f"{name}: input {rel} is not results/*.json")
@@ -1745,6 +1842,8 @@ def check(out: Path = OUT, root: Path = ROOT, rebuild: bool = True) -> list[str]
                                 f"{sorted(m['inputs'])}")
             if same and f["outputs"] != m["outputs"]:
                 problems.append(f"{name}: a fresh build differs from the committed files")
+            if same and (f["text_pt"], f["size_in"]) != (m.get("text_pt"), m.get("size_in")):
+                problems.append(f"{name}: a fresh build's type or size differs from the manifest")
     return problems
 
 

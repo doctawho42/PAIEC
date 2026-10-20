@@ -23,3 +23,26 @@ Plan P2 (`docs/plans/p2_final_plan.md`), written and committed in `6a629cb` on 2
 Report v2 restructures the text. The main text is cut to at most 9,000 words (plan P2 §1, decision 3) and leads with the root-free reading of the formative tables (§3, §6.1, §6.2), with the submitted predictor in §5 and the pool evaluation in §7. Report v1's main-text detail moved to the appendices, and the new appendices B.7, B.8, C.5, C.6 and D.5 to D.10 hold the P2 checks, the level choice, the pool evaluation and the hidden-run analysis in full. App H.4, this history, and App I.2, the review map (`docs/report/review_map.md`), left the PDF and stay in the repository, and the main text's results keys moved to `docs/report/sources_main.md`.
 
 We committed report v2's text in `2af8fcd` on 2026-10-14. Plan P2 §7 scheduled its release commit, tagged `v1.1.0`, for 2026-10-26 to 2026-10-27; on 2026-10-19 the author asked to release report v2 without waiting for those dates. The release commit, the commit after `2af8fcd`, is tagged `v1.1.0` (`docs/release.md`, section 10). It changes text only: CITATION.cff (report v2's title, version 1.1.0 and the abstract), README.md (the report's title, the list of what is here, the headline results from report v2's main text, the repository map, the data revision, the archive statement, the disclosures and the section references), `docs/release.md` (the header, a row or a note in each of sections 2 to 6, and section 10), this file, and the draft, which gains the v1.1.0 test counts (App A.4, App G.2) and states what changed in the build script since archive-3 (App C.6, App G.3). It changes no code, test or results file, and no reported result. Archive-3 stays the final submission: its members other than `prior.json` are unchanged since `4d2cc4f`, `tools/build_submission.py` has changed only by the lines that `831ef7d` added for its `--pool` path, and on 2026-10-19 the script's default path rebuilt archive-3 byte for byte.
+
+## Report v2 in the NeurIPS 2026 template (v1.2.0, 2026-10-20)
+
+On 2026-10-20 we read the competition page again. It asks for the NeurIPS template and about 4 to 8 pages of main text, references and appendices excluded (`docs/report/report_requirements.md`). Report v2 keeps its title, its results and its appendices' content, and is now set in that template. The commit `e29853f` (2026-10-20) did most of the work:
+
+- **The build.** `tools/build_report_pdf.py` loads the official style file `neurips_2026.sty` (revision 2026-01-29) with the options `sglblindworkshop` and `final`. The style carries no license, so it is kept out of git and checked by its sha256. `--strict` holds the main text to 8 pages.
+- **The cut.** The main text went from 15 template pages to 8.00, under the author's decisions of that day, and nothing it dropped was lost:
+  - §1 and §2 lost their subsection headings, and §8 became "Limitations".
+  - Tables 2 and 3 became one table, Table 2.
+  - §6.4's Table 4 became Table F.1a (App F.1), and §4.3's gate figure, Figure 1, became Figure C1 (App C.4).
+  - §7's selection table, Table 5, became Table C.6a. App C.6 discloses the move, which departs from the pool design's plan of one paragraph and one table in the main text.
+  - The two author-confirmed C1m sentences of design section 11 moved from §5.3 to App G.6, which quotes them word for word but for their pointer to that appendix, cut and marked [...].
+  - Each block that left the main text took its source keys with it (`docs/report/sources_main.md`).
+- **The rules.** `docs/report/style_guide.md` replaced the 9,000-word rule of plan P2 §1, decision 3, with the page rule.
+
+The release commit, after `e29853f`, is tagged `v1.2.0` (`docs/release.md`, section 11), under the author's decisions of 2026-10-20:
+
+- **(a) Acknowledgments.** It adds the unnumbered section "Acknowledgments and Disclosure of Funding" before the References: "This work received no specific funding. The author declares no competing interests." As the NeurIPS instructions do not count acknowledgments as content pages, the build ends the main text at that heading.
+- **(b) Approval.** The author approved the move of the C1m sentences to App G.6 and the layout of §1 and §2 (no subsection headings, Table 1 moved).
+- **(c) Figure type.** Figures 1 and 2 have no type under 6 pt at print size, sub- and superscripts included, with the same data and size. Their labels write B0, Bk, B31 and log2(1+B) on the line, and Figure 2's unit as "in 0.001", because matplotlib sets a sub- or superscript at 0.7 of its label's size (`docs/report/figures.md`, "Type size").
+- **(d) The release.** It adds the v1.2.0 test counts to App A.4 and App G.2 (809 test functions over 35 files, 1,113 collected tests) and the style file to App G.4's row for the PDF, ends the main text at the acknowledgments heading in `docs/report/style_guide.md` (item 10) and `docs/report/sources_main.md`, and updates CITATION.cff (version 1.2.0), README.md and `docs/release.md`.
+
+It changes no file under `paiec/`, `submission/`, `experiments/` or `results/`, and no reported result. Archive-3 stays the final submission. Its archive code is unchanged since `v1.1.0`, and its members other than `prior.json` since `4d2cc4f`.

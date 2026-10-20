@@ -1,6 +1,6 @@
 {
  "script": "tools/report_figures.py",
- "script_sha256": "280c90de592c1ac2f29ea26281d3aac1938b4e03d8af97e84226e3b8e3711394",
+ "script_sha256": "71c3e8d336779040406e04ae1e0f0658cebc91350722d2f60ad145a958dec1b6",
  "command": "python tools/report_figures.py",
  "versions": {
   "python": "3.10.8",
@@ -13,7 +13,12 @@
   "svg_fonttype": "path",
   "svg_hashsalt": "paiec-report-figures",
   "font": "DejaVu Sans",
-  "width_in": 5.5
+  "width_in": 5.5,
+  "main_text_min_font_pt": 6.0,
+  "main_text_max_height_in": {
+   "hidden_decomposition": 2.85,
+   "regime_check": 2.85
+  }
  },
  "figures": {
   "learning_curves": {
@@ -26,6 +31,15 @@
    "outputs": {
     "learning_curves.svg": "2499aa6957878bdb3905c7387452a725422d1fd6b3e6e0447c4dff8fe7797f67",
     "learning_curves.png": "4e6a542f914b6e8055efc45db08114ab1da0b317ffb41c68217d0d2192346421"
+   },
+   "size_in": [
+    5.5,
+    3.85
+   ],
+   "text_pt": {
+    "min_pt": 5.4,
+    "min_glyph_pt": 4.76,
+    "lines_under_min": 18
    }
   },
   "level_surface": {
@@ -37,6 +51,15 @@
    "outputs": {
     "level_surface.svg": "bb22f1b89b21dd6ce15d6d21b03de468489b3cf9d1ff65759e10c14971fdd59c",
     "level_surface.png": "5c038bcf0aa671dd7d7377b3735056b4f5eeb746438b22c6ae8ef15c1f54c137"
+   },
+   "size_in": [
+    5.5,
+    2.85
+   ],
+   "text_pt": {
+    "min_pt": 4.3,
+    "min_glyph_pt": 4.06,
+    "lines_under_min": 91
    }
   },
   "gate_curve": {
@@ -52,6 +75,15 @@
    "outputs": {
     "gate_curve.svg": "fd3066d9fe4fae0b851817e43e7460bfb74d79a2b928445362300f9d9cb9eae8",
     "gate_curve.png": "d1be8a0c21aaf8abd6a0d140bba9085040056bf4c42ffdd7225a7e83aaf9cd81"
+   },
+   "size_in": [
+    5.5,
+    2.8
+   ],
+   "text_pt": {
+    "min_pt": 4.9,
+    "min_glyph_pt": 4.76,
+    "lines_under_min": 25
    }
   },
   "regime_sensitivity": {
@@ -62,6 +94,15 @@
    "outputs": {
     "regime_sensitivity.svg": "80d88654f2826f13ea1ba254020a45b635f671fb2ff7a72fa403dd99ba38867d",
     "regime_sensitivity.png": "9c0f52545c91c78b6709aa489bd922266132d13767162eb816873d49be4f0efb"
+   },
+   "size_in": [
+    5.5,
+    4.5
+   ],
+   "text_pt": {
+    "min_pt": 4.9,
+    "min_glyph_pt": 3.85,
+    "lines_under_min": 75
    }
   },
   "formative_runs": {
@@ -72,8 +113,17 @@
     "results/ship_confirm.json": "72f2f64aa44e42d3d3e3484c2345c83ef2ac83ff8f9ff8550cbea9ee2725c8cd"
    },
    "outputs": {
-    "formative_runs.svg": "225352e4979004256acfdc8f854fc225df03ba366153e279d450f2d31fa0a361",
-    "formative_runs.png": "98268e41a28554bf45895027ba8697c4c8cf58eeb813a3f3045b240d8fb98728"
+    "formative_runs.svg": "8c9af12f10823c412f72621880cfc1b6202f9fb8574726f9964ac3556cbb620d",
+    "formative_runs.png": "202e2e93f864837c9acce59c554a47847a46914cb02eeac44be41ef8ddbd62eb"
+   },
+   "size_in": [
+    5.5,
+    2.45
+   ],
+   "text_pt": {
+    "min_pt": 6.0,
+    "min_glyph_pt": 4.62,
+    "lines_under_min": 0
    }
   },
   "level_fix_budgets": {
@@ -85,6 +135,15 @@
    "outputs": {
     "level_fix_budgets.svg": "e60910ddc9b0879f19617ee15cabce341d200146f927a0658fccd524812bf7c9",
     "level_fix_budgets.png": "40577c7ce46a7e39371467af9348ab2652799ee2795a28f7c8920e854346567e"
+   },
+   "size_in": [
+    5.5,
+    2.45
+   ],
+   "text_pt": {
+    "min_pt": 5.3,
+    "min_glyph_pt": 4.76,
+    "lines_under_min": 10
    }
   },
   "eb_adaptation": {
@@ -96,6 +155,15 @@
    "outputs": {
     "eb_adaptation.svg": "93dca931148a95c6fd32f932b834b447ea6fe12fd4267f4a89696120df74c732",
     "eb_adaptation.png": "2e7f552e040679ee3358dd20394d88817bc08c312dbf101883a4c3be478924ce"
+   },
+   "size_in": [
+    5.5,
+    3.0
+   ],
+   "text_pt": {
+    "min_pt": 5.0,
+    "min_glyph_pt": 4.48,
+    "lines_under_min": 15
    }
   },
   "item_gap": {
@@ -106,6 +174,15 @@
    "outputs": {
     "item_gap.svg": "4dfc4dfdda201d174dae1331d41799e3f75979e5f09c8942ce740ce84d79b8dc",
     "item_gap.png": "98c1962266db9cea442477f239d0d55919fb6e45d0d55be0995a060a6f7ac238"
+   },
+   "size_in": [
+    3.41,
+    2.45
+   ],
+   "text_pt": {
+    "min_pt": 4.9,
+    "min_glyph_pt": 4.9,
+    "lines_under_min": 17
    }
   },
   "transfer": {
@@ -117,6 +194,15 @@
    "outputs": {
     "transfer.svg": "5472a2164a9ae27b7cc9d61b06331eb3f3af60c51f7760f3ad99af828c8752e4",
     "transfer.png": "2e1fd8933a0c2519cec653580a1bc8a9422792a631bd75f952068f3a2daa91c1"
+   },
+   "size_in": [
+    5.5,
+    2.5
+   ],
+   "text_pt": {
+    "min_pt": 5.2,
+    "min_glyph_pt": 5.2,
+    "lines_under_min": 7
    }
   },
   "empirical_mean": {
@@ -127,6 +213,15 @@
    "outputs": {
     "empirical_mean.svg": "95e0783ce6c2aa42cb734f176696723fb0ed97425121506f2d65982b6abfb682",
     "empirical_mean.png": "d8af4ca7d8f789471d6a0f37458fa92e46005d7c44100d5450d19f51604416b4"
+   },
+   "size_in": [
+    5.5,
+    2.45
+   ],
+   "text_pt": {
+    "min_pt": 5.4,
+    "min_glyph_pt": 5.4,
+    "lines_under_min": 6
    }
   },
   "hier_ablations": {
@@ -137,6 +232,15 @@
    "outputs": {
     "hier_ablations.svg": "bec552fc39f75bdfd4838e2d80539a2d25093ed79b110425ba5399ce791c0d18",
     "hier_ablations.png": "945c53ffc8db480c5e223d6895160bef259819377528a913918e12fed4f9454b"
+   },
+   "size_in": [
+    4.125,
+    3.2
+   ],
+   "text_pt": {
+    "min_pt": 5.3,
+    "min_glyph_pt": 4.76,
+    "lines_under_min": 19
    }
   },
   "ideas_forest": {
@@ -156,6 +260,15 @@
    "outputs": {
     "ideas_forest.svg": "6160b503e5e0a55670f2b2ad380202de2da52aea4f34aed3bacb71f1608d8848",
     "ideas_forest.png": "6a7963ec1779b0f9e70d109bb59fc9e11cc807084df0948f36f35a3b84e5fb3c"
+   },
+   "size_in": [
+    5.5,
+    6.8
+   ],
+   "text_pt": {
+    "min_pt": 4.6,
+    "min_glyph_pt": 4.6,
+    "lines_under_min": 51
    }
   },
   "hidden_decomposition": {
@@ -164,8 +277,17 @@
     "results/hidden_runs.json": "442f2bd1e980c368b216c7906c99eed749d23fdc82aec31855bee640df827b6e"
    },
    "outputs": {
-    "hidden_decomposition.svg": "cc58b4edc7305a6e041a52045a7f660ce81d5e5666e8155a7e55ddba31776f9b",
-    "hidden_decomposition.png": "343983aad9b63b3701d517bb33f5e5d085812a3435c32bc751702cb66da48180"
+    "hidden_decomposition.svg": "d7fd4512f5590e84b7578f496392a12df0fe7dcc26aac8459193599bb9b229e0",
+    "hidden_decomposition.png": "e9af7c2a1674761e0eb95b58300d015de50087ca486abb6a57ea8d452e70e616"
+   },
+   "size_in": [
+    5.5,
+    2.85
+   ],
+   "text_pt": {
+    "min_pt": 6.0,
+    "min_glyph_pt": 6.0,
+    "lines_under_min": 0
    }
   },
   "regime_check": {
@@ -177,8 +299,17 @@
     "results/testlike_check.json": "26dfdc2296cd0038dcfb0013057feead5628c4cd63fb2b150ce5be2caa753849"
    },
    "outputs": {
-    "regime_check.svg": "5a730b500103de8e4996131aecc46c1952e81b9b359f17da54d5732cf0c5d013",
-    "regime_check.png": "5f4a2250558de9127cb0d5f61bfae5555d3435a32c66782b01572104b9c5120b"
+    "regime_check.svg": "3920ce5f39bb367c8488ad57285a7f9df5e9e394abf9db748ca1205084cfc682",
+    "regime_check.png": "7be5664ea9536f7ab1f8e43761863ad117c122ce0ce0359bc8ea019849b45eac"
+   },
+   "size_in": [
+    5.5,
+    2.85
+   ],
+   "text_pt": {
+    "min_pt": 6.0,
+    "min_glyph_pt": 6.0,
+    "lines_under_min": 0
    }
   },
   "text_signals": {
@@ -192,6 +323,15 @@
    "outputs": {
     "text_signals.svg": "428950d7665ccf68c3da1beef14e7b39822145bb02aa4f15828987b1ec825243",
     "text_signals.png": "d5e74f05cb6ccb282da07f16e8e6252b526710c5175a7a37898e201ee606fdb1"
+   },
+   "size_in": [
+    5.5,
+    2.55
+   ],
+   "text_pt": {
+    "min_pt": 4.6,
+    "min_glyph_pt": 4.6,
+    "lines_under_min": 13
    }
   }
  }

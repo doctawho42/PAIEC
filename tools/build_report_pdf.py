@@ -5,7 +5,8 @@
     python tools/build_report_pdf.py --check-deterministic
     python tools/build_report_pdf.py --strict         # fail on overfull boxes, missing
                                                       # glyphs, broken links, placeholders,
-                                                      # a main text over 8 pages
+                                                      # a main text over 8 pages (to the
+                                                      # acknowledgments, else References)
 
 The PDF uses the NeurIPS 2026 template, as the competition asks ("approximately 4-8
 pages of main text, excluding references and appendices"): the official style file
@@ -29,11 +30,16 @@ and build.json (inputs with sha256, tool versions, page counts, warnings, every
 overfull box, a check that every number and word of the draft is in the PDF's text,
 and that the text has no semicolon turned into U+037E).
 
-Pages: the main text runs from the title to the end of the last section before
-"References" (or before the first appendix), or to the page of its last figure if one
-floats further; references and appendices do not count. build.json gives its pages
+Pages: the main text runs from the title to the end of the last section before the
+"Acknowledgments and Disclosure of Funding" heading (else before "References", else
+before the first appendix), or to the page of its last figure if one floats further;
+the acknowledgments, the references and the appendices do not count (the NeurIPS
+instructions, neurips_2026.tex: pages of acknowledgments, references and appendices "do
+not count as content pages"). report.lua sets that section in the style's ack
+environment. build.json gives the main text's pages
 (pages.main_text_pages, which --strict holds to MAX_MAIN_PAGES), its length measured to
-its last line (pages.main_text_measured: 14.41 is 41 percent down page 15), and each
+its last line (pages.main_text_measured: 14.41 is 41 percent down page 15), the heading
+it ends before (pages.main_text_ends_before), the acknowledgments' page, and each
 heading's start, share of the pages and words ("sections"), from the page marks
 report.lua sets before every heading; the log prints the main text's sections.
 
@@ -89,6 +95,11 @@ MAX_LATEX_RUNS = 5
 # The competition's limit: "approximately 4-8 pages of main text, excluding references and
 # appendices" in the NeurIPS template (--strict fails above it).
 MAX_MAIN_PAGES = 8
+# The NeurIPS acknowledgments section (neurips_2026.sty's \acksection prints this heading):
+# report.lua sets it in the style's ack environment with this label, and the main text ends
+# before it, since the NeurIPS instructions do not count it as content pages.
+ACK_TITLE = "Acknowledgments and Disclosure of Funding"
+ACK_LABEL = "report:ack"
 # The NeurIPS 2026 style file. It carries no license, so it is not committed (.gitignore):
 # the build checks the copy in tools/report_pdf/ against the official one, from this zip.
 STYLE_NAME = "neurips_2026.sty"
@@ -484,17 +495,19 @@ def page_coordinate(page: int, y_pt: float, geometry: tuple[float, float] | None
 
 def page_summary(labels: dict, pages: int | None, positions: dict | None = None,
                  geometry: tuple[float, float] | None = None,
-                 main_figures: list[str] | tuple = ()) -> dict:
-    """Pages of the main text, the references and the appendices.
+                 main_figures: list[str] | tuple = (), main_end: str | None = None) -> dict:
+    """Pages of the main text, the acknowledgments, the references and the appendices.
 
     The main text runs from page 1 to its end mark (report:main-end, before the
-    "References" heading, else before the first appendix), or to the page of the last
-    of its figures (main_figures: their labels), which float and may land later.
-    main_text_measured is its length in pages to the end mark."""
+    "Acknowledgments and Disclosure of Funding" heading, else before "References", else
+    before the first appendix; main_end, from report.lua, names the heading), or to the
+    page of the last of its figures (main_figures: their labels), which float and may
+    land later. main_text_measured is its length in pages to the end mark."""
     positions = positions or {}
     total = pages or labels.get("report:end")
     app = labels.get("report:appendix-start")
     refs = labels.get("references")
+    ack = labels.get(ACK_LABEL)
     out = {"total": total}
     end = positions.get("report:main-end")
     if end:
@@ -506,13 +519,17 @@ def page_summary(labels: dict, pages: int | None, positions: dict | None = None,
                                   else "end mark")
         if geometry:
             out["main_text_measured"] = round(page_coordinate(*end, geometry), 2)
-    elif refs or app:
+        out["main_text_ends_before"] = main_end or "the end of the document"
+    elif ack or refs or app:
         # no end mark (a .tex from before report.lua set one): up to the page before
-        n = (refs or app) - 1
+        n = (ack or refs or app) - 1
         out["main_text"] = [1, n]
         out["main_text_pages"] = n
-        out["main_text_basis"] = "page before " + ("References" if refs else "the appendices")
+        out["main_text_basis"] = "page before " + ("the acknowledgments" if ack else
+                                                   "References" if refs else "the appendices")
     out["main_text_limit"] = MAX_MAIN_PAGES
+    if ack:
+        out["acknowledgments"] = ack
     if refs:
         out["references"] = [refs, (app - 1) if app else total]
     if app and total:
@@ -835,7 +852,7 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
         # pandoc's JSON writes an empty Lua list as {}
         "filter": {k: (flt.get(k) or ({} if k == "links" else [])) for k in
                    ("links", "unresolved", "warnings", "tables", "figures", "references",
-                    "headings")},
+                    "headings")} | {"main_end": flt.get("main_end")},
         "pandoc_stderr": [ln for ln in pandoc_stderr.splitlines() if ln.strip()],
     }
     if tex_only:
@@ -848,7 +865,8 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
     labels = aux_pages(aux)
     positions, geometry = aux_positions(aux)
     main_figures = [f["label"] for f in flt.get("figures") or [] if f.get("main")]
-    pages = page_summary(labels, parsed["pages"], positions, geometry, main_figures)
+    pages = page_summary(labels, parsed["pages"], positions, geometry, main_figures,
+                         flt.get("main_end"))
     pdf_built = tex.with_suffix(".pdf")
     pdf = out_dir / PDF_NAME
     shutil.copyfile(pdf_built, pdf)
@@ -891,7 +909,24 @@ def problems(report: dict, overfull_limit: float = OVERFULL_LIMIT_PT,
     if pg.get("main_text_pages") and pg["main_text_pages"] > max_main_pages:
         out.append(f"main text is {pg['main_text_pages']} pages (to its last line "
                    f"{pg.get('main_text_measured', '?')}), over the {max_main_pages} the "
-                   "competition allows, references and appendices excluded")
+                   "competition allows, acknowledgments, references and appendices excluded")
+    flt = report.get("filter") or {}
+    heads2 = [h for h in flt.get("headings") or [] if h.get("level") == 2]
+    ack = next((k for k, h in enumerate(heads2) if h.get("text") == ACK_TITLE), None)
+    if ack is not None:
+        # the page measure ends the main text at this heading, so it is right only where
+        # the section follows the main text, as the NeurIPS template places it: the main
+        # text ends there, and the next "##" heading is References or an appendix
+        after = heads2[ack + 1] if ack + 1 < len(heads2) else None
+        if flt.get("main_end") != ACK_TITLE:
+            out.append(f'the "{ACK_TITLE}" section is not right after the main text (which '
+                       f'ends before {flt.get("main_end") or "the end of the document"}); it '
+                       "goes between the main text and References")
+        elif after and not (after.get("text") == "References"
+                            or str(after.get("id", "")).startswith("app-")):
+            out.append(f'the "{ACK_TITLE}" section is followed by "{after.get("text")}", which '
+                       "the page measure would leave out of the main text; it goes between "
+                       "the main text and References")
     log = report.get("log", {})
     big = [o for o in log.get("overfull", []) if o["pt"] > overfull_limit]
     if big:
@@ -935,9 +970,13 @@ def summary(report: dict) -> str:
             refs, app = pg.get("references"), pg.get("appendices")
             n, limit = pg["main_text_pages"], pg.get("main_text_limit", MAX_MAIN_PAGES)
             measured = pg.get("main_text_measured")
+            ack = pg.get("acknowledgments")
             lines.append(f"  main text: {n} pages (pages {pg['main_text'][0]}-{pg['main_text'][1]}"
                          + (f", {measured:.2f} to its last line" if measured is not None else "")
+                         + (f", ends before {pg['main_text_ends_before']}"
+                            if pg.get("main_text_ends_before") else "")
                          + f"; limit {limit}" + (", OVER" if n > limit else "") + ")"
+                         + (f"; acknowledgments: page {ack}" if ack else "")
                          + (f"; references: pages {refs[0]}-{refs[1]}" if refs else "")
                          + (f"; appendices: pages {app[0]}-{app[1]}" if app else ""))
             for sec in report.get("sections") or []:
@@ -1054,8 +1093,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--check-deterministic", action="store_true",
                     help="build twice in temporary directories and compare the PDFs")
     ap.add_argument("--strict", action="store_true",
-                    help=f"exit 2 on a main text over {MAX_MAIN_PAGES} pages (references and "
-                         f"appendices excluded), overfull boxes above {OVERFULL_LIMIT_PT}pt, "
+                    help=f"exit 2 on a main text over {MAX_MAIN_PAGES} pages (it ends at the "
+                         f"'{ACK_TITLE}' heading, else at References; the acknowledgments, "
+                         "references and appendices are excluded), an acknowledgments section "
+                         "anywhere but right after the main text, overfull boxes above "
+                         f"{OVERFULL_LIMIT_PT}pt, "
                          "missing glyphs, undefined or unresolved references, title-block "
                          "placeholders, "
                          "TODO(...) markers in the draft's body, "

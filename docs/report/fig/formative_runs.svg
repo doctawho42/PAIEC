@@ -2456,14 +2456,14 @@ z
   </g>
   <g id="legend_1">
    <g id="line2d_114">
-    <path d="M 64.758633 160.308203 
-L 70.258633 160.308203 
-L 75.758633 160.308203 
+    <path d="M 52.645781 158.845313 
+L 58.645781 158.845313 
+L 64.645781 158.845313 
 " style="fill: none; stroke: #808080; stroke-width: 0.5; stroke-linecap: square"/>
    </g>
    <g id="text_31">
     <!-- one pair -->
-    <g transform="translate(80.158633 162.233203) scale(0.055 -0.055)">
+    <g transform="translate(69.445781 160.945312) scale(0.06 -0.06)">
      <use xlink:href="#DejaVuSans-6f"/>
      <use xlink:href="#DejaVuSans-6e" x="61.181641"/>
      <use xlink:href="#DejaVuSans-65" x="124.560547"/>
@@ -2475,14 +2475,14 @@ L 75.758633 160.308203
     </g>
    </g>
    <g id="line2d_115">
-    <path d="M 64.758633 168.381172 
-L 70.258633 168.381172 
-L 75.758633 168.381172 
+    <path d="M 52.645781 167.652187 
+L 58.645781 167.652187 
+L 64.645781 167.652187 
 " style="fill: none; stroke: #000000; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="text_32">
     <!-- the run's mean -->
-    <g transform="translate(80.158633 170.306172) scale(0.055 -0.055)">
+    <g transform="translate(69.445781 169.752187) scale(0.06 -0.06)">
      <defs>
       <path id="DejaVuSans-27" d="M 1147 4666 
 L 1147 2931 
@@ -2509,14 +2509,14 @@ z
     </g>
    </g>
    <g id="line2d_116">
-    <path d="M 128.487305 160.308203 
-L 133.987305 160.308203 
-L 139.487305 160.308203 
+    <path d="M 122.167969 158.845313 
+L 128.167969 158.845313 
+L 134.167969 158.845313 
 " style="fill: none; stroke: #d55e00; stroke-width: 0.9; stroke-linecap: square"/>
    </g>
    <g id="text_33">
     <!-- legacy Predictor: tuned test-like (solid), public R1 (dashed) -->
-    <g transform="translate(143.887305 162.233203) scale(0.055 -0.055)">
+    <g transform="translate(138.967969 160.945312) scale(0.06 -0.06)">
      <defs>
       <path id="DejaVuSans-2d" d="M 313 2009 
 L 1997 2009 
@@ -2618,14 +2618,14 @@ z
     </g>
    </g>
    <g id="line2d_117">
-    <path d="M 128.487305 168.381172 
-L 133.987305 168.381172 
-L 139.487305 168.381172 
+    <path d="M 122.167969 167.652187 
+L 128.167969 167.652187 
+L 134.167969 167.652187 
 " style="fill: none; stroke: #0072b2; stroke-width: 0.9; stroke-linecap: square"/>
    </g>
    <g id="text_34">
     <!-- shipped hier: tuned test-like ±1 sd (solid), public R1 ±1 sd (dashed) -->
-    <g transform="translate(143.887305 170.306172) scale(0.055 -0.055)">
+    <g transform="translate(138.967969 169.752187) scale(0.06 -0.06)">
      <defs>
       <path id="DejaVuSans-b1" d="M 2944 4013 
 L 2944 2803 

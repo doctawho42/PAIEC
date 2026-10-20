@@ -14,12 +14,18 @@ tools/report_pdf/template.tex. It changes layout only, never a word or a number:
 * Headings keep the draft's own numbers ("5.4", "Appendix D", "D.1"), which the text
   cites as "§5.4" and "App D.1", and get stable ids: sec-5, sec-5.4, app-D, app-D.1.
   The appendices start on a new page with a short list of them.
+* Acknowledgments. A "##" heading of exactly "Acknowledgments and Disclosure of
+  Funding" (the NeurIPS heading, which the style's \acksection prints) and its blocks,
+  up to the next "##" heading, are set in neurips_2026.sty's ack environment, with a
+  bookmark like the other headings' and the label report:ack. The NeurIPS instructions
+  do not count it as content pages, so it is not main text.
 * Page measure. Before every heading, and where the main text ends (before the
-  "References" heading, else before the first appendix), a \reportpos mark records
-  its page and height in the .aux file; the build turns them into each section's
-  pages and the main text's length (with the pages of the main text's figures, which
-  float). The filter's report gives each heading's words (its own blocks, up to the
-  next heading) and marks the figures of the main text.
+  acknowledgments heading, else before "References", else before the first appendix),
+  a \reportpos mark records its page and height in the .aux file; the build turns
+  them into each section's pages and the main text's length (with the pages of the
+  main text's figures, which float). The filter's report gives each heading's words
+  (its own blocks, up to the next heading), the heading the main text ends before
+  ("main_end"), and marks the figures of the main text.
 * Links. "§5.4", "App D.1" (and "D.4" in "App C.1, D.4"), "Appendix D", "Figure 3",
   "Table 1", an appendix table's "Table C.6a" and author-year citations such as
   "[Brier 1950]" link to their targets;
@@ -395,10 +401,13 @@ local function link_pass(ils)
             end
           end
         elseif word and nxt and (word == 'Figure' or word == 'Figures' or word == 'Table') then
-          local lab, rest = nxt:match('^(%u?%d+)(.*)$')
+          -- ASCII classes, not %u, %d and %l: under a UTF-8 locale Lua's %l takes the
+          -- first byte (0xE2) of the "’" in "Table C.6’s" for a lowercase letter, so the
+          -- label became "C.6\xE2" and the possessive did not link
+          local lab, rest = nxt:match('^([A-Z]?[0-9]+)(.*)$')
           if word == 'Table' then
             -- an appendix table, "Table C.6a" (its caption "*Table C.6a: ...*")
-            local alab, arest = nxt:match('^(%u%.%d+%l?)(.*)$')
+            local alab, arest = nxt:match('^([A-Z]%.[0-9]+[a-z]?)(.*)$')
             if alab then lab, rest = alab, arest end
           end
           if lab and not rest:match('^[A-Za-z0-9]') then
@@ -846,6 +855,12 @@ end
 -- The page mark before a heading or at the end of the main text (template.tex).
 local function pos_mark(id) return '\\reportpos{' .. id .. '}' end
 
+-- The NeurIPS acknowledgments heading, as neurips_2026.sty's \acksection prints it
+-- (\section*{Acknowledgments and Disclosure of Funding}, which its ack environment
+-- opens with). The draft's "##" heading of this text, and what follows it up to the
+-- next "##" heading, is set in that environment and ends the main text.
+local ACK_TITLE = 'Acknowledgments and Disclosure of Funding'
+
 local function keep_with_table(out, kept_lines)
   local need = kept_lines and (kept_lines + 2) or 6
   local pos = #out + 1
@@ -915,7 +930,7 @@ end
 local function figure_label(b)
   -- "*Figure 1.* ..." -> "1", the inlines after the label
   if not (b and b.t == 'Para' and b.content[1] and b.content[1].t == 'Emph') then return nil end
-  local lab = stringify(b.content[1]):match('^Figure%s+(%u?%d+)%.$')
+  local lab = stringify(b.content[1]):match('^Figure%s+([A-Z]?[0-9]+)%.$')
   if not lab then return nil end
   local rest = List()
   for k = 2, #b.content do
@@ -936,7 +951,8 @@ local function app_table_caption_label(b)
   if not (b and b.t == 'Para' and b.content[1] and b.content[1].t == 'Emph' and #b.content == 1) then
     return nil
   end
-  return stringify(b.content[1]):match('^Table%s+(%u%.%d+%l?):')
+  -- the same ASCII classes as the link pass, so a caption and its links agree
+  return stringify(b.content[1]):match('^Table%s+([A-Z]%.[0-9]+[a-z]?):')
 end
 
 local function image_name(b)
@@ -1059,12 +1075,22 @@ function Pandoc(doc)
   local k = 1
   local prev_table = false
   in_refs = false
-  -- the main text runs to the "References" heading, else to the first appendix
+  -- the main text runs to the acknowledgments heading, else to the "References"
+  -- heading, else to the first appendix; main_end names the heading (none: the end)
   local in_main = true
-  local function end_main()
+  local function end_main(before)
     if in_main then
       in_main = false
+      LOG.main_end = before
       out:insert(rawblock(pos_mark('report:main-end')))
+    end
+  end
+  -- inside the style's ack environment, closed before the next "##" heading
+  local in_ack = false
+  local function end_ack()
+    if in_ack then
+      in_ack = false
+      out:insert(rawblock('\\end{ack}'))
     end
   end
   local heading = nil   -- the LOG.headings entry whose words are being counted
@@ -1085,7 +1111,10 @@ function Pandoc(doc)
       local id, num, kind = heading_info(b)
       b.identifier = id
       local text = stringify(b.content)
-      if b.level == 2 and (text == 'References' or kind == 'appendix') then end_main() end
+      if b.level <= 2 then end_ack() end
+      if b.level == 2 and (text == ACK_TITLE or text == 'References' or kind == 'appendix') then
+        end_main(text)
+      end
       heading = {id = id, level = b.level, text = text, words = 0, main = in_main}
       table.insert(LOG.headings, heading)
       if has_math(b.content) then
@@ -1128,7 +1157,14 @@ function Pandoc(doc)
       end
       -- the draft's "##" is a LaTeX \section, "###" a \subsection (its "#" is the title)
       b.level = math.max(1, b.level - 1)
-      if num then
+      if b.level == 1 and text == ACK_TITLE then
+        -- the style's ack environment, which prints the heading itself (\acksection, a
+        -- \section*): a bookmark as the other headings get, the label report:ack for
+        -- its page, and \nobreak, as after the other headings' labels
+        out:insert(rawblock(pos_mark(id) .. '\\begin{ack}\\phantomsection\\pdfbookmark[1]{' ..
+          ACK_TITLE .. '}{' .. id .. '}\\label{report:ack}\\nobreak'))
+        in_ack = true
+      elseif num then
         -- "5.4 Title": the number set apart, as the draft writes it. Written as LaTeX
         -- because pandoc's own \texorpdfstring would drop the number from the bookmark.
         local rest = List()
@@ -1227,6 +1263,7 @@ function Pandoc(doc)
     end
     k = k + 1
   end
+  end_ack()
   end_main()
   if not appendix_started then warn('no "## Appendix A: ..." heading: no appendix page break') end
 
