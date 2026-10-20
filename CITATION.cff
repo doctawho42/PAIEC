@@ -2,26 +2,32 @@
 # license: MIT covers this repository's own code and docs only; README.md, "License
 # and third-party material", lists what it does not cover (measurement-db, the
 # organisers' code, formative tables and inventory rows).
-# version: the release tag (docs/release.md, section 6), not the Python package's
-# version in pyproject.toml.
+# version: the release tag (docs/release.md, sections 6 and 10), not the Python
+# package's version in pyproject.toml.
 # keywords: the same list as the "Keywords:" line of docs/report/draft.md, which fills
 # the PDF's metadata (tests/test_build_report_pdf.py checks they agree).
 cff-version: 1.2.0
 message: "If you use this code or its results, please cite the technical report below."
 type: software
-title: "Calibrating a hierarchical response model for a benchmark-level cold start"
+title: "Reading hidden runs at a benchmark-level cold start: a pair-rate oracle, test-like regimes and a calibrated hierarchical predictor"
 abstract: >-
-  Code, results and report source for an entry to the Predictive AI Evaluation
-  Competition (PAIEC) at NeurIPS 2026: a replica of the organisers' streaming
-  evaluator, a hierarchical item-response predictor fitted from the revealed
-  labels alone, the calibration of its prior on a new benchmark's level on
-  test-like runs built from public data, and one script per reported number.
+  Code, results and report source (report v2) for an entry to the Predictive AI
+  Evaluation Competition (PAIEC) at NeurIPS 2026: a replica of the organisers'
+  streaming evaluator; a reading of the hidden formative runs through a
+  pair-rate oracle, whose score follows from the organisers' per-pair Brier and
+  calibration tables; test-like regimes built from public data and checked
+  against those runs; the submitted predictor, a hierarchical item-response
+  model refitted from the revealed labels at every checkpoint, with a prior on
+  a new benchmark's level calibrated on test-like runs tuned to the first
+  formative run; a refit of its priors on the expanded public pool, which was
+  not carried, under a rule committed and pushed before any scoring; and one
+  script per reported number.
 authors:
   - family-names: Polomoshnov
     given-names: Nikita L.
     affiliation: Moscow State University
     email: nikitapol@fbb.msu.ru
-version: "1.0.0"
+version: "1.1.0"
 license: MIT
 repository-code: "https://github.com/doctawho42/PAIEC"
 keywords:
@@ -33,7 +39,7 @@ keywords:
   - PAIEC
 preferred-citation:
   type: report
-  title: "Calibrating a hierarchical response model for a benchmark-level cold start"
+  title: "Reading hidden runs at a benchmark-level cold start: a pair-rate oracle, test-like regimes and a calibrated hierarchical predictor"
   authors:
     - family-names: Polomoshnov
       given-names: Nikita L.

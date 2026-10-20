@@ -3,14 +3,16 @@
 For the person publishing this repository. Written 2026-10-02 against `3e6b770`
 (branch `official-protocol`), before the release files were committed; revised
 2026-10-03 after the release review, again on 2026-10-03 after the history
-rewrite, and on 2026-10-04 after publication. It is the record of what was
-decided and done, and the procedure for what is left. The history rewrite is
-done (section 9). On 2026-10-03 the release commit was tagged `v1.0.0` and
-pushed to https://github.com/doctawho42/PAIEC, with the branches `main` and
+rewrite, on 2026-10-04 after publication, and on 2026-10-19 and 2026-10-20
+for report v2 (section 10). It is the record of what was decided and done,
+and the procedure for what is left. The history rewrite is done (section 9).
+On 2026-10-03 the release commit was tagged `v1.0.0` and pushed to
+https://github.com/doctawho42/PAIEC, with the branches `main` and
 `official-protocol` and the 21 lightweight tags named by the old commit ids
-(section 7). The commit after it resolves the report's open markers (section
-7, step 0); it is to be tagged `v1.0.1` when it is pushed (section 6). Every
-command of section 7 is for you to run. Seven-character commit ids
+(section 7). The commit after it, which resolves the report's open markers
+(section 7, step 0), was tagged `v1.0.1` (`d64ff8b`, 2026-10-04) and pushed.
+The release commit of report v2 is tagged `v1.1.0` (section 10). Every
+command of sections 7 and 10 is for you to run. Seven-character commit ids
 written before the rewrite, in this file and elsewhere, are kept as they were
 and resolve through those tags; full old ids are mapped in
 `docs/commit-map.txt` (section 9.3).
@@ -75,6 +77,7 @@ Excluded, by `.gitignore`:
 | Kaggle outputs | the kit's Output is downloaded to `./kaggle_out/` (now ignored) and copied under `data/features/` (ignored with `data/`). The kit asks for the notebook and its Output to stay private (`kaggle/strong_probe/README.md`). The committed notebook has no outputs (checked: none of its 9 cells has outputs or an execution count), and `kernel-metadata.json` holds the placeholder id `KAGGLE_USERNAME/...` with `is_private: true`. |
 | credentials | `.env`, `.env.*`, and now `kaggle.json`. The Kaggle kit reads the Hugging Face token from a Kaggle Secret, never from a file. |
 | local tool state | `.DS_Store`, `.ruff_cache/`, `.remember/` and `.claude/settings.local.json` (added now; on the development machine some were ignored before only by a global ignore file). |
+| `results/*.lock` | empty sidecar files on which a results writer takes a file lock while parallel shards update one results file (such as `results/pool_eval.json.lock`); local state only. The rule was added in `a5ef016`, after `v1.0.1` (section 10). |
 
 Not part of this release, and said so in the report (App G.4, App I.1): the
 per-row archives of `tools/export_rows.py` are not hosted (decided by the author
@@ -186,7 +189,8 @@ on 2026-10-04.
    author confirmed it on 2026-10-04. That line is the one source: the PDF
    build writes it into the PDF's metadata (it is not printed), and
    `tests/test_build_report_pdf.py` checks that CITATION.cff's `keywords`
-   repeat it. A change goes there and into CITATION.cff.
+   repeat it. A change goes there and into CITATION.cff. Report v2 changed
+   both in `2af8fcd` (section 10.4); the list above is report v1's.
 
 ## 4 History check
 
@@ -222,8 +226,9 @@ Re-run it on the final commit, just before pushing (prints paths or counts only)
     # key-shaped strings anywhere in history: a count, never the match (expect 0;
     # "github[_]pat_" is written so that this file does not match itself)
     git log --all -p | grep -c -E 'hf_[A-Za-z0-9]{30,}|gh[pousr]_[A-Za-z0-9]{30,}|github[_]pat_|sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-|AIza[0-9A-Za-z_-]{35}|BEGIN [A-Z ]*PRIVATE KEY'
-    # generic assignments (expect 0; 1 before the rewrite of section 9, the
-    # Dataverse link of section 3.4)
+    # generic assignments (1 before the rewrite of section 9, the Dataverse
+    # link of section 3.4; 0 after it, up to v1.0.1; 1 since 9f73fd6, the
+    # fake token of section 10.3)
     git log --all -p | grep -c -i -E '(token|password|passwd|api_?key|secret)[[:space:]]*[=:][[:space:]]*["'\'']?[A-Za-z0-9_-]{16,}'
     # blobs over 10 MB (expect the two results files above)
     git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectsize) %(rest)' \
@@ -300,6 +305,9 @@ local user name and the scratch layout. The docs and the test are records of
 how the work was done and are left as they are too. (The home-directory paths
 inside the quoted item text went with it, section 3.1.)
 
+Section 10.3 lists five more files with such paths, committed after `v1.0.1`;
+they are left as they are too.
+
 ## 6 The tag
 
 - **Name:** `v1.0.0` (CITATION.cff's `version` is `1.0.0`). Annotated: it
@@ -343,7 +351,8 @@ inside the quoted item text went with it, section 3.1.)
   release commit is tagged `v1.0.0`, and App H.4 that the archive code is that
   of `4d2cc4f`. The 21 lightweight tags of section 9 only name old commit ids.
 - **Check before tagging** (prints the line only if nothing changed; `4d2cc4f`
-  resolves through its tag):
+  resolves through its tag; since `831ef7d` added the `--pool` path to
+  `tools/build_submission.py` it prints nothing, and section 10.2 refines it):
 
       git diff --quiet 4d2cc4f HEAD -- paiec/__init__.py paiec/hier.py paiec/prior.py \
         paiec/predict.py paiec/fitting.py paiec/irt.py paiec/subjects.py paiec/mcq.py \
@@ -351,7 +360,8 @@ inside the quoted item text went with it, section 3.1.)
         && echo "archive code unchanged since 4d2cc4f"
 
 - The test counts quoted in report App A.4 and App G.2 are those of section 4:
-  528 test functions over 24 test files, 729 collected tests. The release
+  528 test functions over 24 test files, 729 collected tests (at `v1.0.0` and
+  `v1.0.1`; since `v1.1.0` they also quote those of section 10.3). The release
   commit changes no test file.
 - If the report or results change after the tag is pushed, tag the new commit
   `v1.0.1` rather than moving `v1.0.0`. The report changed after the push: the
@@ -679,3 +689,259 @@ bundle and a copy of `.git`, outside the repository. It holds the old address,
 the item text and the token, so it is never pushed or published. The working
 repository was then switched to the rewritten history, and its objects from
 before the rewrite were pruned.
+
+## 10 Release v1.1.0: report v2
+
+Written on 2026-10-19 and 2026-10-20, before the release commit of report
+v2, against `2af8fcd` (branch `official-protocol`, equal to `origin/main` and
+`origin/official-protocol`).
+
+### 10.1 The tag
+
+- **Name:** `v1.1.0` (CITATION.cff's `version` is `1.1.0`). Annotated, like
+  `v1.0.0` and `v1.0.1`, so it records the tagger's address from the local
+  `user.email`, nikitapol@fbb.msu.ru (section 1). A minor version rather than
+  a patch: report v2 is a new report under a new title, and the repository
+  gained the code of plan P2 (the hidden-runs analysis, the P2 checks and the
+  pool evaluation), while the submission stays archive-3.
+- **Commit:** the release commit of report v2, the commit after `2af8fcd`. It
+  changes the text of five files: CITATION.cff (report v2's title, version
+  1.1.0 and an abstract in report v2's framing; the keywords stay the draft's),
+  README.md (the report's title, the list of what is here, the headline
+  results from report v2's main text, the repository map, the data revision,
+  the archive statement of 10.2, the disclosures and the section numbers),
+  this file (the header, a row in section 2, notes in sections 3.5, 4, 5 and
+  6, and this section),
+  `docs/report/revision_history.md` (the v1.1.0 entry) and
+  `docs/report/draft.md` (the v1.1.0 test counts in App A.4 and App G.2, and
+  what changed in the build script in App C.6 and App G.3). It changes no
+  code, test, results file or reported number, and the main text stays within
+  the outline's word rule (8,994 words, at most 9,000; whitespace tokens from
+  the line after `## Abstract` to the line before `## References`).
+- **Why there, and not at `2af8fcd`:** `2af8fcd` committed report v2's text,
+  but there CITATION.cff, README.md and the draft's test counts still
+  described report v1, and this file had no record of the release. The
+  release commit is the first at which the report, its citation, the README
+  and this record agree. Plan P2 §7 scheduled it for 2026-10-26 to 2026-10-27;
+  the author asked for the release on 2026-10-19.
+- If the report or results change after `v1.1.0` is pushed, tag the new
+  commit `v1.1.1` rather than moving `v1.1.0`, as section 6 did for `v1.0.1`.
+
+### 10.2 The archive check, refined
+
+Section 6's check names `tools/build_submission.py` beside the archive's
+sources, so since `831ef7d` it prints nothing: that commit added the `--pool`
+path to the script. The archive is unaffected. Archive-3 (sha256
+`4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090`, formative
+run 3, the final submission) has 11 members: `model.py` (from
+`submission/model.py`), `requirements.txt`, the eight shipped modules under
+`paiec_rt/` (from `paiec/`) and `prior.json`, which the build fits from the
+data. The refined check keeps the ten members that come from tracked files
+apart from the build script:
+
+    # the archive's tracked members, and submission/labeling.py (prints the line)
+    git diff --quiet 4d2cc4f HEAD -- paiec/__init__.py paiec/hier.py paiec/prior.py \
+      paiec/predict.py paiec/fitting.py paiec/irt.py paiec/subjects.py paiec/mcq.py \
+      submission requirements.txt \
+      && echo "archive members unchanged since 4d2cc4f"
+    # the build script: 619 insertions, no deletion, from 831ef7d alone
+    git diff --stat 4d2cc4f HEAD -- tools/build_submission.py
+    git log --oneline 4d2cc4f..HEAD -- tools/build_submission.py
+
+and, with archive-3 in `dist/` (`dist/archive-3.zip` is the copy the pool
+evaluation's lock pins), member by member against the tree:
+
+    python - <<'EOF'
+    import subprocess, zipfile
+    src = {"model.py": "submission/model.py", "requirements.txt": "requirements.txt"}
+    src.update({f"paiec_rt/{m}.py": f"paiec/{m}.py" for m in
+                ("__init__", "fitting", "hier", "irt", "mcq", "predict", "prior", "subjects")})
+    with zipfile.ZipFile("dist/archive-3.zip") as z:
+        bad = [m for m, p in src.items()
+               if z.read(m) != subprocess.run(["git", "show", f"HEAD:{p}"], capture_output=True).stdout]
+    print("every tracked member equals HEAD's file" if not bad else f"differ: {bad}")
+    EOF
+
+`831ef7d` added lines to the script and changed or removed none: lines of the
+module docstring, four standard-library imports, the `--pool` code, and in
+`main()` the `--pool` and `--candidate` arguments with two branches that only
+those flags reach. Without them, `main()` runs the code it ran at `4d2cc4f`.
+`tests/test_build_pool.py::test_the_default_path_still_zips_archive_3` checks
+that the default path's member list and zip writer give archive-3's bytes
+from the current sources and archive-3's `prior.json`, and
+`test_the_command_line` that `--candidate` needs `--pool`. The build check
+itself, from the data, on the development machine (report App G.3):
+
+    python tools/build_submission.py      # the default path, default BLAS threading
+    shasum -a 256 dist/paiec.zip          # 4a882cc7d410e6a9085e4b1044b3e45aa50c370b74901bb55fa30cb1054a5090
+
+Checked on 2026-10-19 at `2af8fcd`, whose code and tests the release commit
+keeps. The three git commands gave the line, 619 insertions and no deletion,
+and `831ef7d` alone, and every tracked member of `dist/archive-3.zip` equals
+its file at `2af8fcd`. The build, with `data/` and the baseline repository
+present, default BLAS threading and `PYTHONHASHSEED` unset, exited 0 in 48.0 s
+with a peak resident memory of 0.98 GB; the validator printed OK, and the
+archive had sha256 `4a882cc7…5090`, archive-3 byte for byte (all 11 members
+equal in bytes and zip metadata).
+
+### 10.3 Tests and history checks
+
+At `2af8fcd`, whose test files the release commit keeps: 790 test functions
+over 35 test files and 1,090 collected tests (`python -m pytest --collect-only
+-q` lists 1,090 tests of 790 distinct functions in 35 files). At `v1.0.0` and
+`v1.0.1` the counts were 528, 24 and 729 (section 4). A count of every
+function whose name starts with "test" gives 791, because it also counts
+`tests_that_mutate`, a helper nested inside a test of
+`tests/test_pool_eval.py`, which pytest does not collect. Report App A.4 and
+App G.2 quote 790, 35 and 1,090.
+
+The suite at `2af8fcd`, on 2026-10-19 and 2026-10-20, with the data and the
+baseline repository present (`PYTHONHASHSEED=0 OPENBLAS_NUM_THREADS=1 python
+-m pytest -q -p no:cacheprovider -rs`, three tests deselected): 1,085 passed,
+2 skipped, 3 deselected, 1 warning, in 885 s of test time, exit 0. The run was
+held to two Python processes at a time, and each deselected test needs more:
+`tests/test_submission.py::test_cold_workers_side_by_side_fit_on_one_thread_and_agree_bit_for_bit`
+starts four worker interpreters (it was deselected in the runs recorded for
+the pool evaluation's lock too: `831ef7d` reports 1,082 passed, 2 skipped, 1
+deselected), and the two cases of
+`tests/test_kaggle_probe.py::test_sp_kills_what_a_run_leaves_behind` hold
+three interpreters at once. Neither test file nor `kaggle/` has changed since
+`v1.0.1`. The two skips: `tests/test_build_pool.py`'s pool-bundle test
+(`submission/prior.json` is archive-3's, not a pool bundle) and
+`tests/test_pool.py::test_rp4_archive_3s_prior_json_byte_for_byte`, which
+skips under one BLAS thread because that setting does not reproduce
+archive-3's bytes; run alone with the default BLAS threading, it passed in
+52 s. The three deselected tests were then run together on 2026-10-20, with the
+release edits in the tree (`PYTHONHASHSEED=0 OPENBLAS_NUM_THREADS=1 python -m
+pytest -q -p no:cacheprovider` on their three node ids): 3 passed in 9.9 s. So
+every collected test has passed at `2af8fcd` with the release edits, the RP4
+byte test under the default BLAS threading and the pool-bundle test excepted,
+which skips by design because `submission/prior.json` is archive-3's bundle.
+
+Section 4's history checks, at `2af8fcd` over every ref (2026-10-19 and
+2026-10-20): 41 commits, 18 of them since `v1.0.1`, no merge commit and no
+stash, 366 paths ever tracked and 502 distinct blobs. They gave no forbidden
+path; 0 key-shaped strings, and 0 JWT-shaped strings or bearer headers; 1
+generic assignment, `SECRET` in `tests/test_check_pins.py` (added in
+`9f73fd6`), a fake Hugging Face token whose text says it is not real, which
+the test passes only to faked endpoints; the same two blobs over 10 MB; 0
+author or committer addresses other than nikitapol@fbb.msu.ru, which is also
+the tagger's address of `v1.0.0` and `v1.0.1`; and 0 strings of item text in
+the rating files, over all 41 commits. The only other addresses anywhere in
+the history are the two already recorded: Anthropic's no-reply address in the
+`Co-Authored-By` trailers (section 3.2) and the organisers' public contact in
+`docs/report/report_requirements.md` (section 4). The 48-character window
+scan of section 4, over the content and grading criterion of all 7.42 million
+items in `data/` (the five benchmarks, mmdocrag and the expanded pool), found
+no item content: it matched only generic strings (integer sequences, rule
+lines, common code lines, the MIT license's text, a git error message and
+synthetic test strings) and the matharena instruction lines that section 4
+records, and nothing in the commit or tag messages.
+
+Five files committed after `v1.0.1`, all under `docs/plans/pool_design/` and
+already on `origin/main`, name paths under the development machine's home
+directory, 18 lines in all. They are left as they are, like the files of
+section 5: `a4final/mcq_run1.txt` (1 line), `code/code_levels_run.txt` (10)
+and `code/code_variants_run.txt` (5), captured warnings that name the
+interpreter's packages or a script in the checkout; `code/code_archive.json`
+(1), a validator message that names an archive's path in the checkout; and
+`eval_describe/describe_pool.py` (1), the pool's data directory.
+`experiments/e1_baselines_rs.py` and `results/e1_baselines_rs.json` mention
+`/private/tmp` without a user or session name. The release commit adds no
+local path.
+
+### 10.4 What changed since v1.0.1
+
+Eighteen commits lie between `v1.0.1` (`d64ff8b`, 2026-10-04) and `2af8fcd`,
+all of plan P2 (`docs/plans/p2_final_plan.md`, committed in `6a629cb` on
+2026-10-06 before any of its checks ran). The P2 checks: S1 closed, S3 found
+no failure, the code was frozen on archive-3 and the hidden-runs analysis was
+ported to `experiments/hidden_runs.py` (`6915f98`, amendment 1), and S4, the
+ablations at LEVEL, found no candidate (`aec3b2a`). The report's new data: E1
+declared before it ran (`a5ef016`, amendment 2), the id-use wording of the
+run-3 statement (`31007b4`, amendment 3), the P2 data scripts (`9f73fd6`), the
+R5 results as scored on 2026-10-06 (`d6df0bb`) and the P2 results re-run from
+the committed scripts (`022ae32`). The pool evaluation: `tools/fetch_pool.py`
+(`a725df9`, `2bfcd17`), amendment 4 with 4a to 4c (`3d38232`, `d48f66b`,
+`fe2a7f4`, `72cc96b`), the lock with `paiec/pool.py`, `experiments/pool_eval.py`
+and the `--pool` path of `tools/build_submission.py` (`831ef7d`, committed and
+pushed before any predictor was scored on the pool), and the selection, which
+carried no candidate (`365664c`). `e9b1010` added the P2 sections and
+amendment 4's negative result to `docs/findings.md`. `2af8fcd` rebuilt
+`docs/report/draft.md` as report v2 under its new title, moved the revision
+history to `docs/report/revision_history.md` and the main text's source keys
+to `docs/report/sources_main.md`, drew two new figures (Figures 2 and 3) and
+moved a panel of Figure 1 into a figure of its own (App F.1), and changed the
+draft's Keywords line and CITATION.cff's keywords with it.
+No shipped module, file of `submission/` or `requirements.txt` changed, and
+archive-3 stays the final submission. `docs/report/revision_history.md` lists
+the same commits with their dates.
+
+### 10.5 Publish
+
+As in section 7, from this repository only. The local `main` is behind
+`origin/main` (`72cc96b` against `2af8fcd`), so push the branch to `main`
+directly or fast-forward the local `main` first.
+
+    # on the release commit, with nothing but ignored files in git status
+    git config --local user.email            # must print nikitapol@fbb.msu.ru
+    # the whole suite
+    python -m pytest -q
+    # or, at least, only the three tests that 10.3 deselected
+    python -m pytest -q \
+      tests/test_submission.py::test_cold_workers_side_by_side_fit_on_one_thread_and_agree_bit_for_bit \
+      tests/test_kaggle_probe.py::test_sp_kills_what_a_run_leaves_behind
+    # the PDF for OpenReview needs exit 0; built here, from the release
+    # commit, dist/report/build.json records that commit and a clean tree
+    python tools/build_report_pdf.py --strict
+    # section 4's history checks, on the release commit; the generic-assignment
+    # count is now 1: SECRET in tests/test_check_pins.py (added in 9f73fd6), a
+    # fake Hugging Face token whose text says it is not real (10.3)
+    git tag -a v1.1.0 -m "PAIEC 2026 report v2: hidden runs read through a pair-rate oracle; pool refit not carried; final submission archive-3 (members unchanged since 4d2cc4f)" official-protocol
+    git push origin official-protocol
+    git push origin official-protocol:main   # a fast-forward of origin/main
+    git push origin v1.1.0
+
+Optionally, a GitHub release from the tag (`gh release create v1.1.0
+--verify-tag --title "v1.1.0" --notes-file NOTES.md`, or on github.com), with
+these notes:
+
+> Code, results and report source for *Reading hidden runs at a
+> benchmark-level cold start: a pair-rate oracle, test-like regimes and a
+> calibrated hierarchical predictor* (Nikita L. Polomoshnov), report v2 of an
+> entry to the Predictive AI Evaluation Competition (PAIEC), NeurIPS 2026.
+> Report v2 reads the hidden formative runs through a pair-rate oracle
+> (`experiments/hidden_runs.py`), checks the test-like regimes against them,
+> and reports the pool evaluation: hier's priors refitted on the expanded
+> public pool and scored under a rule committed and pushed before any
+> scoring, with no candidate carried. The final submission is still archive-3
+> (sha256 4a882cc7…, formative run 3). Its members other than `prior.json`
+> are unchanged since commit 4d2cc4f. `tools/build_submission.py` gained a
+> `--pool` path in 831ef7d (lines added only), and its default path,
+> `python tools/build_submission.py`, rebuilds archive-3 (on the development
+> machine, report App G.3). The code and docs are MIT-licensed.
+> measurement-db is not included: it is gated, so accept its terms and run
+> `python -m paiec.fetch` (revision bc8204d8…); the pool evaluation used
+> revision 54074453, which `tools/fetch_pool.py` fetches. measurement-db's
+> curation is CC BY-SA 4.0, and the benchmarks' content keeps its upstream
+> licences. No item text from it is included, apart from a 40-character
+> example in one code comment. Seven-character commit ids written before the
+> history rewrite of 2026-10-03, such as 4d2cc4f, resolve through tags of the
+> same name, and `docs/commit-map.txt` maps every old full id to its new one.
+> The organisers' baseline repository has no license and is not included;
+> clone it at commit 82d330dd. `docs/report/revision_history.md` and
+> `docs/release.md` (section 10) list what changed since v1.0.1.
+
+Do not attach the submission archive or the data to the release; the report
+PDF may be attached once it is final. After pushing, check on GitHub that
+`main` and `official-protocol` point at the release commit, that the tags are
+`v1.0.0`, `v1.0.1`, `v1.1.0` and the 21 old-id tags, and that "Cite this
+repository" shows report v2's title and version 1.1.0.
+
+The draft's "Code:" line names the repository's root,
+https://github.com/doctawho42/PAIEC, as it did at `v1.0.0` and `v1.0.1`;
+section 8's option of a tag link was not taken. The root shows `main`, which
+points at the release commit once it is pushed. A link to `tree/v1.1.0` would
+have to go into the release commit itself, before the tag; changed after the
+tag, it needs `v1.1.1` (10.1). The OpenReview form's code link may name the
+root or the tag.
