@@ -5,15 +5,24 @@ It turns docs/report/draft.md, read as GitHub Markdown, into the body and metada
 tools/report_pdf/template.tex. It changes layout only, never a word or a number:
 
 * Title block. The level-1 heading is the title. Before "## Abstract", a paragraph
-  starting "Author:", "Affiliation:" or "Code:" fills that field, and one starting
-  "Keywords:" fills the PDF's keywords metadata only (it is not printed); the first
-  other paragraph is the subtitle and any later ones are a note under the author block.
+  starting "Author:", "Affiliation:", "Email:" or "Code:" fills that field, and one
+  starting "Keywords:" fills the PDF's keywords metadata only (it is not printed); the
+  first other paragraph is the subtitle and any later ones are a note. The template
+  sets the subtitle and the code line as a footnote to the title, the author,
+  affiliation and e-mail as the NeurIPS author block, and the note after the abstract.
   "## Abstract" and its paragraphs become the abstract. Horizontal rules are dropped.
 * Headings keep the draft's own numbers ("5.4", "Appendix D", "D.1"), which the text
   cites as "§5.4" and "App D.1", and get stable ids: sec-5, sec-5.4, app-D, app-D.1.
   The appendices start on a new page with a short list of them.
+* Page measure. Before every heading, and where the main text ends (before the
+  "References" heading, else before the first appendix), a \reportpos mark records
+  its page and height in the .aux file; the build turns them into each section's
+  pages and the main text's length (with the pages of the main text's figures, which
+  float). The filter's report gives each heading's words (its own blocks, up to the
+  next heading) and marks the figures of the main text.
 * Links. "§5.4", "App D.1" (and "D.4" in "App C.1, D.4"), "Appendix D", "Figure 3",
-  "Table 1" and author-year citations such as "[Brier 1950]" link to their targets;
+  "Table 1", an appendix table's "Table C.6a" and author-year citations such as
+  "[Brier 1950]" link to their targets;
   "doi:" and "arXiv:" identifiers link to doi.org and arxiv.org. A reference whose
   target does not exist stays plain text and is reported.
 * Figures. A paragraph holding only fig/<name>.png, followed by a paragraph that
@@ -329,7 +338,9 @@ local function parse_app_label(t)
   local id = 'app-' .. L
   local label = L
   if num then id = id .. '.' .. num; label = L .. '.' .. num; rest = rest2 end
-  if rest:match('^[%w]') then return nil end
+  -- ASCII, not %w: under a UTF-8 locale Lua's %w takes the first byte of the "’" in
+  -- "App E.2’s" for a letter, so whether a possessive linked depended on the locale
+  if rest:match('^[A-Za-z0-9]') then return nil end
   return id, label, rest
 end
 
@@ -385,7 +396,12 @@ local function link_pass(ils)
           end
         elseif word and nxt and (word == 'Figure' or word == 'Figures' or word == 'Table') then
           local lab, rest = nxt:match('^(%u?%d+)(.*)$')
-          if lab and not rest:match('^[%w]') then
+          if word == 'Table' then
+            -- an appendix table, "Table C.6a" (its caption "*Table C.6a: ...*")
+            local alab, arest = nxt:match('^(%u%.%d+%l?)(.*)$')
+            if alab then lab, rest = alab, arest end
+          end
+          if lab and not rest:match('^[A-Za-z0-9]') then
             local id = (word == 'Table' and 'tab-' or 'fig-') .. lab
             if IDS[id] then
               if lead ~= '' then out:insert(pandoc.Str(lead)) end
@@ -517,7 +533,7 @@ end
 -- Tables
 ------------------------------------------------------------------------------
 
-local TEXTWIDTH_PT = 469.75   -- 6.5in, the template's text width
+local TEXTWIDTH_PT = 397.48   -- 5.5in, the NeurIPS style's text width
 local TABCOLSEP_PT = 4
 local CODE_EM = 0.50          -- advance of a code character (Menlo scaled to the text's x-height)
 local BOLD = 1.06             -- bold against regular
@@ -526,10 +542,12 @@ local KEEP_LINES = 14         -- a table of at most this many lines is not split
                               -- a longer one may break between rows (header repeated), so a
                               -- table that misses the page by a few rows does not leave a
                               -- third of it blank
+-- the NeurIPS style's sizes under its 10pt text: \small 9pt, \footnotesize 8pt (its
+-- last definition) and \scriptsize 7pt
 local SIZES = {
-  {name = 'small', pt = 10},
-  {name = 'footnotesize', pt = 9},
-  {name = 'scriptsize', pt = 8},
+  {name = 'small', pt = 9},
+  {name = 'footnotesize', pt = 8},
+  {name = 'scriptsize', pt = 7},
 }
 
 -- Rough advances of a Times-like face, in em: enough to share a line between columns.
@@ -760,6 +778,22 @@ local function para_text(b)
   return nil
 end
 
+-- A block's words, as a word processor counts them: each word of the text (pandoc's
+-- Str), each whitespace-separated piece of code, and each piece of TeX math as one
+-- word. Image alt text is not printed and not counted.
+local function block_words(b)
+  local n = 0
+  pandoc.Blocks({b}):walk({
+    traverse = 'topdown',
+    Image = function(im) return im, false end,
+    Str = function(s) n = n + 1; return s end,
+    Math = function(m) n = n + 1; return m end,
+    Code = function(c) n = n + #words(c.text); return c end,
+    CodeBlock = function(c) n = n + #words(c.text); return c end,
+  })
+  return n
+end
+
 local function has_math(ils)
   local found = false
   pandoc.Inlines(ils):walk({Math = function(m) found = true; return m end})
@@ -795,27 +829,35 @@ end
 -- the whole table if it is kept together (kept_lines, its estimated lines), else for its
 -- first rows. A lead-in longer than LEAD_MAX characters may break across pages, so the
 -- space is asked for after it instead.
-local PAGE_LINES = 46        -- lines of body text on a page
-local LEAD_CHARS = 95        -- characters on a line of body text
+local PAGE_LINES = 58        -- lines of body text on a page (9in at 11pt leading)
+local LEAD_CHARS = 90        -- characters on a line of body text (5.5in at 10pt)
 local LEAD_MAX = 400
 
 local function is_heading_block(b)
   if not b then return false end
   if b.t == 'Header' then return true end
-  return b.t == 'RawBlock' and (b.text:match('^\\section{') or b.text:match('^\\subsection{')
-    or b.text:match('^\\subsubsection{')) ~= nil
+  if b.t ~= 'RawBlock' then return false end
+  -- a heading's block starts with its page mark
+  local t = b.text:gsub('^\\reportpos%b{}', '')
+  return (t:match('^\\section{') or t:match('^\\subsection{')
+    or t:match('^\\subsubsection{')) ~= nil
 end
+
+-- The page mark before a heading or at the end of the main text (template.tex).
+local function pos_mark(id) return '\\reportpos{' .. id .. '}' end
 
 local function keep_with_table(out, kept_lines)
   local need = kept_lines and (kept_lines + 2) or 6
   local pos = #out + 1
   local prev = out[#out]
-  if prev and prev.t == 'Div' and prev.classes:includes('report-noref') and #out > 1 then
+  if prev and prev.t == 'Div' and prev.classes:includes('report-noref') and #out > 1
+     and not prev.classes:includes('report-app-caption') then
     -- the caption, after its label block, whose fixed \reportneed this one replaces
     pos = #out - 1
     need = need + 2
     out[pos] = rawblock((out[pos].text:gsub('^\\reportneed{[^}]*}', '')))
-  elseif prev and prev.t == 'Para' then
+  elseif prev and (prev.t == 'Para' or (prev.t == 'Div' and prev.classes:includes('report-app-caption'))) then
+    -- a lead-in paragraph, or an appendix table's caption (its anchor adds no text)
     local n = ulen(stringify(prev))
     if n <= LEAD_MAX then
       pos = #out
@@ -887,6 +929,14 @@ local function table_caption_label(b)
     return nil
   end
   return stringify(b.content[1]):match('^Table%s+(%d+):')
+end
+
+-- An appendix table's caption, "*Table C.6a: ...*": its label "C.6a".
+local function app_table_caption_label(b)
+  if not (b and b.t == 'Para' and b.content[1] and b.content[1].t == 'Emph' and #b.content == 1) then
+    return nil
+  end
+  return stringify(b.content[1]):match('^Table%s+(%u%.%d+%l?):')
 end
 
 local function image_name(b)
@@ -988,7 +1038,7 @@ function Pandoc(doc)
     elseif b.t == 'Para' then
       local lab = figure_label(b)
       if lab and image_name(body[k - 1]) then IDS['fig-' .. lab] = true end
-      local tl = table_caption_label(b)
+      local tl = table_caption_label(b) or app_table_caption_label(b)
       if tl then IDS['tab-' .. tl] = true end
     elseif b.t == 'BulletList' and in_refs then
       for _, item in ipairs(b.content) do register_reference(stringify(item)) end
@@ -1009,17 +1059,35 @@ function Pandoc(doc)
   local k = 1
   local prev_table = false
   in_refs = false
+  -- the main text runs to the "References" heading, else to the first appendix
+  local in_main = true
+  local function end_main()
+    if in_main then
+      in_main = false
+      out:insert(rawblock(pos_mark('report:main-end')))
+    end
+  end
+  local heading = nil   -- the LOG.headings entry whose words are being counted
   while k <= #body do
     local b = body[k]
     local was_table = prev_table
     prev_table = false
+    if b.t ~= 'Header' and heading then
+      heading.words = heading.words + block_words(b)
+      -- a figure's caption paragraph, used with its image below
+      if image_name(b) and figure_label(body[k + 1]) then
+        heading.words = heading.words + block_words(body[k + 1])
+      end
+    end
     if b.t == 'HorizontalRule' then
       -- dropped: headings separate the parts
     elseif b.t == 'Header' then
       local id, num, kind = heading_info(b)
       b.identifier = id
       local text = stringify(b.content)
-      table.insert(LOG.headings, {id = id, level = b.level, text = text})
+      if b.level == 2 and (text == 'References' or kind == 'appendix') then end_main() end
+      heading = {id = id, level = b.level, text = text, words = 0, main = in_main}
+      table.insert(LOG.headings, heading)
       if has_math(b.content) then
         warn('heading "' .. usub(text, 60) .. '" holds TeX math, which its PDF bookmark '
              .. 'would show as TeX; name the quantity in words')
@@ -1066,9 +1134,12 @@ function Pandoc(doc)
         local rest = List()
         for q = 3, #b.content do rest:insert(b.content[q]) end
         local cmd = ({'section', 'subsection', 'subsubsection'})[math.min(b.level, 3)]
-        out:insert(rawblock('\\' .. cmd .. '{\\secnum{' .. num .. '}' .. inlines_latex(rest) ..
-          '}\\label{' .. id .. '}'))
+        -- the page mark first; \nobreak after the label, whose \write would otherwise
+        -- let a page break fall between the heading and its text
+        out:insert(rawblock(pos_mark(id) .. '\\' .. cmd .. '{\\secnum{' .. num .. '}' ..
+          inlines_latex(rest) .. '}\\label{' .. id .. '}\\nobreak'))
       else
+        out:insert(rawblock(pos_mark(id)))
         out:insert(b)
       end
     elseif image_name(b) and figure_label(body[k + 1]) then
@@ -1095,7 +1166,8 @@ function Pandoc(doc)
         '\\reportcaption{Figure ' .. lab .. '.}{' .. caption .. '}',
         '\\end{figure}',
       }, '\n')))
-      table.insert(LOG.figures, {label = lab, name = name, file = file, width = width})
+      table.insert(LOG.figures, {label = lab, name = name, file = file, width = width,
+                                 main = in_main})
       k = k + 1   -- the caption paragraph is used
     elseif image_name(b) then
       warn('image ' .. select(2, image_name(b)) .. ' has no "*Figure N.*" caption after it')
@@ -1104,6 +1176,14 @@ function Pandoc(doc)
       local tl = table_caption_label(b)
       out:insert(rawblock('\\reportneed{8\\baselineskip}\\phantomsection\\label{tab-' .. tl .. '}'))
       out:insert(pandoc.Div({b}, pandoc.Attr('', {'report-noref'})))
+    elseif app_table_caption_label(b) then
+      -- the anchor inside the caption's paragraph (no block of its own, so the
+      -- appendices' layout is as without it); the div keeps "Table C.6a" in the
+      -- caption from linking to itself
+      local tl = app_table_caption_label(b)
+      local para = pandoc.Para({pandoc.RawInline('latex', '\\phantomsection\\label{tab-' .. tl .. '}'),
+                                b.content[1]})
+      out:insert(pandoc.Div({para}, pandoc.Attr('', {'report-noref', 'report-app-caption'})))
     elseif b.t == 'Table' then
       local size, lines = layout_table(b, 'before: ' .. usub(para_text(body[k + 1]) or '', 50))
       local kept = lines <= KEEP_LINES and longtable_to_tabular(blocks_latex(treat_blocks({b})))
@@ -1147,6 +1227,7 @@ function Pandoc(doc)
     end
     k = k + 1
   end
+  end_main()
   if not appendix_started then warn('no "## Appendix A: ..." heading: no appendix page break') end
 
   -- 4. Links and code everywhere else --------------------------------------------

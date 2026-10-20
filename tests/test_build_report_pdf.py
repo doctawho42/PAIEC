@@ -1,11 +1,13 @@
 """tools/build_report_pdf.py: docs/report/draft.md builds into the report PDF.
 
 The pure-Python parts (title block, LaTeX log and .aux parsing, the text check, figure
-placement against docs/report/figures.md) run everywhere. The Lua filter tests need
-pandoc, and the PDF builds need pandoc and XeLaTeX with the template's packages; they
-are skipped when those are missing (looked up as the build does: PATH, then
-/opt/homebrew/bin, /opt/local/bin, /usr/local/bin and /Library/TeX/texbin; PANDOC and
-XELATEX override). No data download and no network are needed.
+placement against docs/report/figures.md, the page measure, the NeurIPS style check)
+run everywhere. The Lua filter tests need pandoc, and the PDF builds need pandoc, XeLaTeX
+with the template's packages and the NeurIPS 2026 style file (tools/report_pdf/
+neurips_2026.sty, not committed: the build names its download); they are skipped when
+those are missing (looked up as the build does: PATH, then /opt/homebrew/bin,
+/opt/local/bin, /usr/local/bin and /Library/TeX/texbin; PANDOC and XELATEX override).
+No data download and no network are needed.
 """
 import hashlib
 import importlib.util
@@ -36,13 +38,15 @@ B = _load()
 PANDOC = B.find_tool("pandoc", "PANDOC")
 XELATEX = B.find_tool("xelatex", "XELATEX")
 LACKING = B.missing_latex_packages(XELATEX) if XELATEX else None
+STYLE = B.style_status()
 
 needs_pandoc = pytest.mark.skipif(not PANDOC, reason="pandoc not found (set PANDOC)")
 needs_latex = pytest.mark.skipif(
-    not (PANDOC and XELATEX and not LACKING),
+    not (PANDOC and XELATEX and not LACKING and STYLE["ok"]),
     reason="pandoc not found (set PANDOC)" if not PANDOC
     else "xelatex not found (set XELATEX)" if not XELATEX
-    else f"the TeX installation lacks {', '.join(LACKING or [])}")
+    else f"the TeX installation lacks {', '.join(LACKING or [])}" if LACKING
+    else B.style_instructions(STYLE))
 
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 
@@ -105,7 +109,7 @@ def test_figures_match_figures_md_and_exist():
         assert (FIG / f"{n}.png").exists() and (FIG / f"{n}.svg").exists(), n
         w, h, dpi = B.png_size(FIG / f"{n}.png")
         assert w > 0 and h > 0 and dpi and round(dpi) == 200, n
-        assert 1.0 < B.svg_width_in(FIG / f"{n}.svg") <= 6.5, n   # within the 6.5in text width
+        assert 1.0 < B.svg_width_in(FIG / f"{n}.svg") <= 5.5, n   # within the 5.5in text width
 
 
 def test_parse_log():
@@ -114,6 +118,8 @@ def test_parse_log():
         "[]\\TU/X/m/n/10 some text",
         "Overfull \\hbox (0.8pt too wide) in alignment at lines 20--30",
         "[] []",
+        "Overfull \\hbox (24.8pt too wide) detected at line 4250",
+        "[] [][]",
         "Underfull \\hbox (badness 10000) in paragraph at lines 3--4",
         "Missing character: There is no Ж in font TeX Gyre Termes!",
         "LaTeX Warning: Reference `sec-9' on page 3 undefined on input line 7.",
@@ -121,8 +127,10 @@ def test_parse_log():
         "Output written on report.pdf (12 pages).",
     ])
     p = B.parse_log(log)
-    assert [o["pt"] for o in p["overfull"]] == [4.5, 0.8]
+    assert [o["pt"] for o in p["overfull"]] == [4.5, 0.8, 24.8]
     assert p["overfull"][1]["where"] == "alignment" and p["overfull"][0]["lines"] == "10--12"
+    # a box (a display, or a table kept on one page) gives one line, which is kept
+    assert p["overfull"][2]["where"] == "box" and p["overfull"][2]["lines"] == "4250"
     assert p["underfull"] == 1 and p["missing_glyphs"] == ["Ж"]
     assert p["undefined_refs"] == ["sec-9"] and p["pages"] == 12
     assert p["other_warnings"] == ["LaTeX Warning: Float too large for page by 4.0pt on input line 9."]
@@ -130,16 +138,167 @@ def test_parse_log():
     assert B.parse_log("LaTeX Warning: Label(s) may have changed. Rerun to get it right.")["rerun"]
 
 
+#: the text block of the NeurIPS style: its top 10in above the foot of a letter page, 9in high
+GEOMETRY = (722.7, 650.43)
+
+
+def _y(frac: float) -> int:
+    """The \\pdflastypos (sp from the foot of the page) of a point frac down the text block."""
+    return round((GEOMETRY[0] - frac * GEOMETRY[1]) * B.SP_PER_PT)
+
+
 def test_aux_pages_and_page_summary():
     aux = ("\\newlabel{sec-1}{{}{1}{}{section*.1}{}}\n"
-           "\\newlabel{references}{{}{28}{}{section*.40}{}}\n"
-           "\\newlabel{report:appendix-start}{{}{31}{}{section*.41}{}}\n"
-           "\\newlabel{report:end}{{}{74}{}{}{}}\n")
+           "\\newlabel{references}{{}{8}{}{section*.40}{}}\n"
+           "\\newlabel{fig-1}{{}{3}{}{figure.1}{}}\n"
+           "\\newlabel{fig-2}{{}{9}{}{figure.2}{}}\n"
+           "\\newlabel{report:appendix-start}{{}{11}{}{section*.41}{}}\n"
+           "\\newlabel{report:end}{{}{74}{}{}{}}\n"
+           f"\\reportposition{{sec-1}}{{1}}{{{_y(0.6)}}}\n"
+           f"\\reportposition{{report:main-end}}{{8}}{{{_y(0.25)}}}\n"
+           f"\\reportposition{{references}}{{8}}{{{_y(0.25)}}}\n"
+           "\\reportgeometry{722.7pt}{650.43pt}\n")
     labels = B.aux_pages(aux)
-    assert labels == {"sec-1": 1, "references": 28, "report:appendix-start": 31, "report:end": 74}
+    assert labels == {"sec-1": 1, "references": 8, "fig-1": 3, "fig-2": 9,
+                      "report:appendix-start": 11, "report:end": 74}
+    positions, geometry = B.aux_positions(aux)
+    assert geometry == GEOMETRY and positions["report:main-end"][0] == 8
+    s = B.page_summary(labels, 74, positions, geometry, main_figures=["1"])
+    # the main text ends a quarter down page 8, where References begins
+    assert s["main_text"] == [1, 8] and s["main_text_pages"] == 8
+    assert s["main_text_measured"] == 7.25 and s["main_text_basis"] == "end mark"
+    assert s["references"] == [8, 10] and s["appendices"] == [11, 74]
+    assert s["appendix_pages"] == 64 and s["main_text_limit"] == B.MAX_MAIN_PAGES == 8
+    # a figure of the main text that floats past the end of its text counts
+    s = B.page_summary(labels, 74, positions, geometry, main_figures=["1", "2"])
+    assert s["main_text_pages"] == 9 and s["main_text_basis"] == "end mark and figures"
+    # without the end mark (an older .tex): the page before References
     s = B.page_summary(labels, 74)
-    assert s["main_text"] == [1, 30] and s["appendices"] == [31, 74]
-    assert s["references"] == [28, 30] and s["appendix_pages"] == 44
+    assert s["main_text"] == [1, 7] and s["references"] == [8, 10]
+
+
+def test_section_pages_and_words():
+    headings = [
+        {"id": "sec-1", "level": 2, "text": "1 Introduction", "words": 100, "main": True},
+        {"id": "sec-1.1", "level": 3, "text": "1.1 Task", "words": 300, "main": True},
+        {"id": "sec-1.2", "level": 3, "text": "1.2 Why", "words": 200, "main": True},
+        {"id": "sec-2", "level": 2, "text": "2 Data", "words": 400, "main": True},
+        {"id": "references", "level": 2, "text": "References", "words": 50, "main": False},
+        {"id": "app-A", "level": 2, "text": "Appendix A: data", "words": 10, "main": False},
+    ]
+    pos = {"sec-1": (1, _y(0.5) / B.SP_PER_PT), "sec-1.1": (1, _y(0.6) / B.SP_PER_PT),
+           "sec-1.2": (2, _y(0.5) / B.SP_PER_PT), "sec-2": (3, _y(0.0) / B.SP_PER_PT),
+           "report:main-end": (4, _y(0.75) / B.SP_PER_PT),
+           "references": (4, _y(0.75) / B.SP_PER_PT), "app-A": (6, _y(0.0) / B.SP_PER_PT)}
+    rows = {r["id"]: r for r in B.section_pages(headings, pos, GEOMETRY, 9)}
+    assert rows["sec-1"]["words"] == 600 and rows["sec-1.1"]["words"] == 300
+    assert rows["sec-1"]["pages"] == 1.5 and rows["sec-1"]["start_page"] == 1
+    assert rows["sec-1.1"]["pages"] == 0.9 and rows["sec-1.2"]["pages"] == 0.5
+    assert rows["sec-2"]["pages"] == 1.75          # to the main text's end mark
+    assert rows["references"]["pages"] == 1.25 and not rows["references"]["main"]
+    assert rows["app-A"]["pages"] == 4.0           # to the end of the document
+
+
+def test_strict_holds_the_main_text_to_eight_pages():
+    """The competition: "approximately 4-8 pages of main text, excluding references and
+    appendices", in the NeurIPS template."""
+    def report(n):
+        return {"pages": {"main_text_pages": n, "main_text_measured": n - 0.4}}
+
+    assert B.problems(report(8)) == [] and B.problems(report(5)) == []
+    bad = B.problems(report(9))
+    assert len(bad) == 1 and bad[0].startswith("main text is 9 pages")
+    assert B.problems(report(9), max_main_pages=9) == []
+
+
+PDFFONTS = """name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+ZBVPBB+TimesNewRomanPS-BoldMT        CID TrueType      Identity-H       yes yes yes      4  0
+LOFTVK+STIXTwoMath-Regular-Identity-H CID Type 0C       Identity-H       yes yes yes      6  0
+[none]                               Type 3            Custom           yes no  no      12  0
+Helvetica                            Type 1            Custom           no  no  no      14  0
+"""
+
+
+def test_font_check_refuses_type3_and_unembedded_fonts():
+    """The NeurIPS instructions: "Type 1 or Embedded TrueType fonts" only."""
+    fonts = B.parse_pdffonts(PDFFONTS)
+    assert [f["type"] for f in fonts] == ["CID TrueType", "CID Type 0C", "Type 3", "Type 1"]
+    assert fonts[0]["name"] == "ZBVPBB+TimesNewRomanPS-BoldMT" and fonts[0]["embedded"]
+    assert not fonts[3]["embedded"]
+    assert B.bad_fonts(fonts) == ["[none] (Type 3)", "Helvetica (Type 1, not embedded)"]
+    assert B.bad_fonts(fonts[:2]) == []
+    bad = B.problems({"fonts": fonts})
+    assert len(bad) == 1 and "Type 3 or not embedded" in bad[0]
+    assert B.problems({"fonts": {"skipped": "pdffonts not found"}}) == []
+
+
+def test_style_check_names_the_download_and_the_pin(tmp_path):
+    """The NeurIPS style is not committed (no license): a missing or different copy stops
+    the build with the official download and the pinned sha256."""
+    missing = tmp_path / B.STYLE_NAME
+    with pytest.raises(B.BuildError) as e:
+        B.check_style(missing)
+    msg = str(e.value)
+    assert "is missing" in msg and B.STYLE_URL in msg and B.STYLE_SHA256 in msg
+    assert B.STYLE_ZIP_SHA256 in msg and "not committed" in msg
+    missing.write_text("% neurips_2026.sty, edited\n", encoding="utf-8")
+    st = B.style_status(missing)
+    assert st["present"] and not st["ok"] and st["sha256"] != B.STYLE_SHA256
+    with pytest.raises(B.BuildError) as e:
+        B.check_style(missing)
+    assert st["sha256"] in str(e.value) and B.STYLE_URL in str(e.value)
+    # the pins: the official zip of 2026-10-20 and the style in it
+    assert B.STYLE_URL == ("https://media.neurips.cc/Conferences/NeurIPS2026/"
+                           "Formatting_Instructions_For_NeurIPS_2026.zip")
+    assert B.STYLE_SHA256 == "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a"
+    if STYLE["present"]:
+        assert B.check_style()["ok"], B.style_instructions(STYLE)
+
+
+def test_style_file_is_not_committed():
+    gi = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert "tools/report_pdf/neurips_2026.sty" in gi
+    if shutil.which("git"):
+        import subprocess
+        tracked = subprocess.run(["git", "-C", str(ROOT), "ls-files", "tools/report_pdf"],
+                                 capture_output=True, text=True).stdout.split()
+        assert "tools/report_pdf/neurips_2026.sty" not in tracked
+
+
+@needs_pandoc
+def test_build_stops_without_the_style(mini, tmp_path, monkeypatch):
+    kit = tmp_path / "kit"
+    shutil.copytree(B.KIT, kit, ignore=shutil.ignore_patterns(B.STYLE_NAME))
+    monkeypatch.setattr(B, "KIT", kit)
+    with pytest.raises(B.BuildError) as e:
+        B.build(mini, tmp_path / "out", figures="png", epoch=0, quiet=True)
+    assert B.STYLE_URL in str(e.value) and B.STYLE_SHA256 in str(e.value)
+    # --tex-only needs no style: it records that the style is missing and goes on
+    r = B.build(mini, tmp_path / "out", figures="png", tex_only=True, epoch=0, quiet=True)
+    assert r["style"]["present"] is False and r["style"]["ok"] is False
+
+
+def test_template_uses_the_neurips_style_unchanged():
+    """The style's geometry and font sizes are the template's: the template sets neither
+    (the NeurIPS instructions forbid changing them)."""
+    tpl = (B.KIT / "template.tex").read_text(encoding="utf-8")
+    code = "\n".join(ln.split("%", 1)[0] for ln in tpl.splitlines())
+    assert re.search(r"^\\documentclass\{article\}$", code, re.M)
+    assert "\\usepackage[sglblindworkshop,final]{neurips_2026}" in code
+    assert "\\workshoptitle{Predictive AI Evaluation Competition (PAIEC)}" in code
+    for banned in ("{geometry}", "\\newgeometry", "titlesec", "\\setlength{\\textwidth}",
+                   "\\setlength{\\textheight}", "\\addtolength",
+                   "\\fontsize", "\\renewcommand{\\normalsize}", "\\linespread",
+                   "\\topfraction", "\\floatpagefraction", "\\setlist", "\\parindent"):
+        assert banned not in code, banned
+    # the paragraph skip is the style's 5.5pt; only pandoc's tight lists drop it, locally
+    assert re.findall(r"\\setlength\{\\parskip\}", code) == ["\\setlength{\\parskip}"]
+    assert ("\\providecommand{\\tightlist}{\\setlength{\\itemsep}{0pt}"
+            "\\setlength{\\parskip}{0pt}}") in code
+    # the text face is the style's ptm: a Times-like OpenType face under that NFSS name
+    assert len(re.findall(r"\\setmainfont\{[^}]+\}\[NFSSFamily=ptm", code)) == 3
+    assert code.index("{fontspec}") < code.index("{neurips_2026}") < code.index("{unicode-math}")
 
 
 def test_text_check_finds_what_the_pdf_lost():
@@ -269,12 +428,27 @@ def test_filter_on_a_small_draft(mini, tmp_path):
     assert flt["links"]["figure"] == 1 and flt["links"]["table"] == 2
     assert flt["links"]["citation"] == 2 and flt["links"]["external"] == 1
     assert flt["references"][0]["id"] == "ref-brier-1950"
-    # title block, numbered headings with stable ids, the appendix after a page break
-    assert "{\\large\\bfseries A. B. Cee\\par}" in tex
-    assert "\\section{\\secnum{1}Introduction}\\label{sec-1}" in tex
+    # title block: the NeurIPS title and author block in the preamble; the subtitle and
+    # the code line a footnote to the title
+    preamble = Path(r["tex"]).read_text(encoding="utf-8").split("\\begin{document}", 1)[0]
+    assert "\\title{A small report\\thanks{Technical report for a test" in preamble
+    assert "Code: \\url{https://example.org/code}}}" in preamble
+    assert "\\author{%\n  A. B. Cee \\\\\n  Somewhere \\\\\n}" in preamble
+    assert "\\maketitle" in tex and "\\begin{abstract}" in tex
+    # numbered headings with stable ids and page marks, the appendix after a page break
+    assert ("\\reportpos{sec-1}\\section{\\secnum{1}Introduction}\\label{sec-1}\\nobreak"
+            in tex)
     assert "\\subsection{\\secnum{A.1}One}\\label{app-A.1}" in tex
     assert tex.index("\\reportappendixstart") < tex.index("\\label{app-A}")
     assert tex.index("\\label{references}") < tex.index("\\reportappendixstart")
+    # the main text ends before References: its end mark, then References' own mark
+    assert (tex.index("\\reportpos{report:main-end}") < tex.index("\\reportpos{references}")
+            < tex.index("\\label{references}"))
+    assert tex.count("\\reportpos{report:main-end}") == 1
+    heads = {h["id"]: h for h in flt["headings"]}
+    assert heads["sec-1"]["main"] and heads["sec-2.1"]["main"] and not heads["references"]["main"]
+    assert not heads["app-A.1"]["main"] and heads["sec-1"]["words"] == 16
+    assert flt["figures"][0]["main"] is True
     # the figure as a float with the draft's caption; the short table kept on one page
     assert "\\label{fig-1}" in tex and "\\reportfig{3.410in}{fig/item_gap.png}" in tex
     assert "\\reportcaption{Figure 1.}{A caption with 0.42 in it.}" in tex
@@ -284,9 +458,35 @@ def test_filter_on_a_small_draft(mini, tmp_path):
     # the snippet that names a table is cut by character, never inside a UTF-8 sequence
     assert flt["tables"][-1]["where"] == "before: " + AFTER[:50]
     # the "Keywords:" line is metadata only: in hyperref's setup, not in the body
-    preamble = Path(r["tex"]).read_text(encoding="utf-8").split("\\begin{document}", 1)[0]
     assert "pdfkeywords={alpha, beta}" in preamble and "alpha" not in tex
     assert "https://doi.org/10.1175/1520-0493(1950)078\\%3C0001:VOFEIT\\%3E2.0.CO;2" in tex
+
+
+@needs_pandoc
+def test_filter_links_appendix_tables(mini, tmp_path):
+    """"Table A.1a" links to its appendix table's caption; the caption does not link
+    to itself, its anchor sits inside the caption's paragraph (no block of its own),
+    a label without a caption is reported, and a possessive links as well."""
+    text = mini.read_text(encoding="utf-8")
+    text = text.replace("Also §9.9 and App B.1.",
+                        "Also §9.9, App B.1, App A.1’s one, Table A.1a's and Table A.9z.")
+    text = text.replace("Back to §1 and Table 1.\n\n",
+                        "Back to §1 and Table 1.\n\n*Table A.1a: a Table A.1a of things.*\n\n")
+    mini.write_text(text, encoding="utf-8")
+    r = B.build(mini, tmp_path / "out", figures="png", tex_only=True, epoch=0, quiet=True)
+    tex = Path(r["tex"]).read_text(encoding="utf-8").split("\\begin{document}", 1)[1]
+    flt = r["filter"]
+    assert ("table", "Table A.9z") in [(u["kind"], u["text"]) for u in flt["unresolved"]]
+    assert flt["links"]["table"] == 3   # Table 1 twice, Table A.1a once
+    # possessives link whatever the locale (Lua's %w is locale-dependent)
+    assert flt["links"]["appendix"] == 2
+    assert "\\hyperref[tab-A.1a]{Table A.1a}'s" in tex
+    assert "\\hyperref[app-A.1]{App A.1}'s one" in tex
+    assert "\\phantomsection\\label{tab-A.1a}\\emph{Table A.1a: a Table A.1a of things.}" in tex
+    assert tex.count("tab-A.1a") == 2
+    # the caption keeps the lead-in's space request before the table, as without the anchor
+    cap = tex.index("\\label{tab-A.1a}")
+    assert tex.rindex("\\reportneed{", 0, cap) > tex.index("Back to")
 
 
 @needs_pandoc
@@ -299,8 +499,12 @@ def test_filter_on_the_draft_resolves_everything(tmp_path):
     for label in B.figures_md_placement(FIGURES_MD.read_text(encoding="utf-8")):
         assert f"\\label{{fig-{label}}}" in tex, label
     assert tex.count("\\reportappendixstart") == 1
-    assert EMAIL_RE.findall(tex.split("\\section", 1)[0]) in ([], ["nikitapol@fbb.msu.ru"] * 2,
-                                                             ["nikitapol@fbb.msu.ru"])
+    assert tex.count("\\reportpos{report:main-end}") == 1
+    # the team's e-mail, in the author block only (as the link and as its text)
+    whole = Path(r["tex"]).read_text(encoding="utf-8")
+    author = whole.split("\\author{", 1)[1].split("\n}\n", 1)[0]
+    assert EMAIL_RE.findall(author) == ["nikitapol@fbb.msu.ru"] * 2
+    assert EMAIL_RE.findall(whole.replace(author, "")) == []
 
 
 # ------------------------------------------------------------------ TeX math
@@ -575,9 +779,14 @@ def test_report_pdf_builds_clean(built):
     assert [o for o in log["overfull"] if o["pt"] > B.OVERFULL_LIMIT_PT] == []
     assert log["missing_glyphs"] == [] and log["undefined_refs"] == []
     assert log["pdf_string_tokens"] == 0
-    # --strict refuses only the placeholders and TODO markers left for the team
-    assert all(p.startswith(("title block placeholders", f"{len(r['todo_markers'])} TODO markers"))
+    # --strict refuses only the placeholders and TODO markers left for the team (and a
+    # main text over the limit, which test_report_main_text_within_the_limit checks)
+    assert all(p.startswith(("title block placeholders", f"{len(r['todo_markers'])} TODO markers",
+                             "main text is "))
                for p in B.problems(r))
+    assert r["style"]["ok"] and r["inputs"]["tools/report_pdf/neurips_2026.sty"] == B.STYLE_SHA256
+    if isinstance(r["fonts"], list):
+        assert r["fonts"] and B.bad_fonts(r["fonts"]) == []
     tc = r["text_check"]
     if "skipped" not in tc:
         assert tc["numbers_missing"] == {} and tc["words_missing"] == {}
@@ -588,7 +797,8 @@ def test_report_pdf_layout(built):
     r = built
     pages, lp = r["pages"], r["label_pages"]
     assert pages["main_text"][0] == 1 and pages["appendices"][1] == pages["total"]
-    assert pages["references"][0] <= pages["main_text"][1] < pages["appendices"][0]
+    assert pages["main_text"][1] <= pages["references"][0] < pages["appendices"][0]
+    assert pages["main_text_basis"].startswith("end mark")
     # §1 starts on the title page or the next one: report v2's title (three lines) and
     # abstract fill page 1, so §1 opens page 2 (v1.0.1 opened it on page 1)
     assert lp["sec-1"] <= 2 and lp["references"] < lp["report:appendix-start"]
@@ -597,10 +807,24 @@ def test_report_pdf_layout(built):
     for lab in labels:
         page = lp[f"fig-{lab}"]
         if lab in main:
-            assert page < lp["references"], lab
+            assert page <= min(lp["references"], pages["main_text"][1]), lab
         else:
             assert page >= lp["report:appendix-start"], lab
     assert [lp[f"fig-{lab}"] for lab in main] == sorted(lp[f"fig-{lab}"] for lab in main)
+
+
+@needs_latex
+def test_report_main_text_within_the_limit(built):
+    """At most MAX_MAIN_PAGES (8) pages of main text in the NeurIPS template, references
+    and appendices excluded, as the competition asks; every main-text heading is
+    measured."""
+    pages = built["pages"]
+    sections = [s for s in built["sections"] if s["main"]]
+    assert sections and all("pages" in s and s["words"] > 0 for s in sections)
+    assert pages["main_text_pages"] <= B.MAX_MAIN_PAGES, (
+        f"main text {pages['main_text_pages']} pages ({pages['main_text_measured']} to its last "
+        f"line): " + "; ".join(f"{s['title'][:30]} {s['pages']}" for s in sections
+                               if s["level"] == 2))
 
 
 @needs_latex
@@ -622,3 +846,15 @@ def test_build_is_deterministic(mini, tmp_path):
     assert a["pdf_sha256"] == b["pdf_sha256"]
     assert hashlib.sha256(Path(a["pdf"]).read_bytes()).hexdigest() == a["pdf_sha256"]
     assert a["pages"]["total"] >= 2 and a["pages"]["appendices"][0] == a["pages"]["total"]
+    # the small draft's main text ends on its first page; References follows it
+    assert a["pages"]["main_text"] == [1, 1] and a["pages"]["references"][0] >= 1
+    assert 0 < a["pages"]["main_text_measured"] <= 1
+    rows = {s["id"]: s for s in a["sections"]}
+    assert rows["sec-1"]["main"] and 0 < rows["sec-1"]["pages"] < 1
+    # the footer of the first page names the workshop
+    pdftotext = B.find_tool("pdftotext", "PDFTOTEXT")
+    if pdftotext:
+        import subprocess
+        first = subprocess.run([pdftotext, "-f", "1", "-l", "1", "-enc", "UTF-8", a["pdf"], "-"],
+                               capture_output=True, text=True).stdout
+        assert "Workshop: Predictive AI Evaluation Competition (PAIEC)" in " ".join(first.split())

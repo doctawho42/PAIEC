@@ -25,6 +25,8 @@ These override everything else in this guide.
 8. **Text that stays fixed.** Headings (numbers and words); the title block lines ("Author:", "Affiliation:", "Email:", "Code:", "Keywords:"); image lines `![...](fig/<name>.png)` and the "*Figure N.*" label that opens each caption; legend names quoted in captions ("shipped hier", "legacy Predictor", "neighbouring config", "hier, no subject prior"); "*Table N: ...*" labels; every `TODO(team)` and `TODO(record)` marker; the indented shell commands of App G; the two conduct statements named in App I (section 10); the references list (section 10).
    *Note, 2026-10-14.* Rule 8 bound the edit passes of report v1. Report v2 lifted it: v2 changed headings (for example §4.4, now "When the rules were fixed") and the title block, and its figure and table labels follow v2's numbering (`docs/report/figures.md`, "Placement in the draft"). The legend names and the "*Figure N.*" and "*Table N: ...*" label forms still hold.
 9. **Repository.** No git commit or push, no network. Do not edit anything outside the rewrite's own files.
+10. **Length.** The main text runs to at most 8 pages in the NeurIPS 2026 template, and we aim at 7.5 to 8, so that it ends in the lower half of page 8. The main text is everything from the title to the line before `## References`, the abstract, figures and tables included; the references and the appendices do not count and have no page limit. `python tools/build_report_pdf.py --strict` fails when the main text runs past page 8. Fit by moving or cutting text, never by changing the style's font sizes, text block or spacing, which its instructions forbid (`docs/report/report_requirements.md`, template row). The main text stands alone, since the NeurIPS instructions make the appendix optional reading: every claim the main text makes keeps its evidence there (the number, its table or figure, and its source), and the appendices add detail behind pointers such as "App C.6". When material moves to an appendix, a symbol the main text still uses keeps its definition in the main text, and the first-use lists of sections 2.5 and 2.6 of this guide follow the restructured draft.
+   *Note, 2026-10-20.* This page rule replaces a word rule. From plan P2's decision of 2026-10-06 (`docs/plans/p2_final_plan.md` §1, decision 3) until 2026-10-20, the main text was held to at most 9,000 words, counted by the report outline's command as whitespace tokens from the line after `## Abstract` to the line before `## References`; report v2's main text at v1.1.0 has 8,994 such words (`docs/release.md` section 10.1). On 2026-10-20 the competition page asked for the NeurIPS template and approximately 4 to 8 pages of main text, excluding references and appendices, which have no page limit (`docs/report/report_requirements.md`, read that day), and the author set the ceiling at 8 pages. The word count is no longer a limit.
 
 ---
 
@@ -139,7 +141,7 @@ First uses in v2's main text: $V$ in the abstract (in plain text); $V_{sb}$, $\m
 
 ### 2.6 The pool evaluation (report v2)
 
-Added 2026-10-14 for report v2. These are the symbols of §7, Table 5 and App C.6, as App C.6's "Statistics" and "The rule" define them; `results/pool_eval.json` writes them as keys (`selection.stats.<candidate>.<regime>`). They change no row above.
+Added 2026-10-14 for report v2. These are the symbols of §7, Table C.6a (Table 5 until the cut of 2026-10-20) and App C.6, as App C.6's "Statistics" and "The rule" define them; `results/pool_eval.json` writes them as keys (`selection.stats.<candidate>.<regime>`). They change no row above.
 
 | quantity | write | in `results/pool_eval.json` | note |
 |---|---|---|---|
@@ -148,12 +150,12 @@ Added 2026-10-14 for report v2. These are the symbols of §7, Table 5 and App C.
 | the family-cluster bootstrap SE | $\mathrm{SE}_f$ | `SEf` | source families as clusters (2,000 resamples, seed 0) |
 | the subject-cluster and cell-cluster SEs | $\mathrm{SE}_s$; $\mathrm{SE}_{fs}$ | `SEs`; `SEfs` | the same bootstrap with the subject identity key, and with the (family, key) cell, as clusters |
 | the two-way SE | $\mathrm{SE}_2$ | `SE2` | $\sqrt{\max(0, \mathrm{SE}_f^2 + \mathrm{SE}_s^2 - \mathrm{SE}_{fs}^2)}$ |
-| the SE that the rule and Table 5 use | $\mathrm{SE}_g$ | `SEg` | $\max(\mathrm{SE}_f, \mathrm{SE}_2)$; $U_{95} = D + 1.96\,\mathrm{SE}_g$ (`U95`), the pool evaluation's instance of §2.4's $U_{95}$ |
+| the SE that the rule and Table C.6a use | $\mathrm{SE}_g$ | `SEg` | $\max(\mathrm{SE}_f, \mathrm{SE}_2)$; $U_{95} = D + 1.96\,\mathrm{SE}_g$ (`U95`), the pool evaluation's instance of the $U_{95}$ of this guide's §2.4 (above) |
 | the per-family mean | PB | `PB` | the mean over families, each once, of the family's $D_f$, appearances weighted as in $D$; upright letters, no math |
 | the leave-one-family-out bound | JK | `JK` | the largest $D$ left after removing one family's appearances; upright letters, no math |
 | the level functional, a $B_0$ centre | $c(X, \Sigma)$ | `b0_centre.<arm>` (`results/pool_fits.json`) | the benchmark-averaged prior prediction of arm $X$ with no label over the pair set $\Sigma$ ($\Sigma_{\mathrm{real}}$, $\Sigma_{\mathrm{DS}}$), App C.6's display; C1m's $\mu_0$ solves $c(\mathrm{C1m}, \Sigma_{\mathrm{DS}}) = c(\mathrm{A3}, \Sigma_{\mathrm{DS}})$ |
 
-Names, not symbols: S and C (the selection and confirmation sets; App C.6 keeps the design's word "halves", §7 says "sets"), L, U and E (App C.6), Q (the eligible candidates with $M(X) \le -0.001$), (E1) to (E4) (the eligibility conditions), and the regime names P-READING, P-AUDIT, P-TUNED, P-MIXTURE, P-FLAT, the twins P-READING-DS and P-AUDIT-DS, D-READING and D-FLAT, and RS-TUNED to RS-R1P. First uses in the main text: $D$, $\mathrm{SE}_g$ and the regime names in §7 and Table 5; App C.6 defines the rest.
+Names, not symbols: S and C (the selection and confirmation sets; App C.6 keeps the design's word "halves", §7 says "sets"), L, U and E (App C.6), Q (the eligible candidates with $M(X) \le -0.001$), (E1) to (E4) (the eligibility conditions), and the regime names P-READING, P-AUDIT, P-TUNED, P-MIXTURE, P-FLAT, the twins P-READING-DS and P-AUDIT-DS, D-READING and D-FLAT, and RS-TUNED to RS-R1P. First uses: since the cut of 2026-10-20, §7 names none of these symbols and quotes only an SE of $\mathrm{SE}_g$ as "SE"; Table C.6a and App C.6 define them all.
 
 ---
 

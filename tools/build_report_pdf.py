@@ -4,7 +4,15 @@
     python tools/build_report_pdf.py --render auto    # also PNGs of a few pages
     python tools/build_report_pdf.py --check-deterministic
     python tools/build_report_pdf.py --strict         # fail on overfull boxes, missing
-                                                      # glyphs, broken links, placeholders
+                                                      # glyphs, broken links, placeholders,
+                                                      # a main text over 8 pages
+
+The PDF uses the NeurIPS 2026 template, as the competition asks ("approximately 4-8
+pages of main text, excluding references and appendices"): the official style file
+neurips_2026.sty (revision 2026-01-29) with the single-blind workshop and camera-ready
+options. The style carries no license, so it is not committed: tools/report_pdf/
+neurips_2026.sty is ignored by git, and the build stops, naming the official download
+and the pinned sha256, when the file is missing or differs (STYLE_URL, STYLE_SHA256).
 
 Pipeline: the figures named by the draft (docs/report/fig/<name>.png) are copied into
 a build directory, converted from their SVGs to vector PDF when rsvg-convert or
@@ -16,22 +24,33 @@ docs/report/figures.md says are condensed from its full ones; the build checks t
 draft's figure labels, files and sections against figures.md's placement table
 (--captions full prints figures.md's full captions instead, for review only: they
 change the text and some no longer fit a page). Everything is written under
-dist/report/ (gitignored): the PDF, build/ (the .tex, .log and figures) and build.json
-(inputs with sha256, tool versions, page counts, warnings, every overfull box, and a
-check that every number and word of the draft is in the PDF's text, and that the text
-has no semicolon turned into U+037E). The draft's TeX math ($...$, $$...$$) is set by
-unicode-math; the text check reads it as printed: TeX command names and the arguments
-that print nothing are dropped, the numbers and the words of \text{...} and the like are
-kept, and both sides are folded by NFKC (mathematical italic letters, sub- and
-superscript digits) with U+2212 read as a hyphen. The title block's "Keywords:" line
-fills the PDF's keywords metadata and is not printed; CITATION.cff repeats it.
+dist/report/ (gitignored): the PDF, build/ (the .tex, .log, the style and the figures)
+and build.json (inputs with sha256, tool versions, page counts, warnings, every
+overfull box, a check that every number and word of the draft is in the PDF's text,
+and that the text has no semicolon turned into U+037E).
+
+Pages: the main text runs from the title to the end of the last section before
+"References" (or before the first appendix), or to the page of its last figure if one
+floats further; references and appendices do not count. build.json gives its pages
+(pages.main_text_pages, which --strict holds to MAX_MAIN_PAGES), its length measured to
+its last line (pages.main_text_measured: 14.41 is 41 percent down page 15), and each
+heading's start, share of the pages and words ("sections"), from the page marks
+report.lua sets before every heading; the log prints the main text's sections.
+
+The draft's TeX math ($...$, $$...$$) is set by unicode-math; the text check reads it
+as printed: TeX command names and the arguments that print nothing are dropped, the
+numbers and the words of \text{...} and the like are kept, and both sides are folded by
+NFKC (mathematical italic letters, sub- and superscript digits) with U+2212 read as a
+hyphen. The title block's "Keywords:" line fills the PDF's keywords metadata and is not
+printed; CITATION.cff repeats it.
 
 Needs pandoc (>= 3.1) and XeLaTeX with the packages template.tex loads (TeX Live has
 them all; the build asks kpsewhich first and names any that are missing); pdftotext
-(poppler) for the text check, skipped without it, and pdftoppm for --render. Looks for
-them on PATH, then in /opt/homebrew/bin, /opt/local/bin, /usr/local/bin and
-/Library/TeX/texbin; PANDOC, XELATEX, RSVG_CONVERT, PDFTOTEXT, PDFTOPPM and KPSEWHICH
-override. No network.
+(poppler) for the text check and pdffonts for the font check (the NeurIPS instructions
+refuse Type 3 and non-embedded fonts), each skipped without it, and pdftoppm for
+--render. Looks for them on PATH, then in /opt/homebrew/bin, /opt/local/bin,
+/usr/local/bin and /Library/TeX/texbin; PANDOC, XELATEX, RSVG_CONVERT, PDFTOTEXT,
+PDFFONTS, PDFTOPPM and KPSEWHICH override. No network.
 
 Deterministic as far as LaTeX allows: SOURCE_DATE_EPOCH (from the environment, else
 the commit time of HEAD) fixes the PDF's dates and ID, so two builds of the same
@@ -67,6 +86,17 @@ TOOL_DIRS = ("/opt/homebrew/bin", "/opt/local/bin", "/usr/local/bin", "/Library/
 # pieces so that a search for it finds only the places to fill, not this check.
 PLACEHOLDERS = ("TODO", "OWNER" + "/REPO")
 MAX_LATEX_RUNS = 5
+# The competition's limit: "approximately 4-8 pages of main text, excluding references and
+# appendices" in the NeurIPS template (--strict fails above it).
+MAX_MAIN_PAGES = 8
+# The NeurIPS 2026 style file. It carries no license, so it is not committed (.gitignore):
+# the build checks the copy in tools/report_pdf/ against the official one, from this zip.
+STYLE_NAME = "neurips_2026.sty"
+STYLE_SHA256 = "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a"
+STYLE_REVISION = "2026-01-29"
+STYLE_URL = ("https://media.neurips.cc/Conferences/NeurIPS2026/"
+             "Formatting_Instructions_For_NeurIPS_2026.zip")
+STYLE_ZIP_SHA256 = "82473931e3ef710fcd3f4a8cd4119b9de32e56825f90f9e5a6d55f2d01b817d9"
 
 
 class BuildError(RuntimeError):
@@ -98,12 +128,28 @@ def tool_version(path: str) -> str:
         return "unknown"
 
 
-def latex_packages() -> list[str]:
-    """The packages template.tex loads, in order."""
-    text = (KIT / "template.tex").read_text(encoding="utf-8")
+def _packages(text: str, command: str = "usepackage") -> list[str]:
     out = []
-    for m in re.finditer(r"^\s*\\usepackage(?:\[[^\]]*\])?\{([^}]+)\}", text, re.M):
+    rx = r"^\s*\\(?:" + command + r")(?:\[[^\]]*\])?\{([^}]+)\}"
+    for m in re.finditer(rx, text, re.M):
         out += [p.strip() for p in m.group(1).split(",") if p.strip()]
+    return out
+
+
+def latex_packages() -> list[str]:
+    """The packages template.tex loads, in order, with the NeurIPS style's own packages
+    (geometry, natbib, environ, lineno) in its place: the style itself is not
+    installed but copied next to the .tex (check_style)."""
+    text = (KIT / "template.tex").read_text(encoding="utf-8")
+    style = KIT / STYLE_NAME
+    out = []
+    for p in _packages(text):
+        if p == Path(STYLE_NAME).stem:
+            if style.exists():
+                out += _packages(style.read_text(encoding="utf-8", errors="replace"),
+                                 "usepackage|RequirePackage")
+            continue
+        out.append(p)
     return list(dict.fromkeys(out))
 
 
@@ -135,6 +181,38 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+# ---------------------------------------------------------------- the NeurIPS style
+
+def style_status(path: Path | None = None) -> dict:
+    """The NeurIPS style file in tools/report_pdf/: present, its sha256, and whether it is
+    the pinned official one."""
+    path = Path(path) if path else KIT / STYLE_NAME
+    out = {"path": rel(path), "present": path.exists(), "sha256": None,
+           "expected_sha256": STYLE_SHA256, "ok": False}
+    if path.exists():
+        out["sha256"] = sha256(path)
+        out["ok"] = out["sha256"] == STYLE_SHA256
+    return out
+
+
+def style_instructions(status: dict) -> str:
+    what = (f"{status['path']} is missing" if not status["present"] else
+            f"{status['path']} has sha256 {status['sha256']}, not the pinned {STYLE_SHA256}")
+    return (f"{what}. Download the official NeurIPS 2026 template, {STYLE_URL} (sha256 "
+            f"{STYLE_ZIP_SHA256}), and copy {STYLE_NAME} from it to tools/report_pdf/ "
+            f"(revision {STYLE_REVISION}, sha256 {STYLE_SHA256}). The style carries no "
+            "license, so it is not committed (.gitignore).")
+
+
+def check_style(path: Path | None = None) -> dict:
+    """The style's status; a BuildError naming the download and the pin if it is not
+    the pinned file."""
+    status = style_status(path)
+    if not status["ok"]:
+        raise BuildError(style_instructions(status))
+    return status
 
 
 # ------------------------------------------------------------------ dates and git
@@ -325,7 +403,8 @@ def check_placement(draft: str, figures_md: str) -> list[str]:
 
 OVERFULL_RE = re.compile(
     r"^Overfull \\[hv]box \(([\d.]+)pt too (?:wide|high)\) (?:in paragraph|in alignment|"
-    r"detected|has occurred while \\output is active)(?: at lines (\d+)--(\d+))?(.*)$", re.M)
+    r"detected|has occurred while \\output is active)(?: at lines (\d+)--(\d+)| at line (\d+))?"
+    r"(.*)$", re.M)
 
 
 def parse_log(log: str) -> dict:
@@ -338,8 +417,11 @@ def parse_log(log: str) -> dict:
             ctx = lines[k + 1].strip() if k + 1 < len(lines) else ""
             overfull.append({
                 "pt": float(m.group(1)),
-                "lines": f"{m.group(2)}--{m.group(3)}" if m.group(2) else None,
-                "where": "alignment" if "alignment" in line else "paragraph",
+                # "at lines 10--12" for a paragraph or an alignment, "at line 12" for a
+                # box (a table kept on one page is one)
+                "lines": (f"{m.group(2)}--{m.group(3)}" if m.group(2) else m.group(4)),
+                "where": ("alignment" if "alignment" in line else
+                          "box" if "detected" in line else "paragraph"),
                 "context": ctx[:160],
             })
     underfull = len(re.findall(r"^Underfull \\[hv]box", log, re.M))
@@ -376,18 +458,101 @@ def aux_pages(aux: str) -> dict:
     return out
 
 
-def page_summary(labels: dict, pages: int | None) -> dict:
+AUX_POS_RE = re.compile(r"\\reportposition\{([^}]*)\}\{(\d+)\}\{(-?\d+)\}")
+AUX_GEOMETRY_RE = re.compile(r"\\reportgeometry\{([\d.]+)pt\}\{([\d.]+)pt\}")
+SP_PER_PT = 65536
+
+
+def aux_positions(aux: str) -> tuple[dict, tuple[float, float] | None]:
+    """The page marks of template.tex's \\reportpos in a .aux file: id -> (page, height
+    in pt from the foot of the page), and the text block's (top, height) in pt."""
+    pos = {m.group(1): (int(m.group(2)), int(m.group(3)) / SP_PER_PT)
+           for m in AUX_POS_RE.finditer(aux)}
+    g = AUX_GEOMETRY_RE.search(aux)
+    return pos, ((float(g.group(1)), float(g.group(2))) if g else None)
+
+
+def page_coordinate(page: int, y_pt: float, geometry: tuple[float, float] | None) -> float:
+    """A point as pages from the start of the document: page 3 halfway down is 2.5. The
+    text block's top is 0 on its page and its foot 1 (a mark below the block, in the
+    space the style gives footnotes, counts as the foot)."""
+    if not geometry:
+        return float(page - 1)
+    top, height = geometry
+    return page - 1 + min(1.0, max(0.0, (top - y_pt) / height))
+
+
+def page_summary(labels: dict, pages: int | None, positions: dict | None = None,
+                 geometry: tuple[float, float] | None = None,
+                 main_figures: list[str] | tuple = ()) -> dict:
+    """Pages of the main text, the references and the appendices.
+
+    The main text runs from page 1 to its end mark (report:main-end, before the
+    "References" heading, else before the first appendix), or to the page of the last
+    of its figures (main_figures: their labels), which float and may land later.
+    main_text_measured is its length in pages to the end mark."""
+    positions = positions or {}
     total = pages or labels.get("report:end")
     app = labels.get("report:appendix-start")
     refs = labels.get("references")
     out = {"total": total}
+    end = positions.get("report:main-end")
+    if end:
+        fig_pages = [labels[f"fig-{lab}"] for lab in main_figures if f"fig-{lab}" in labels]
+        n = max([end[0]] + fig_pages)
+        out["main_text"] = [1, n]
+        out["main_text_pages"] = n
+        out["main_text_basis"] = ("end mark and figures" if fig_pages and max(fig_pages) > end[0]
+                                  else "end mark")
+        if geometry:
+            out["main_text_measured"] = round(page_coordinate(*end, geometry), 2)
+    elif refs or app:
+        # no end mark (a .tex from before report.lua set one): up to the page before
+        n = (refs or app) - 1
+        out["main_text"] = [1, n]
+        out["main_text_pages"] = n
+        out["main_text_basis"] = "page before " + ("References" if refs else "the appendices")
+    out["main_text_limit"] = MAX_MAIN_PAGES
+    if refs:
+        out["references"] = [refs, (app - 1) if app else total]
     if app and total:
-        out["main_text"] = [1, app - 1]
         out["appendices"] = [app, total]
-        out["main_text_pages"] = app - 1
         out["appendix_pages"] = total - app + 1
-    if refs and app:
-        out["references"] = [refs, app - 1]
+    return out
+
+
+def section_pages(headings: list, positions: dict, geometry: tuple[float, float] | None,
+                  total: int | None) -> list[dict]:
+    """Each heading's share of the pages and its words, in the draft's order.
+
+    A heading's span runs from its page mark to the mark of the next heading at its
+    level or above, or, in the main text, to the main text's end mark, or to the end of
+    the document. Words: the heading's own blocks (report.lua's count), plus its
+    subsections' for a "##" heading. Floats count where they are set, so a figure that
+    moves into the next section's pages is counted there."""
+    end = positions.get("report:main-end")
+    end_at = page_coordinate(*end, geometry) if end else None
+    doc_end = float(total) if total else None
+    out = []
+    for k, h in enumerate(headings):
+        row = {"id": h["id"], "level": h["level"], "title": h["text"],
+               "main": bool(h.get("main")), "words": h.get("words", 0)}
+        later = []
+        for x in headings[k + 1:]:
+            if x["level"] <= h["level"]:
+                later = [x]
+                break
+            row["words"] += x.get("words", 0)
+        p = positions.get(h["id"])
+        if p:
+            at = page_coordinate(*p, geometry)
+            stops = [page_coordinate(*positions[x["id"]], geometry) for x in later
+                     if x["id"] in positions]
+            if row["main"] and end_at is not None:
+                stops.append(end_at)
+            stops = [x for x in stops if x >= at] or ([doc_end] if doc_end else [at])
+            row.update(start_page=p[0], start=round(at, 2), pages=round(min(stops) - at, 2))
+        out.append(row)
     return out
 
 
@@ -476,6 +641,34 @@ def draft_plain(pandoc: str, text: str) -> str:
     if p.returncode != 0:
         raise BuildError(f"pandoc (plain text) failed: {p.stderr.strip()}")
     return p.stdout
+
+
+PDFFONTS_ROW = re.compile(r"^(\S+)\s+(.+?)\s+(\S+)\s+(yes|no)\s+(yes|no)\s+(yes|no)\s+\d+\s+\d+\s*$")
+
+
+def parse_pdffonts(text: str) -> list[dict]:
+    """pdffonts' table: each font's name, type, encoding and whether it is embedded. Read
+    from the right, since a long name pushes the other columns along."""
+    out = []
+    for ln in text.splitlines():
+        m = PDFFONTS_ROW.match(ln)
+        if m:
+            out.append({"name": m.group(1), "type": m.group(2), "encoding": m.group(3),
+                        "embedded": m.group(4) == "yes"})
+    return out
+
+
+def pdf_fonts(pdffonts: str, pdf: Path) -> list[dict]:
+    p = subprocess.run([pdffonts, str(pdf)], capture_output=True, text=True, timeout=120)
+    if p.returncode != 0:
+        raise BuildError(f"pdffonts failed: {p.stderr.strip()}")
+    return parse_pdffonts(p.stdout)
+
+
+def bad_fonts(fonts: list[dict]) -> list[str]:
+    """The fonts the NeurIPS instructions refuse: Type 3, or not embedded."""
+    return [f"{f['name'] or '(unnamed)'} ({f['type']}{'' if f['embedded'] else ', not embedded'})"
+            for f in fonts if "Type 3" in f["type"] or not f["embedded"]]
 
 
 def pdf_plain(pdftotext: str, pdf: Path) -> str:
@@ -579,6 +772,10 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
     pandoc = find_tool("pandoc", "PANDOC")
     if not pandoc:
         raise BuildError("pandoc not found (set PANDOC)")
+    # the NeurIPS style: required for a PDF; --tex-only reports it and goes on
+    style = style_status() if tex_only else check_style()
+    if not style["ok"] and not quiet:
+        print(f"build_report_pdf: warning: {style_instructions(style)}", file=sys.stderr)
     xelatex = find_tool("xelatex", "XELATEX")
     if not xelatex and not tex_only:
         raise BuildError("xelatex not found (set XELATEX)")
@@ -591,6 +788,9 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
     if build_dir.exists():
         shutil.rmtree(build_dir)
     build_dir.mkdir(parents=True)
+    if style["ok"]:
+        # next to the .tex, where XeLaTeX finds it (it is not installed in TeX's tree)
+        shutil.copyfile(KIT / STYLE_NAME, build_dir / STYLE_NAME)
     text = draft.read_text(encoding="utf-8")
     fm = front_matter(text)
     if fm["missing"]:
@@ -619,7 +819,9 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
         "inputs": {rel(p): sha256(p) for p in
                    [draft, KIT / "defaults.yaml", KIT / "template.tex", KIT / "report.lua",
                     Path(__file__).resolve()]
+                   + ([KIT / STYLE_NAME] if style["present"] else [])
                    + sorted({ROOT / f["source"] for f in figs.values()})},
+        "style": style,
         "tools": {"pandoc": tool_version(pandoc), "xelatex": tool_version(xelatex) if xelatex else None},
         "git": {"head": git("rev-parse", "--short", "HEAD"),
                 "inputs_dirty": bool(git("status", "--porcelain", "--", "docs/report",
@@ -632,7 +834,8 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
         "captions": captions,
         # pandoc's JSON writes an empty Lua list as {}
         "filter": {k: (flt.get(k) or ({} if k == "links" else [])) for k in
-                   ("links", "unresolved", "warnings", "tables", "figures", "references")},
+                   ("links", "unresolved", "warnings", "tables", "figures", "references",
+                    "headings")},
         "pandoc_stderr": [ln for ln in pandoc_stderr.splitlines() if ln.strip()],
     }
     if tex_only:
@@ -641,7 +844,11 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
         return report
     log, runs = run_xelatex(xelatex, tex, epoch)
     parsed = parse_log(log)
-    labels = aux_pages(tex.with_suffix(".aux").read_text(encoding="utf-8", errors="replace"))
+    aux = tex.with_suffix(".aux").read_text(encoding="utf-8", errors="replace")
+    labels = aux_pages(aux)
+    positions, geometry = aux_positions(aux)
+    main_figures = [f["label"] for f in flt.get("figures") or [] if f.get("main")]
+    pages = page_summary(labels, parsed["pages"], positions, geometry, main_figures)
     pdf_built = tex.with_suffix(".pdf")
     pdf = out_dir / PDF_NAME
     shutil.copyfile(pdf_built, pdf)
@@ -651,18 +858,24 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
         checked = text_check(draft_plain(pandoc, text), pdf_plain(pdftotext, pdf))
     else:
         checked = {"skipped": "pdftotext not found (set PDFTOTEXT)"}
+    pdffonts = find_tool("pdffonts", "PDFFONTS")
+    fonts = pdf_fonts(pdffonts, pdf) if pdffonts else {"skipped": "pdffonts not found (set PDFFONTS)"}
     report.update({
         "pdf": str(pdf),
         "pdf_sha256": sha256(pdf),
         "pdf_bytes": size,
         "pdf_within_limit": size <= MAX_PDF_BYTES,
         "latex_runs": runs,
-        "pages": page_summary(labels, parsed["pages"]),
+        "pages": pages,
+        # each heading's pages and words; "main" marks the main text's
+        "sections": section_pages(flt.get("headings") or [], positions, geometry,
+                                  pages.get("total")),
         "label_pages": {k: v for k, v in labels.items()
                         if k.startswith(("report:", "fig-", "tab-", "references"))
                         or k in ("sec-1", "sec-7")},
         "log": {k: v for k, v in parsed.items() if k != "rerun"},
         "text_check": checked,
+        "fonts": fonts,
     })
     (out_dir / "build.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     if not quiet:
@@ -670,9 +883,15 @@ def build(draft: Path = DRAFT, out_dir: Path = OUT, *, figures: str = "auto",
     return report
 
 
-def problems(report: dict, overfull_limit: float = OVERFULL_LIMIT_PT) -> list[str]:
+def problems(report: dict, overfull_limit: float = OVERFULL_LIMIT_PT,
+             max_main_pages: int = MAX_MAIN_PAGES) -> list[str]:
     """What --strict fails on."""
     out = []
+    pg = report.get("pages") or {}
+    if pg.get("main_text_pages") and pg["main_text_pages"] > max_main_pages:
+        out.append(f"main text is {pg['main_text_pages']} pages (to its last line "
+                   f"{pg.get('main_text_measured', '?')}), over the {max_main_pages} the "
+                   "competition allows, references and appendices excluded")
     log = report.get("log", {})
     big = [o for o in log.get("overfull", []) if o["pt"] > overfull_limit]
     if big:
@@ -699,6 +918,10 @@ def problems(report: dict, overfull_limit: float = OVERFULL_LIMIT_PT) -> list[st
                        + ", ".join(sorted(tc[f"{kind}_missing"]))[:300])
     if tc.get("greek_question_marks"):
         out.append(f"{tc['greek_question_marks']} semicolons in the PDF's text read as U+037E")
+    fonts = report.get("fonts")
+    if isinstance(fonts, list) and (bad := bad_fonts(fonts)):
+        out.append("fonts the NeurIPS instructions refuse (Type 3 or not embedded): "
+                   + ", ".join(bad)[:300])
     return out
 
 
@@ -709,10 +932,18 @@ def summary(report: dict) -> str:
         lines.append(f"PDF: {rel(Path(report['pdf']))} ({report['pdf_bytes'] / 1e6:.2f} MB, {pg.get('total')} pages, "
                      f"{report['latex_runs']} XeLaTeX runs)")
         if "main_text" in pg:
-            refs = pg.get("references")
-            lines.append(f"  main text: pages {pg['main_text'][0]}-{pg['main_text'][1]}"
-                         + (f" (references {refs[0]}-{refs[1]})" if refs else "")
-                         + f"; appendices: pages {pg['appendices'][0]}-{pg['appendices'][1]}")
+            refs, app = pg.get("references"), pg.get("appendices")
+            n, limit = pg["main_text_pages"], pg.get("main_text_limit", MAX_MAIN_PAGES)
+            measured = pg.get("main_text_measured")
+            lines.append(f"  main text: {n} pages (pages {pg['main_text'][0]}-{pg['main_text'][1]}"
+                         + (f", {measured:.2f} to its last line" if measured is not None else "")
+                         + f"; limit {limit}" + (", OVER" if n > limit else "") + ")"
+                         + (f"; references: pages {refs[0]}-{refs[1]}" if refs else "")
+                         + (f"; appendices: pages {app[0]}-{app[1]}" if app else ""))
+            for sec in report.get("sections") or []:
+                if sec["main"] and sec["level"] == 2 and "pages" in sec:
+                    lines.append(f"    {sec['title'][:60]:<60} {sec['pages']:5.2f} pages "
+                                 f"{sec['words']:5d} words (from page {sec['start_page']})")
     kinds = sorted({f["kind"] for f in report["figures"].values()})
     lines.append(f"  figures: {len(report['figures'])} ({', '.join(kinds)})")
     t = report["filter"].get("tables") or []
@@ -755,6 +986,14 @@ def summary(report: dict) -> str:
             lines.append(f"    U+037E (Greek question mark) for ';': {tc['greek_question_marks']}")
     elif tc:
         lines.append(f"  text check skipped: {tc.get('skipped')}")
+    fonts = report.get("fonts")
+    if isinstance(fonts, list):
+        bad = bad_fonts(fonts)
+        lines.append(f"  fonts: {len(fonts)} ({', '.join(sorted({f['type'] for f in fonts}))})"
+                     + (f"; refused by the NeurIPS instructions: {', '.join(bad)}" if bad else
+                        "; all embedded, none Type 3"))
+    elif fonts:
+        lines.append(f"  font check skipped: {fonts.get('skipped')}")
     for w in report["filter"].get("warnings") or []:
         lines.append(f"  filter: {w}")
     un = report["filter"].get("unresolved") or []
@@ -815,12 +1054,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--check-deterministic", action="store_true",
                     help="build twice in temporary directories and compare the PDFs")
     ap.add_argument("--strict", action="store_true",
-                    help=f"exit 2 on overfull boxes above {OVERFULL_LIMIT_PT}pt, missing glyphs, "
-                         "undefined or unresolved references, title-block placeholders, "
+                    help=f"exit 2 on a main text over {MAX_MAIN_PAGES} pages (references and "
+                         f"appendices excluded), overfull boxes above {OVERFULL_LIMIT_PT}pt, "
+                         "missing glyphs, undefined or unresolved references, title-block "
+                         "placeholders, "
                          "TODO(...) markers in the draft's body, "
                          "a figure placement that differs from figures.md, a number or word "
                          "of the draft missing from the PDF's text, a semicolon read as "
-                         "U+037E, or a PDF over 50 MB")
+                         "U+037E, a Type 3 or non-embedded font, or a PDF over 50 MB")
     args = ap.parse_args(argv)
     try:
         report = build(args.draft, args.out, figures=args.figures, captions=args.captions,

@@ -17,6 +17,10 @@ venv/
 # organisers baseline (no license; cloned for the official validator and streaming client)
 third_party/
 
+# the NeurIPS 2026 style file of the report PDF: it carries no license, so it is not
+# committed; tools/build_report_pdf.py names the official download and checks its sha256
+tools/report_pdf/neurips_2026.sty
+
 # written by tools/build_submission.py from the gated data; rebuild instead of committing
 submission/prior.json
 
